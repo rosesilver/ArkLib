@@ -1,4 +1,4 @@
-# A Library for Formally Verified Cryptographic Proof Systems
+# Formally Verified Cryptographic Proof Systems
 
 This library aims to provide a modular and composable framework for formally verifying cryptographic proof systems (e.g. SNARKs) based on Interactive (Oracle) Proofs. This is done as part of the Verified zkEVM project.
 
