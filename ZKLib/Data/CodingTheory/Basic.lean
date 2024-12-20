@@ -7,6 +7,7 @@ Authors: Quang Dao
 import Mathlib.InformationTheory.Hamming
 import Mathlib.LinearAlgebra.Lagrange
 import Mathlib.Data.Set.Finite.Lattice
+import Mathlib.Topology.MetricSpace.Infsep
 
 /-!
   # Basics of Coding Theory
@@ -47,6 +48,18 @@ code with `u ≠ v` and `hammingDist u v ≤ d`. If none exists, then we define 
 -/
 noncomputable def codeDist (C : Set (n → R)) : ℕ :=
   sInf {d | ∃ u ∈ C, ∃ v ∈ C, u ≠ v ∧ Δ₀( u, v ) ≤ d}
+
+-- TODO: rewrite this file using existing `(e)infsep` definitions
+
+instance : EDist (n → R) where
+  edist := fun u v => hammingDist u v
+
+instance : Dist (n → R) where
+  dist := fun u v => hammingDist u v
+
+noncomputable def eCodeDistNew (C : Set (n → R)) : ENNReal := C.einfsep
+
+noncomputable def codeDistNew (C : Set (n → R)) : ℝ := C.infsep
 
 notation "‖" C "‖₀" => codeDist C
 
