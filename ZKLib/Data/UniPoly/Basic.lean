@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2024 Quang Dao. All rights reserved.
+Copyright (c) 2024 ZKLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
@@ -298,8 +298,6 @@ def QuotientUniPoly := Quotient (@instSetoidUniPoly R _)
 
 end Equiv
 
-end UniPoly
-
 namespace Lagrange
 
 -- unique polynomial of degree n that has nodes at ω^i for i = 0, 1, ..., n-1
@@ -314,6 +312,8 @@ def interpolate {R : Type*} [Semiring R] (n : ℕ) (ω : R) (r : Vector R n) : U
   -- .mk (Array.finRange n |>.map (fun i => r[i])) * nodal n ω
 
 end Lagrange
+
+end UniPoly
 
 section Tropical
 /-- This section courtesy of Junyan Xu -/

@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2024 Quang Dao. All rights reserved.
+Copyright (c) 2024 ZKLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
@@ -22,35 +22,34 @@ namespace ReedSolomon
 
 open Polynomial
 
-variable {F : Type*} [Field F] [Fintype F] {n : Type*} [Fintype n]
+variable {F : Type*} [Field F] [Fintype F] {n : ℕ} (domain : Fin n ↪ F)
 
-def evalOnPoints (points : FinEnum F) : F[X] →ₗ[F] (Fin points.card → F) where
-  toFun := fun p => fun x => p.eval (points.equiv.invFun x)
+def evalOnPoints : F[X] →ₗ[F] (Fin n → F) where
+  toFun := fun p => fun x => p.eval (domain x)
   map_add' := fun x y => by simp; congr
   map_smul' := fun m x => by simp; congr
 
 /-- The Reed-Solomon code for polynomials of degree less than `deg` and evaluation points `points`.
   -/
-def code (deg : ℕ) (points : FinEnum F) : Submodule F (Fin points.card → F) :=
-  (Polynomial.degreeLT F deg).map (evalOnPoints points)
+def code (deg : ℕ) : Submodule F (Fin n → F) :=
+  (Polynomial.degreeLT F deg).map (evalOnPoints domain)
 
 /-- The generator matrix of the Reed-Solomon code of degree `deg` and evaluation points `points`. -/
-def genMatrix (deg : ℕ) (points : FinEnum F) : Matrix (Fin deg) (Fin points.card) F :=
-  .of (fun i j => points.equiv.toFun j ^ (i : ℕ))
+def genMatrix (deg : ℕ) : Matrix (Fin deg) (Fin n) F :=
+  .of (fun i j => domain j ^ (i : ℕ))
 
-def checkMatrix (points : FinEnum F) : Matrix (Fin points.card) (Fin points.card) F :=
+def checkMatrix (deg : ℕ) : Matrix (Fin (n - deg)) (Fin n) F :=
   sorry
 
-theorem code_by_genMatrix (deg : ℕ) (points : FinEnum F) :
-    code deg points = codeByGenMatrix (genMatrix deg points) := by
-  simp [codeByGenMatrix, code]
-  rw [LinearMap.range_eq_map]
-  sorry
+-- theorem code_by_genMatrix (deg : ℕ) :
+--     code deg = codeByGenMatrix (genMatrix deg) := by
+--   simp [codeByGenMatrix, code]
+--   rw [LinearMap.range_eq_map]
+--   sorry
 
 #check LinearMap.range_eq_map
 
 #check Basis
-
 
 #check Matrix.vandermonde
 

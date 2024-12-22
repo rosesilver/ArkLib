@@ -1,11 +1,56 @@
-
 # Roadmap
 
-We provide a (non-exhaustive) list of tasks to be completed. Our focus here is mostly on `Data`, since it is the part that can be most easily be contributed to by outside contributors.
+We provide here a list of projects and extensions to ZKLib. This list will be updated as items are taken off into immediate issues to be worked on.
 
-- [ ] [`Data`](ZKLib/Data)
-  - [ ] [Miscellaneous](ZKLib/Data/Misc)
-    - [ ] This folder is meant to be the place to store any definitions or theorems about `Mathlib` data types (e.g. `List` and `Array`) that are required in other parts of the library.
+## General Theory
+
+### 1. The Fiat-Shamir Transform
+
+### 2. Zero-Knowledge
+
+### 3. Rewinding Knowledge Soundness
+
+### 4. The Algebraic Group Model
+
+### 5. Mechanized Adversary Runtime
+
+## Proof Systems
+
+### 1. GKR, Lasso, and Jolt
+
+### 2. AIR and STIR/WHIR
+
+### 3. Binary Tower Fields and (FRI-)Binius
+
+### 4. Pairing-based and DLog-based Commitment Schemes
+
+- KZG
+- Bulletproofs (as an inner product argument (IPA), or even more specialized, a polynomial commitment scheme (PCS))
+- Hyrax
+- HyperKZG / Zeromorph
+- Dory
+
+### 5. Extensions to Plonk
+
+- High-degree gates
+- Lookups based on univariate polynomials (plookup? logup? cq?)
+
+### 6. Folding Schemes
+
+- Nova, Hypernova, and NeutronNova
+- Protostar and ProtoGalaxy
+- Arc
+
+## Miscellaneous
+
+### 1. The PCP Theorem
+
+It would be nice to use the theories in ZKLib to prove foundational results such as the PCP theorem. We imagine that it is within reach to formalize the original proofs (using sum-check, multivariate low-degree tests, and proof composition), and also the quasilinear-length PCP by Ben-Sasson & Sudan.
+
+## Supporting Operations
+
+The below are content for an older version of the roadmap. Some of these contents are being actively worked on (especially computable polynomials).
+
   - [ ] [Computable Univariate Polynomials](ZKLib/Data/UniPoly)
     - [x] Define `UniPoly` as the type of univariate polynomials with computable representations (interally as an `Array` of coefficients). Define operations on `UniPoly` as operations on the underlying `Array` of coefficients.
     - [x] Define an equivalence relation on `UniPoly` that says two `UniPoly`s are equivalent iff they are equal up to zero-padding. Show that this is an equivalence relation.
@@ -32,12 +77,3 @@ We provide a (non-exhaustive) list of tasks to be completed. Our focus here is m
   - [ ] [Large Scalar Fields used in Curves](ZKLib/Data/ScalarPrimeField)
     - [ ] Low-priority for now.
     - [ ] Development on this should be done over at [`FFaCiL`](https://github.com/argumentcomputer/FFaCiL.lean/tree/main).
-- [ ] [`InteractiveOracleReduction`](ZKLib/InteractiveOracleReduction)
-  - In this folder, we define Interactive Oracle Reductions (IOR) as the basic building block of proof systems. This is the same as an IOP, except that we are using interaction to reduce one (oracle) relation to another. This allows us to reason modularly about the security properties of proof systems.
-  - The main definitions are in [`Basic.lean`](ZKLib/InteractiveOracleReduction/Basic.lean). We plan to define the composition of two IORs (with matching oracle relations) in [`Composition.lean`](ZKLib/InteractiveOracleReduction/Composition.lean). We also plan to define composition of an IOR with commitment schemes for the corresponding oracles.
-- [ ] [`ProofSystem`](ZKLib/ProofSystem)
-  - In this folder, we plan to provide the specification and implementation of the sum-check protocol (in [`SumCheck.lean`](ZKLib/ProofSystem/Sumcheck)) and Spartan (in [`Spartan.lean`](ZKLib/ProofSystem/Spartan)).
-- [ ] [`CommitmentScheme`](ZKLib/CommitmentScheme)
-  - [ ] In [`Basic.lean`](ZKLib/CommitmentScheme/Basic.lean), we plan to provide the basic definition of an oracle commitment scheme, where the opening procedure may itself be an IOP with access to some other oracles (e.g. random oracles).
-  - [ ] In [`Tensor.lean`](ZKLib/CommitmentScheme/Tensor.lean), we plan to provide a construction of the tensor-based polynomial commitment scheme underlying Ligero, Brakedown, Binius, etc. The opening procedure of this PCS then takes the form of an IOP where the messages are available as point queries (e.g. the messages are vectors, and one can query individual positions of the messages).
-  - [ ] In [`MerkleTree.lean`](ZKLib/CommitmentScheme/MerkleTree.lean), we provide a construction of Merkle trees, where hashing are modeled as random oracle queries, as an example of a vector commitment scheme. This can then be composed with the tensor-based PCS above to form an interactive PCS in the random oracle model. We plan to show the extractability and privacy of Merkle trees as in [this hash-based SNARGs textbook](https://github.com/hash-based-snargs-book/hash-based-snargs-book).
