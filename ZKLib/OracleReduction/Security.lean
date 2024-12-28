@@ -43,7 +43,7 @@ open scoped NNReal
 --   coe := fun ⟨x, h⟩ => ⟨x, (Set.mem_Icc.mp h).left⟩
 
 variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
-    [∀ i, Sampleable (pSpec.Challenge i)] {StmtIn WitIn StmtOut WitOut : Type}
+    [∀ i, VCVCompatible (pSpec.Challenge i)] {StmtIn WitIn StmtOut WitOut : Type}
 
 section Completeness
 
@@ -389,9 +389,10 @@ namespace OracleReduction
 open OracleComp OracleSpec Reduction
 open scoped NNReal
 
-variable {n : ℕ} {ι : Type} [DecidableEq ι] (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
-    [∀ i, ToOracle (pSpec.Message i)] [∀ i, Sampleable (pSpec.Challenge i)]
-    {StmtIn WitIn StmtOut WitOut : Type} {OStmt : Fin n → Type} [∀ i, ToOracle (OStmt i)]
+variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+    [∀ i, ToOracle (pSpec.Message i)] [∀ i, VCVCompatible (pSpec.Challenge i)]
+    {StmtIn WitIn StmtOut WitOut : Type} {ιₛ : Type} [DecidableEq ιₛ]
+    {OStmt : ιₛ → Type} [∀ i, ToOracle (OStmt i)]
 
 def completeness
     (relIn : (StmtIn × ∀ i, OStmt i) → WitIn → Prop)

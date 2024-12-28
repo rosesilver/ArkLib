@@ -346,23 +346,20 @@ instance : SubSpec ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ)
   toFun := fun i _ => by
     cases i with
     | inl j =>
-      have := query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inl ()
-      sorry
-      -- simpa [OracleSpec.append, ChallengeIndex.inl, ProtocolSpec.append,
-      --   Fin.append_comp', Fin.append_left] using this
+      simpa [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle] using
+        query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inl ()
     | inr j =>
-      sorry
-      -- simpa [OracleSpec.append, ChallengeIndex.inr, ProtocolSpec.append] using
-      --   query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inr ()
+      simpa [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle] using
+        query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inr ()
   evalDist_toFun' := fun i q => by
     cases i with
     | inl j =>
       simp only [eq_mp_eq_cast, id_eq]
       have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inl =
         ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inl j) := by
-        simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inl]
+        simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
       rw [evalDist_cast _ this, evalDist_query, evalDist_query]
-      simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inl]
+      simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
       refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
       intro x
       simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_left]
@@ -372,9 +369,9 @@ instance : SubSpec ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ)
       simp only [eq_mp_eq_cast, id_eq]
       have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inr =
         ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inr j) := by
-        simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inr]
+        simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
       rw [evalDist_cast _ this, evalDist_query, evalDist_query]
-      simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inr]
+      simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
       refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
       intro x
       simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_right]
@@ -507,11 +504,11 @@ def OracleVerifier.append (V : OracleVerifier pSpec₁ oSpec Stmt₁ Stmt₂ OSt
       OracleVerifier (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Stmt₃ OStmt where
   verify := fun stmt oStmt challenges => sorry
 
-def OracleReduction.append (R₁ : OracleReduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂)
-    (R₂ : OracleReduction pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃) :
-      OracleReduction (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ Stmt₃ Wit₃ where
-  prover := Prover.append R₁.prover R₂.prover
-  verifier := OracleVerifier.append R₁.verifier R₂.verifier
+-- def OracleReduction.append (R₁ : OracleReduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂ OStmt)
+--     (R₂ : OracleReduction pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃ OStmt) :
+--       OracleReduction (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ Stmt₃ Wit₃ OStmt where
+--   prover := Prover.append R₁.prover R₂.prover
+--   verifier := OracleVerifier.append R₁.verifier R₂.verifier
 
 -- Define composition of multiple reductions via recursion with `Fin.fold`
 
@@ -672,11 +669,11 @@ variable [∀ i, Sampleable (pSpec₁.Challenge i)] [∀ i, Sampleable (pSpec₂
 theorem Prover.append_run (P₁ : Prover pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂)
     (P₂ : Prover pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃) (stmt : Stmt₁) (wit : Wit₁) :
       (P₁.append P₂).run stmt wit = (do
-        let ⟨transcript₁, queryLog₁, stmt₂, wit₂⟩ ← liftComp (P₁.run stmt wit)
-        let ⟨transcript₂, queryLog₂, stmt₃, wit₃⟩ ← liftComp (P₂.run stmt₂ wit₂)
+        let ⟨stmt₂, wit₂, transcript₁, queryLog₁⟩ ← liftComp (P₁.run stmt wit)
+        let ⟨stmt₃, wit₃, transcript₂, queryLog₂⟩ ← liftComp (P₂.run stmt₂ wit₂)
         -- TODO: should we refactor the prover to take in a running query log?
-        return ⟨transcript₁ ++ₜ transcript₂, QueryLog.append queryLog₁ queryLog₂,
-          stmt₃, wit₃⟩) := sorry
+        return ⟨stmt₃, wit₃, transcript₁ ++ₜ transcript₂, QueryLog.append queryLog₁ queryLog₂⟩) :=
+  sorry
 
 -- TODO: Need to define a function that "extracts" a second prover from the combined prover
 

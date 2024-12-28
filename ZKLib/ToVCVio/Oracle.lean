@@ -7,17 +7,41 @@ import VCVio
 import Batteries.Data.Array.Monadic
 
 /-!
-  # Deterministic Oracle Simulation
-
-  This is a special case of `simulate` where the `SimOracle` is a deterministic function `f`. We
-  allow the oracle to possibly keep some state in addition to providing responses according to `f`.
-  We can run an oracle computation to create a return value by replacing oracle calls to
-  `DeterministicOracle spec f σ` with function calls to `f`.
+  # Helper Definitions and Lemmas to be ported to VCVio
 -/
 
 open OracleSpec OracleComp
 
 variable {ι : Type} {α β γ : Type}
+
+structure OracleInterface where
+  domain' : Type
+  range' : Type
+  decidableEq_domain' : DecidableEq domain'
+  decidableEq_range' : DecidableEq range'
+  inhabited_range' : Inhabited range'
+  fintype_range' : Fintype range'
+
+def NewOracleSpec (ι : Type) := ι → OracleInterface
+
+namespace NewOracleSpec
+
+variable {ι : Type} (i : ι) (spec : NewOracleSpec ι)
+
+def domain : Type := (spec i).domain'
+def range : Type := (spec i).range'
+
+instance decidableEq_domain : DecidableEq (domain i spec) := (spec i).decidableEq_domain'
+instance decidableEq_range : DecidableEq (range i spec) := (spec i).decidableEq_range'
+instance inhabited_range : Inhabited (range i spec) := (spec i).inhabited_range'
+instance fintype_range : Fintype (range i spec) := (spec i).fintype_range'
+
+variable {ι₁ ι₂ : Type}
+
+def append (spec₁ : NewOracleSpec ι₁) (spec₂ : NewOracleSpec ι₂) :
+    NewOracleSpec (ι₁ ⊕ ι₂) := Sum.elim spec₁ spec₂
+
+end NewOracleSpec
 
 /--
   A function that implements the oracle interface specified by `spec`, and queries no further
@@ -40,6 +64,26 @@ def oracleize (f : α → β) : (α →ₒ β) →[QueryLog (α →ₒ β)]ₛ�
 -/
 def StatefulOracle (spec : OracleSpec ι) (σ : Type) :=
   SimOracle spec emptySpec σ
+
+variable {ι' : Type}
+
+def OracleSpec.rename (spec : OracleSpec ι) (f : ι' → ι) : OracleSpec ι' :=
+  { domain := fun i' ↦ spec.domain (f i'),
+    range := fun i' ↦ spec.range (f i'),
+    domain_decidableEq' := fun i' ↦ spec.domain_decidableEq (f i'),
+    range_decidableEq' := fun i' ↦ spec.range_decidableEq (f i'),
+    range_inhabited' := fun i' ↦ spec.range_inhabited (f i'),
+    range_fintype' := fun i' ↦ spec.range_fintype (f i') }
+
+namespace OracleSpec
+
+variable {ι : Type} {spec : OracleSpec ι}
+
+def QueryLog.getQueriesFromIdx (log : QueryLog spec) (i : ι) :
+    List (spec.domain i × spec.range i) :=
+  log i
+
+end OracleSpec
 
 namespace OracleComp
 

@@ -264,7 +264,7 @@ structure Prover (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
   statement also consists of the underlying messages for the oracle statements -/
 @[reducible]
 def OracleProver (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
-    (StmtIn WitIn StmtOut WitOut : Type) {nStmt : ℕ} (OStmt : Fin nStmt → Type) :=
+    (StmtIn WitIn StmtOut WitOut : Type) {ιₛ : Type} (OStmt : ιₛ → Type) :=
   Prover pSpec oSpec (StmtIn × ∀ i, OStmt i) WitIn
     (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)) WitOut
 
@@ -284,7 +284,7 @@ When composing with another reduction, we assume that all the messages in the pr
 new oracle statements to the next reduction, unless specified otherwise. -/
 structure OracleVerifier (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     [O_M : ∀ i, ToOracle (pSpec.Message i)] (StmtIn StmtOut : Type)
-    {nStmt : ℕ} (OStmt : Fin nStmt → Type) [O_S : ∀ i, ToOracle (OStmt i)] where
+    {ιₛ : Type} (OStmt : ιₛ → Type) [O_S : ∀ i, ToOracle (OStmt i)] where
 
   verify : StmtIn → (∀ i, OStmt i) → (∀ i, pSpec.Challenge i)
     → OracleComp (oSpec ++ₒ ([OStmt]ₒ ++ₒ [pSpec.Message]ₒ)) StmtOut
@@ -297,7 +297,7 @@ structure OracleVerifier (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
   using its knowledge of the oracle statements and the transcript messages in the clear -/
 def OracleVerifier.toVerifier {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     [O : ∀ i, ToOracle (pSpec.Message i)] {StmtIn StmtOut : Type}
-    {nStmt : ℕ} {OStmt : Fin nStmt → Type} [O_S : ∀ i, ToOracle (OStmt i)]
+    {ιₛ : Type} {OStmt : ιₛ → Type} [O_S : ∀ i, ToOracle (OStmt i)]
     (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmt) :
     Verifier pSpec oSpec (StmtIn × ∀ i, OStmt i)
       (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)) where
@@ -322,7 +322,7 @@ structure Reduction (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
   oracles defined by `oSpec`, consists of a prover and an **oracle** verifier. -/
 structure OracleReduction (pSpec : ProtocolSpec n) [∀ i, ToOracle (pSpec.Message i)]
     (oSpec : OracleSpec ι) (StmtIn WitIn StmtOut WitOut : Type)
-    {nStmt : ℕ} (OStmt : Fin nStmt → Type) [O_S : ∀ i, ToOracle (OStmt i)] where
+    {ιₛ : Type} (OStmt : ιₛ → Type) [O_S : ∀ i, ToOracle (OStmt i)] where
   prover : OracleProver pSpec oSpec StmtIn WitIn StmtOut WitOut OStmt
   verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmt
 
@@ -330,7 +330,7 @@ structure OracleReduction (pSpec : ProtocolSpec n) [∀ i, ToOracle (pSpec.Messa
   oracle verifier to a (normal) verifier -/
 def OracleReduction.toReduction {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     {StmtIn WitIn StmtOut WitOut : Type} [∀ i, ToOracle (pSpec.Message i)]
-    {nStmt : ℕ} {OStmt : Fin nStmt → Type} [O_S : ∀ i, ToOracle (OStmt i)]
+    {ιₛ : Type} {OStmt : ιₛ → Type} [O_S : ∀ i, ToOracle (OStmt i)]
     (oracleReduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmt) :
       Reduction pSpec oSpec (StmtIn × (∀ i, OStmt i)) WitIn
         (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)) WitOut :=
@@ -345,7 +345,7 @@ abbrev Proof (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι) (Statement Witness
   boolean, the output witness can be arbitrary, and the relation checks whether the output statement
   is true. -/
 abbrev OracleProof (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι) [∀ i, ToOracle (pSpec.Message i)]
-    (Statement Witness : Type) {nStmt : ℕ} (OStmt : Fin nStmt → Type)
+    (Statement Witness : Type) {ιₛ : Type} (OStmt : ιₛ → Type)
     [O_S : ∀ i, ToOracle (OStmt i)] :=
   OracleReduction pSpec oSpec Statement Witness Bool Unit OStmt
 
@@ -357,7 +357,7 @@ open ProtocolSpec
 
 variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
   {StmtIn WitIn StmtOut WitOut : Type}
-  {nStmt : ℕ} {OStmt : Fin nStmt → Type} [O_S : ∀ i, ToOracle (OStmt i)]
+  {ιₛ : Type} [DecidableEq ιₛ] {OStmt : ιₛ → Type} [O_S : ∀ i, ToOracle (OStmt i)]
 
 /--
   Auxiliary function for running the prover in an interactive protocol. Given round index `i`,
@@ -365,7 +365,7 @@ variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec 
   up to that round, and the prover's state after that round.
 -/
 @[inline, specialize]
-def Prover.runAux [∀ i, Sampleable (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
+def Prover.runAux [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
     (i : Fin (n + 1)) (prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut) :
       OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
         (pSpec.Transcript i × prover.PrvState i × QueryLog oSpec) :=
@@ -390,7 +390,7 @@ def Prover.runAux [∀ i, Sampleable (pSpec.Challenge i)] (stmt : StmtIn) (wit :
   witness, and the log of oracle queries made by the prover.
 -/
 @[inline, specialize]
-def Prover.run [∀ i, Sampleable (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
+def Prover.run [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
     (prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut) :
       OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
         (StmtOut × WitOut × FullTranscript pSpec × QueryLog oSpec) := do
@@ -436,7 +436,7 @@ theorem OracleVerifier.run_eq_run_verifier [∀ i, ToOracle (pSpec.Message i)] {
       Prod.fst <$> verifier.run stmt oStmt transcript =
         Prod.fst <$> Prod.fst <$> verifier.toVerifier.run ⟨stmt, oStmt⟩ transcript := by
   simp [OracleVerifier.run, Verifier.run, map_bind, map_pure, bind_pure,
-    OracleVerifier.toVerifier]
+    OracleVerifier.toVerifier, simulate_eq_map_simulate']
   sorry
 
 /--
@@ -446,7 +446,7 @@ theorem OracleVerifier.run_eq_run_verifier [∀ i, ToOracle (pSpec.Message i)] {
   output statement and witness
 -/
 @[inline, specialize]
-def Reduction.run [∀ i, Sampleable (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
+def Reduction.run [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
     (reduction : Reduction pSpec oSpec StmtIn WitIn StmtOut WitOut) :
       OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
         (StmtOut × WitOut × FullTranscript pSpec × QueryLog oSpec × QueryLog oSpec) := do
@@ -459,7 +459,7 @@ def Reduction.run [∀ i, Sampleable (pSpec.Challenge i)] (stmt : StmtIn) (wit :
   the prover's messages and to the shared oracle.
 -/
 @[inline, specialize]
-def OracleReduction.run [∀ i, Sampleable (pSpec.Challenge i)] [∀ i, ToOracle (pSpec.Message i)]
+def OracleReduction.run [∀ i, VCVCompatible (pSpec.Challenge i)] [∀ i, ToOracle (pSpec.Message i)]
     (stmt : StmtIn) (wit : WitIn) (oStmt : ∀ i, OStmt i)
     (reduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmt) :
       OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
@@ -473,7 +473,7 @@ def OracleReduction.run [∀ i, Sampleable (pSpec.Challenge i)] [∀ i, ToOracle
 -- running a non-oracle verifier -/
 -- @[simp]
 -- theorem OracleReduction.run_eq_run_reduction [DecidableEq ι]
---     [∀ i, Sampleable (pSpec.Challenge i)]
+--     [∀ i, VCVCompatible (pSpec.Challenge i)]
 --     [∀ i, ToOracle (pSpec.Message i)] {stmt : StmtIn} {wit : WitIn}
 --     {oracleReduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmt} :
 --       Prod.snd <$> oracleReduction.run stmt wit = oracleReduction.toReduction.run stmt wit := by
@@ -547,8 +547,8 @@ instance [IsSingleRound pSpec] [h : ToOracle (pSpec.Message default)] :
   subst this
   exact h
 
-instance [IsSingleRound pSpec] [h : Sampleable (pSpec.Challenge default)] :
-    (i : pSpec.ChallengeIndex) → Sampleable (pSpec.Challenge i) := fun i => by
+instance [IsSingleRound pSpec] [h : VCVCompatible (pSpec.Challenge default)] :
+    (i : pSpec.ChallengeIndex) → VCVCompatible (pSpec.Challenge i) := fun i => by
   haveI : i = default := Unique.uniq _ i
   subst this
   exact h
@@ -570,7 +570,7 @@ theorem FullTranscript.mk2_eq_snoc_snoc {pSpec : ProtocolSpec 2} (msg0 : pSpec.g
   · have : i = 1 := by omega
     subst this; simp [Fin.snoc]
 
-variable [∀ i, Sampleable (pSpec.Challenge i)] {ι : Type} [DecidableEq ι] {oSpec : OracleSpec ι}
+variable [∀ i, VCVCompatible (pSpec.Challenge i)] {ι : Type} [DecidableEq ι] {oSpec : OracleSpec ι}
     {StmtIn WitIn StmtOut WitOut PrvState : Type}
 
 -- /-- Simplification of the prover's execution in a single-round, two-message protocol where the

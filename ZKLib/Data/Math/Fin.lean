@@ -778,3 +778,18 @@ theorem dfoldr_eq_foldr {n : Nat} {α : Sort _} (f : Fin n → α → α) (x : �
 end Fold
 
 end Fin
+
+section OptionEquivPrime
+
+-- Experimenting with `Fin n` instead of `Fin (n + 1)`, but it seems we'd need to re-define every
+-- existing `Fin` functions, which is bad
+
+#check finSuccEquiv'
+
+variable {n : ℕ}
+
+def finSuccEquivNth' (i : Fin n) : Fin n ≃ Option (Fin (n - 1)) := by
+  haveI : n = (n - 1) + 1 := (Nat.sub_eq_iff_eq_add (Nat.zero_lt_of_lt i.isLt)).mp rfl
+  exact Equiv.trans (Equiv.cast (congrArg _ this)) (finSuccEquiv' (Fin.cast this i))
+
+end OptionEquivPrime
