@@ -36,6 +36,12 @@ Define the binary tower field GF(2^{2^k}) as an iterated quadratic extension of 
   Application to Reed–Solomon Erasure Codes”. In: IEEE 55th Annual Symposium on Foundations of
   Computer Science. 2014, pp. 316–325. doi: 10.1109/FOCS.2014.41.
 
+- [DP23] Diamond, Benjamin E., and Jim Posen. "Succinct arguments over towers of binary fields."
+  Cryptology ePrint Archive (2023).
+
+- [DP24] Diamond, Benjamin E., and Jim Posen. "Polylogarithmic Proofs for Multilinears over Binary
+  Towers." Cryptology ePrint Archive (2024).
+
 -/
 
 
@@ -45,82 +51,65 @@ open Polynomial
 
 notation:10 "GF(" term:10 ")" => GaloisField term 1
 
--- TODO: consider bundling all the fields below into just one structure, and then make the instances
--- inside accessible. Example from R1CS:
-/-
--- Bundle R and its CommSemiring instance
-structure RingParams where
-  R : Type _
-  [commSemiring : CommSemiring R]
-
--- Make the CommSemiring instance accessible
-attribute [instance] RingParams.commSemiring
--/
-
 -- In this definition, the field defined by (BinaryTower k) corresponds to GF(2^{2^{k-1}})
-def BinaryTower (k : ℕ) : (F : Type _) × (List F) × (CommRing F) × (Inhabited F) :=
+def BinaryTower (k : ℕ) :
+    (F : Type _) × (Mathlib.Vector F (k + 1)) × (CommRing F) × (Inhabited F) :=
   match k with
-  | 0 => ⟨ GF(2), [(1 : GF(2))], inferInstance, inferInstance ⟩
+  | 0 => ⟨ GF(2), Mathlib.Vector.cons (1 : GF(2)) Mathlib.Vector.nil, inferInstance, inferInstance ⟩
   | k + 1 =>
     let ⟨ F, elts, _, _ ⟩ := BinaryTower k
-    let currX : F := elts.getLastI
+    let currX : F := elts.1.getLastI
     let newPoly : Polynomial F := X^2 + (C currX) * X + 1
     let newF := AdjoinRoot newPoly
     let newX := AdjoinRoot.root newPoly
     let newElts := elts.map (fun x => (AdjoinRoot.of newPoly).toFun x)
-    ⟨ newF, newElts ++ [newX], inferInstance, inferInstance ⟩
+    ⟨ newF, newX ::ᵥ newElts, inferInstance, inferInstance ⟩
+
+instance {k : ℕ} : CommRing (BinaryTower k).1 := (BinaryTower k).2.2.1
+instance {k : ℕ} : Inhabited (BinaryTower k).1 := (BinaryTower k).2.2.2
 
 namespace BinaryTower
 
 @[simp]
-def field (k : ℕ) := (BinaryTower k).1
+def Field (k : ℕ) := (BinaryTower k).1
 
 @[simp]
-instance CommRing (k : ℕ) : CommRing (field k) := (BinaryTower k).2.2.1
+instance CommRing (k : ℕ) : CommRing (Field k) := (BinaryTower k).2.2.1
 
 @[simp]
-instance Inhabited (k : ℕ) : Inhabited (field k) := (BinaryTower k).2.2.2
+instance Inhabited (k : ℕ) : Inhabited (Field k) := (BinaryTower k).2.2.2
 
 @[simp]
-def list (k : ℕ) : List (field k):= (BinaryTower k).2.1
+def list (k : ℕ) : Mathlib.Vector (Field k) (k + 1) := (BinaryTower k).2.1
 
 @[simp]
-def poly (k : ℕ) : Polynomial (field (k - 1)) :=
+def poly (k : ℕ) : Polynomial (Field (k - 1)) :=
   match k with
   | 0 => 0
-  | k + 1 => X^2 + (C (list k).getLastI) * X + 1
+  | k + 1 => X^2 + (C (list k).1.getLastI) * X + 1
 
 @[coe]
-theorem field_eq_adjoinRoot_poly (k : ℕ) (k_pos : k > 0) : AdjoinRoot (poly k) = field k := by
+theorem field_eq_adjoinRoot_poly (k : ℕ) (k_pos : k > 0) : AdjoinRoot (poly k) = Field k := by
   induction k with
   | zero => absurd k_pos ; simp
-  | succ k _ => simp [BinaryTower]
+  | succ k _ => sorry
 
-instance coe_field_adjoinRoot (k : ℕ) (k_pos : k > 0) : Coe (AdjoinRoot (poly k)) (field k) where
+instance coe_field_adjoinRoot (k : ℕ) (k_pos : k > 0) : Coe (AdjoinRoot (poly k)) (Field k) where
   coe := Eq.mp (field_eq_adjoinRoot_poly k k_pos)
 
 
 -- We call the special extension field elements Z_k
 @[simp]
-def Z (k : ℕ) : field k := (list k).getLastI
+def Z (k : ℕ) : Field k := (list k).1.getLastI
 
 -- @[simp]
 -- theorem Z_eq_adjointRoot_root (k : ℕ) (k_pos : k > 0) [HEq (AdjoinRoot (poly k)) (field k)] :
 --     Z k = AdjoinRoot.root (poly k) := by
 --   simp [Z, field_eq_adjoinRoot_poly k k_pos]
 
-
-@[simp]
-theorem list_length (k : ℕ) : List.length (BinaryTower k).2.1 = k + 1 := by
-  induction k with
-  | zero => simp [BinaryTower]
-  | succ k IH =>
-    conv in Prod.fst _ => simp [BinaryTower]
-    simp [List.length_append _ _, IH]
-
-@[simp]
-theorem list_nonempty (k : ℕ) : (BinaryTower k).2.1 ≠ [] :=
-  List.ne_nil_of_length_eq_add_one (list_length k)
+-- @[simp]
+-- theorem list_nonempty (k : ℕ) : (BinaryTower k).2.1 ≠ [] :=
+--   List.ne_nil_of_length_eq_add_one (list_length k)
 
 
 instance polyIrreducible (n : ℕ) : Irreducible (poly n) := sorry
@@ -129,15 +118,13 @@ instance polyIrreducible (n : ℕ) : Irreducible (poly n) := sorry
 instance polyIrreducibleFact (n : ℕ) : Fact (Irreducible (poly n)) := ⟨polyIrreducible n⟩
 
 
-instance isFieldBTF (n : ℕ) : Field (BinaryTower n).1 := by
+instance isFieldBTF (n : ℕ) : _root_.Field (BinaryTower n).1 := by
   induction n with
   | zero => simp [BinaryTower] ; exact inferInstance
   | succ n =>
     simp [BinaryTower]
     sorry
     -- apply AdjoinRoot.field (polyIrreducibleFact (n + 1))
-
-
 
 
 -- Possible direction: define alternate definition of BTF as Quotient of MvPolynomial (Fin n) GF(2)
