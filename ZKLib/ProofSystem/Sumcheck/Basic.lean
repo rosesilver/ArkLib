@@ -227,8 +227,7 @@ def oracleVerifier (i : Fin (n + 1)) : OracleVerifier (pSpec R deg) oSpec
   -- plus one query for the evaluation at the challenge `r_i`
   -- Check that the sum of the evaluations equals the target, and updates the statement accordingly
   -- (the new target is the evaluation of the polynomial at the challenge `r_i`)
-  verify := fun ⟨target, challenges⟩ _ chal => do
-    -- let ⟨poly, _⟩ : R⦃≤ deg⦄[X] := oStmt 0
+  verify := fun ⟨target, challenges⟩ chal => do
     let evals : List R ← (List.finRange m).mapM
       (fun i => do return ← query (Sum.inr <| Sum.inr default) (D i))
     guard (evals.sum = target)

@@ -638,7 +638,7 @@ open Function Embedding in
 def OracleVerifier.append (V₁ : OracleVerifier pSpec₁ oSpec Stmt₁ Stmt₂ OStmt₁ OStmt₂)
     (V₂ : OracleVerifier pSpec₂ oSpec Stmt₂ Stmt₃ OStmt₂ OStmt₃) :
       OracleVerifier (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Stmt₃ OStmt₁ OStmt₃ where
-  verify := fun stmt oStmt challenges => sorry
+  verify := fun stmt challenges => sorry
 
   embed := .trans V₂.embed <|
     .trans (.sumMap V₁.embed (.refl _)) <|
@@ -646,24 +646,16 @@ def OracleVerifier.append (V₁ : OracleVerifier pSpec₁ oSpec Stmt₁ Stmt₂ 
     .sumMap (.refl _) MessageIndex.sumEquiv.toEmbedding
 
   hEq := fun i => by
-    have h2 := V₂.hEq i
-    simp
     rcases h : V₂.embed i with j | j
-    · have h1 := V₁.hEq j
-      simp [h, h1, h2]
-      rcases h' : V₁.embed j with k | k
-      · simp [h', h1]
-      · simp [h', h1, MessageIndex.inl]
-    · simp [h, h2, MessageIndex.inr]
+    · rcases h' : V₁.embed j with k | k <;>
+      simp [h, h', V₁.hEq j, V₂.hEq i, MessageIndex.inl]
+    · simp [h, V₂.hEq i, MessageIndex.inr]
 
--- def OracleReduction.append (R₁ : OracleReduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂ OStmt)
---     (R₂ : OracleReduction pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃ OStmt) :
---       OracleReduction (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ Stmt₃ Wit₃ OStmt where
---   prover := Prover.append R₁.prover R₂.prover
---   verifier := OracleVerifier.append R₁.verifier R₂.verifier
-
--- Define composition of multiple reductions via recursion with `Fin.fold`
-
+def OracleReduction.append (R₁ : OracleReduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂ OStmt₁ OStmt₂)
+    (R₂ : OracleReduction pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃ OStmt₂ OStmt₃) :
+      OracleReduction (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ Stmt₃ Wit₃ OStmt₁ OStmt₃ where
+  prover := Prover.append R₁.prover R₂.prover
+  verifier := OracleVerifier.append R₁.verifier R₂.verifier
 
 section GeneralComposition
 

@@ -253,8 +253,8 @@ structure OracleVerifier (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     {ιₛᵢ : Type} (OStmtIn : ιₛᵢ → Type) [Oₛᵢ : ∀ i, ToOracle (OStmtIn i)]
     {ιₛₒ : Type} (OStmtOut : ιₛₒ → Type) where
 
-  verify : StmtIn → (∀ i, OStmtIn i) → (∀ i, pSpec.Challenge i)
-    → OracleComp (oSpec ++ₒ ([OStmtIn]ₒ ++ₒ [pSpec.Message]ₒ)) StmtOut
+  verify : StmtIn → (∀ i, pSpec.Challenge i) →
+    OracleComp (oSpec ++ₒ ([OStmtIn]ₒ ++ₒ [pSpec.Message]ₒ)) StmtOut
 
   embed : ιₛₒ ↪ ιₛᵢ ⊕ pSpec.MessageIndex
 
@@ -278,7 +278,7 @@ def OracleVerifier.toVerifier {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     Verifier pSpec oSpec (StmtIn × ∀ i, OStmtIn i) (StmtOut × (∀ i, OStmtOut i)) where
   verify := fun ⟨stmt, oStmt⟩ transcript => do
     let ⟨stmtOut, _⟩ ← simulate (routeOracles2 oSpec oStmt transcript.messages) ()
-      (verifier.verify stmt oStmt transcript.challenges)
+      (verifier.verify stmt transcript.challenges)
     letI oStmtOut := fun i => match h : verifier.embed i with
       | Sum.inl j => by simpa only [verifier.hEq, h] using (oStmt j)
       | Sum.inr j => by simpa only [verifier.hEq, h] using (transcript j)
@@ -400,7 +400,7 @@ def OracleVerifier.run [Oₘ : ∀ i, ToOracle (pSpec.Message i)]
         (StmtOut × QueryLog (oSpec ++ₒ ([OStmtIn]ₒ ++ₒ [pSpec.Message]ₒ))) := do
   let f := routeOracles2 oSpec oStmtIn transcript.messages
   let ⟨stmtOut, queryLog, _⟩ ← simulate (f ∘ₛₒ loggingOracle) ⟨∅, ()⟩
-    (verifier.verify stmt oStmtIn transcript.challenges)
+    (verifier.verify stmt transcript.challenges)
   return ⟨stmtOut, queryLog⟩
 
 /-- Running an oracle verifier then discarding the query list is equivalent to
