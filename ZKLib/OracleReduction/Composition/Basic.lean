@@ -4,10 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-import ZKLib.OracleReduction.Security
+import Batteries.Data.Fin.Fold
+import ZKLib.OracleReduction.Security.Basic
 
 /-!
-  # Composition of Interactive (Oracle) Reductions with Compatible Relations
+  # Compositional Theory for Interactive (Oracle) Reductions
+
+  ## Composition of I(O)Rs with Compatible Relations
 
   We define the composition of two or more interactive (oracle) reductions, where the output
   statement & witness types for one reduction is the same as the input statement & witness types for
@@ -21,6 +24,118 @@ import ZKLib.OracleReduction.Security
 
   We also prove that the composition of reductions preserve all completeness & soundness properties
   of the reductions being composed.
+
+  ## Mapping between relations
+
+  Composition as above is not enough. What often happens when composing is that we may want an IR
+  from `R1 : StmtIn → WitIn → Prop` to `R2 : StmtOut → WitOut → Prop`, but the IR to be invoked is
+  defined with different input & output statement & witness types, e.g.
+
+    `R1_alt : StmtInAlt → WitInAlt → Prop` to `R2_alt : StmtOutAlt → WitOutAlt → Prop`.
+
+  For instance, this happens whenever we informally say "apply so-and-so protocol to this quantity
+  (derived from the input statement & witness)".
+
+  To formalize this intuition, we need to define a collection of transition functions:
+  - `fStmtIn : StmtIn → StmtInAlt`
+  - `fWitIn : WitIn → WitInAlt`
+  - `fStmtOut : StmtIn × StmtOutAlt → StmtOut`
+  - `fWitOut : WitIn × WitOutAlt → WitOut` satisfying the following properties:
+  - `R1Alt (fStmtIn stmtIn) (fWitIn witIn) ↔ R1 stmtIn witIn`
+  - `R2 (fStmtOut stmt) (fWitOut wit) ↔ R2_alt stmt wit`
+
+  We then define the IR to be ...
+
+  Concrete examples:
+
+  1. We have a split statement & witness: `StmtIn = StmtIn1 × StmtIn2` & `WitIn = WitIn1 × WitIn2`,
+     and a relation `R1 ≈ R1_1 × R1_2` that is decomposable: `R1_1 : StmtIn1 → WitIn1 → Prop` &
+     `R1_2 : StmtIn2 → WitIn2 → Prop`.
+
+  We want to apply an IR from `R1_1 : StmtIn1 → WitIn1 → Prop` to `R2_1 : StmtOut1 → WitOut1 →
+    Prop`.
+
+  Together, this gives an IR from `R1 : (StmtIn1 × StmtIn2) → (WitIn1 × WitIn2) → Prop` to `R2_1 ×
+  R1_2 : (StmtOut1 × StmtIn2) → (WitOut1 × WitIn2) → Prop`.
+
+  How does this fit within our framework? The functions will be projection
+
+  2. We have two polynomials: `a, b : R[X Fin n]` in the statment (and no witness), and we would
+     like to apply the sum-check protocol to `a * b`.
+
+     Thus, the input relation is: `R_In : ∑ x : Fin n → R, (a * b) ⸨x⸩ = T`, and the output relation
+     is `R_Out : (a * b) ⸨r⸩ = eval`.
+
+     The sum-check protocol expects the input as `(a * b, T)` and the output as `(a * b, r, eval)`.
+     This means we have:
+     ```
+     (a, b, T)         ⟹         (a * b, T)
+         ↓                            ↓
+     (a, b, r, eval)   ⇐       (a * b, r, eval)
+     ```
+
+We can denote an IR as `R1 ⟹⦃c, s⦄ R2`, where:
+  - `c` is the completeness error, which says that if `(x,w) ∈ R1`, then `<P(w),V>(x) ∈ R2`, except
+    with probability `c`.
+  - `s` is the soundness error, which says that `x ∉ L_R1`, then `<P*,V>(x) ∉ L_R2` for all `P*`,
+    except with probability `s`. (one can also think of knowledge soundness, etc.)
+
+So, to get an IR `<P,V> : R1 ⟹⦃c', s'⦄ R2` from a related IR `<P',V'> : R3 ⟹⦃c, s⦄ R4`, what can we
+do?
+  - If `(x,w) ∈ R1`, then `(f(x), g(w)) ∈ R3`. This then implies that `<P'(g(w)),V'>(f(x)) ∈ R4`
+    except with probability `c`. We want to translate this to `<P(w),V>(x) ∈ R2`.
+
+    The point is that we can define `R2` and define `<P,V>` to suit our purpose.
+  - If `x ∉ L_R1`, it would be nice if `f(x) ∉ L_R3`. This may not happen if `R1` is a conjunction
+    of `R3` with another relation (in which case `x` may fail to satisfy the other relation).
+
+Sufficiently-general setting?
+  - `R_In : StmtIn → WitIn → Prop` is a conjunction of two relations in the following sense:
+    - There are maps to other types `f₁ : StmtIn → StmtIn₁`, `f₂ : StmtIn → StmtIn₂`, `g₁ : WitIn →
+      WitIn₁`, `g₂ : WitIn → WitIn₂`
+    - There are relations `R_In₁ : StmtIn₁ → WitIn₁ → Prop` and `R_In₂ : StmtIn₂ → WitIn₂ → Prop`
+    - We have: `R_In x w ↔ R_In₁ f₁(x) g₁(x) ∧ R_In₂ f₂(x) g₂(x)`
+  - In this setting, we can adapt an IR : `<P,V> : R_In₁ → R_Out₁` to `<P',V'> : R_In → R_Out₁ ×
+    R_In₂`
+    - In particular, we define
+    ```
+      <P'(w),V'>(x) := do
+        let (x_out, w_out) ← <P(g₁(w)),V>(f₁(x));
+        return ((f₂(x), x_out), (g₂(w), w_out))
+    ```
+
+In terms of pRHL notation? `R1 {V : StmtIn → PMF StmtOut}_⦃ε⦄ R2` : means??
+
+  ## Isomorphism
+
+  We will need to convert between specification and executable models.
+
+  In the best case, we have an isomorphism of the datatypes, which also intertwines with the
+  implementation of the prover & verifier.
+
+  However, we may need to deal with more complicated situation. For instance, can we transfer
+  results between minor modifications to the protocol? What about when the isomorphism is not exact?
+
+  For the simplest case, it seems we want the following:
+
+  - Assume we have an I(O)R (i.e. the abstract specification): from `RIn₁ : StmtIn₁ × WitIn₁ → Prop`
+      to `ROut₁ : StmtOut₁ × WitOut₁ → Prop`.
+
+    We have another I(O)R (i.e. the executable implementation): from `RIn₂ : StmtIn₂ × WitIn₂ →
+      Prop` to `ROut₂ : StmtOut₂ × WitOut₂ → Prop`.
+
+    Assume there are mappings in opposite directions:
+    `f{Stmt/Wit}{In/Out}₁ : {Stmt/Wit}{In/Out}₁ → {Stmt/Wit}{In/Out}₂` &
+    `g{Stmt/Wit}{In/Out}₂ : {Stmt/Wit}{In/Out}₂ → {Stmt/Wit}{In/Out}₁`.
+    (for IOR, also mappings between the oracle statements)
+
+  - Then we may transfer security properties from the first to the second I(O)R provided that:
+    - Under these mappings, the relations are equivalent
+    - Under these mappings, the prover & verifier are equivalent
+
+  - Note that we do not need to require `f/g` to form an equivalence, since this may be too
+    restrictive in practice (i.e. concrete polynomial datatypes may contain zero-padding of the
+    highest coefficients).
 -/
 
 section find_home
@@ -285,6 +400,24 @@ def MessageIndex.inl (i : MessageIndex pSpec₁) : MessageIndex (pSpec₁ ++ₚ 
 def MessageIndex.inr (i : MessageIndex pSpec₂) : MessageIndex (pSpec₁ ++ₚ pSpec₂) :=
   ⟨Fin.natAdd m i.1, by simpa only [getDir_apply, Fin.append_right] using i.2⟩
 
+@[simps!]
+def MessageIndex.sumEquiv :
+    MessageIndex pSpec₁ ⊕ MessageIndex pSpec₂ ≃ MessageIndex (pSpec₁ ++ₚ pSpec₂) where
+  toFun := Sum.elim (MessageIndex.inl) (MessageIndex.inr)
+  invFun := fun ⟨i, h⟩ => by
+    by_cases hi : i < m
+    · simp [ProtocolSpec.append, Fin.append, Fin.addCases, hi] at h
+      exact Sum.inl ⟨⟨i, hi⟩, h⟩
+    · simp [ProtocolSpec.append, Fin.append, Fin.addCases, hi] at h
+      exact Sum.inr ⟨⟨i - m, by omega⟩, h⟩
+  left_inv := fun i => by
+    rcases i with ⟨⟨i, isLt⟩, h⟩ | ⟨⟨i, isLt⟩, h⟩ <;>
+    simp [MessageIndex.inl, MessageIndex.inr, h, isLt]
+  right_inv := fun ⟨i, h⟩ => by
+    by_cases hi : i < m <;>
+    simp [MessageIndex.inl, MessageIndex.inr, hi]
+    congr; omega
+
 def ChallengeIndex.inl (i : ChallengeIndex pSpec₁) : ChallengeIndex (pSpec₁ ++ₚ pSpec₂) :=
   ⟨Fin.castAdd n i.1, by simpa only [getDir_apply, Fin.append_left] using i.2⟩
 
@@ -341,25 +474,25 @@ open OracleComp OracleSpec SubSpec
 
 variable [∀ i, Sampleable (pSpec₁.Challenge i)] [∀ i, Sampleable (pSpec₂.Challenge i)]
 
-instance : SubSpec (challengeOracle pSpec₁ ++ₒ challengeOracle pSpec₂)
-    (challengeOracle (pSpec₁ ++ₚ pSpec₂)) where
+instance : SubSpec ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ)
+    ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) where
   toFun := fun i _ => by
     cases i with
     | inl j =>
-      simpa [OracleSpec.append, ChallengeIndex.inl, ProtocolSpec.append] using
-        query (spec := challengeOracle (pSpec₁ ++ₚ pSpec₂)) j.inl ()
+      simpa [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle] using
+        query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inl ()
     | inr j =>
-      simpa [OracleSpec.append, ChallengeIndex.inr, ProtocolSpec.append] using
-        query (spec := challengeOracle (pSpec₁ ++ₚ pSpec₂)) j.inr ()
+      simpa [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle] using
+        query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inr ()
   evalDist_toFun' := fun i q => by
     cases i with
     | inl j =>
       simp only [eq_mp_eq_cast, id_eq]
-      have : (pSpec₁ ++ₚ pSpec₂).challengeOracle.range j.inl =
-        (pSpec₁.challengeOracle ++ₒ pSpec₂.challengeOracle).range (Sum.inl j) := by
-        simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inl]
+      have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inl =
+        ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inl j) := by
+        simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
       rw [evalDist_cast _ this, evalDist_query, evalDist_query]
-      simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inl]
+      simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
       refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
       intro x
       simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_left]
@@ -367,11 +500,11 @@ instance : SubSpec (challengeOracle pSpec₁ ++ₒ challengeOracle pSpec₂)
       congr <;> try { simp only [Fin.append_left] } <;> symm <;> simp only [cast_heq]
     | inr j =>
       simp only [eq_mp_eq_cast, id_eq]
-      have : (pSpec₁ ++ₚ pSpec₂).challengeOracle.range j.inr =
-        (pSpec₁.challengeOracle ++ₒ pSpec₂.challengeOracle).range (Sum.inr j) := by
-        simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inr]
+      have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inr =
+        ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inr j) := by
+        simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
       rw [evalDist_cast _ this, evalDist_query, evalDist_query]
-      simp [OracleSpec.append, ProtocolSpec.append, ChallengeIndex.inr]
+      simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
       refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
       intro x
       simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_right]
@@ -383,9 +516,9 @@ instance : SubSpec (challengeOracle pSpec₁ ++ₒ challengeOracle pSpec₂)
 --     [@SubSpec ι₁ ι₂ spec₁ spec₂] [@SubSpec ι₂ ι₃ spec₂ spec₃] :
 -- @SubSpec ι₁ ι₃ spec₁ spec₃ := sorry
 
-instance : SubSpec (challengeOracle pSpec₁) (challengeOracle (pSpec₁ ++ₚ pSpec₂)) := sorry
+instance : SubSpec [pSpec₁.Challenge]ₒ ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) := sorry
 
-instance : SubSpec (challengeOracle pSpec₂) (challengeOracle (pSpec₁ ++ₚ pSpec₂)) := sorry
+instance : SubSpec [pSpec₂.Challenge]ₒ ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) := sorry
 
 end Instances
 
@@ -496,33 +629,33 @@ def Reduction.append (R₁ : Reduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit
   prover := Prover.append R₁.prover R₂.prover
   verifier := Verifier.append R₁.verifier R₂.verifier
 
-variable [O₁ : ∀ i, ToOracle (pSpec₁.Message i)] [O₂ : ∀ i, ToOracle (pSpec₂.Message i)]
+variable [Oₘ₁ : ∀ i, ToOracle (pSpec₁.Message i)] [Oₘ₂ : ∀ i, ToOracle (pSpec₂.Message i)]
+  {ιₛ₁ : Type} {OStmt₁ : ιₛ₁ → Type} [Oₛ₁ : ∀ i, ToOracle (OStmt₁ i)]
+  {ιₛ₂ : Type} {OStmt₂ : ιₛ₂ → Type} [Oₛ₂ : ∀ i, ToOracle (OStmt₂ i)]
+  {ιₛ₃ : Type} {OStmt₃ : ιₛ₃ → Type} [Oₛ₃ : ∀ i, ToOracle (OStmt₃ i)]
 
-def OracleVerifier.append (V : OracleVerifier pSpec₁ oSpec Stmt₁ Stmt₂)
-    (V' : OracleVerifier pSpec₂ oSpec Stmt₂ Stmt₃) :
-      OracleVerifier (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Stmt₃ where
-  genQueries := fun stmt transcript => do sorry
-    -- let queries ← V.genQueries stmt transcript.fst.challenges
-    -- let queries' ← V'.genQueries stmt transcript.snd.challenges
-    -- return queries ++ queries'
-  verify := fun stmt transcript responseList => do sorry
-    -- let firstTranscript : FullTranscript pSpec₁ := by
-    --   have := transcript.take n (by omega)
-    --   simp at this; exact this
-    -- let stmt₂ ← V.verify stmt firstTranscript
-    -- let secondTranscript : FullTranscript pSpec₂ := by
-    --   have := transcript.rtake m (by omega)
-    --   sorry
-    -- return ← V'.verify stmt₂ secondTranscript
+open Function Embedding in
+def OracleVerifier.append (V₁ : OracleVerifier pSpec₁ oSpec Stmt₁ Stmt₂ OStmt₁ OStmt₂)
+    (V₂ : OracleVerifier pSpec₂ oSpec Stmt₂ Stmt₃ OStmt₂ OStmt₃) :
+      OracleVerifier (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Stmt₃ OStmt₁ OStmt₃ where
+  verify := fun stmt challenges => sorry
 
-def OracleReduction.append (R₁ : OracleReduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂)
-    (R₂ : OracleReduction pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃) :
-      OracleReduction (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ Stmt₃ Wit₃ where
+  embed := .trans V₂.embed <|
+    .trans (.sumMap V₁.embed (.refl _)) <|
+    .trans (Equiv.sumAssoc _ _ _).toEmbedding <|
+    .sumMap (.refl _) MessageIndex.sumEquiv.toEmbedding
+
+  hEq := fun i => by
+    rcases h : V₂.embed i with j | j
+    · rcases h' : V₁.embed j with k | k <;>
+      simp [h, h', V₁.hEq j, V₂.hEq i, MessageIndex.inl]
+    · simp [h, V₂.hEq i, MessageIndex.inr]
+
+def OracleReduction.append (R₁ : OracleReduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂ OStmt₁ OStmt₂)
+    (R₂ : OracleReduction pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃ OStmt₂ OStmt₃) :
+      OracleReduction (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ Stmt₃ Wit₃ OStmt₁ OStmt₃ where
   prover := Prover.append R₁.prover R₂.prover
   verifier := OracleVerifier.append R₁.verifier R₂.verifier
-
--- Define composition of multiple reductions via recursion with `Fin.fold`
-
 
 section GeneralComposition
 
@@ -680,11 +813,11 @@ variable [∀ i, Sampleable (pSpec₁.Challenge i)] [∀ i, Sampleable (pSpec₂
 theorem Prover.append_run (P₁ : Prover pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂)
     (P₂ : Prover pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃) (stmt : Stmt₁) (wit : Wit₁) :
       (P₁.append P₂).run stmt wit = (do
-        let ⟨transcript₁, queryLog₁, stmt₂, wit₂⟩ ← liftComp (P₁.run stmt wit)
-        let ⟨transcript₂, queryLog₂, stmt₃, wit₃⟩ ← liftComp (P₂.run stmt₂ wit₂)
+        let ⟨stmt₂, wit₂, transcript₁, queryLog₁⟩ ← liftComp (P₁.run stmt wit)
+        let ⟨stmt₃, wit₃, transcript₂, queryLog₂⟩ ← liftComp (P₂.run stmt₂ wit₂)
         -- TODO: should we refactor the prover to take in a running query log?
-        return ⟨transcript₁ ++ₜ transcript₂, QueryLog.append queryLog₁ queryLog₂,
-          stmt₃, wit₃⟩) := sorry
+        return ⟨stmt₃, wit₃, transcript₁ ++ₜ transcript₂, QueryLog.append queryLog₁ queryLog₂⟩) :=
+  sorry
 
 -- TODO: Need to define a function that "extracts" a second prover from the combined prover
 

@@ -222,10 +222,34 @@ section Aesop
 attribute [aesop unsafe 50%] degreeOf_add_le degreeOf_mul_le degreeOf_sum_le degreeOf_prod_le
   degreeOf_X
 
--- example [CommSemiring R] [Nontrivial R] :
---     degreeOf (R := R) (σ := Fin 3) 0 (X 0 * X 1) ≤ 1 := by
-  -- aesop (add unsafe 50% apply degreeOf_mul_le) (add unsafe 50% apply le_trans)
-  --   (add unsafe 50% apply degreeOf_X_le)
+variable [CommSemiring R]
+
+theorem degreeOf_add_le' {n : σ} {d : ℕ} {f g : MvPolynomial σ R}
+    (hf : degreeOf n f ≤ d) (hg : degreeOf n g ≤ d) : degreeOf n (f + g) ≤ d :=
+  le_trans (degreeOf_add_le _ _ _) (max_le hf hg)
+
+theorem degreeOf_mul_le' {n : σ} {d : ℕ} {f g : MvPolynomial σ R}
+    (h : degreeOf n f + degreeOf n g ≤ d) : degreeOf n (f * g) ≤ d :=
+  le_trans (degreeOf_mul_le _ _ _) h
+
+-- theorem degreeOf_sum_le' {n : σ} {d : ℕ} {f : ι → MvPolynomial σ R}
+--     (h : ∀ i, degreeOf n (f i) ≤ d) :
+--     degreeOf n (∑ i, f i) ≤ d :=
+--   le_trans (degreeOf_sum_le _ _ _) (Finset.sup_le h)
+
+-- theorem degreeOf_prod_le' {n : σ} {d : ℕ} {f : ι → MvPolynomial σ R}
+--     (h : ∀ i, degreeOf n (f i) ≤ d) :
+--     degreeOf n (∏ i, f i) ≤ d :=
+--   le_trans (degreeOf_prod_le _ _ _) (Finset.sum_le_sum h)
+
+attribute [aesop unsafe 80%] degreeOf_add_le' degreeOf_mul_le' degreeOf_X_le add_le_add
+-- degreeOf_sum_le' degreeOf_prod_le'
+  -- degreeOf_X_le
+
+theorem test [CommSemiring R] [Nontrivial R] :
+    degreeOf (R := R) (σ := Fin 3) 0 (X 0 * X 1) ≤ 1 := by
+  exact le_trans (le_trans (degreeOf_mul_le _ _ _)
+        (add_le_add (le_of_eq (degreeOf_X _ _)) (le_of_eq (degreeOf_X _ _)))) (by norm_num)
 
 end Aesop
 

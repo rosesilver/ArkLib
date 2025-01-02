@@ -5,7 +5,7 @@ Authors: Quang Dao
 -/
 
 import ZKLib.CommitmentScheme.Basic
-import ZKLib.OracleReduction.Composition
+import ZKLib.OracleReduction.Composition.Basic
 
 /-!
   # Composition of an Interactive (Oracle) Protocol with Commitment Schemes
