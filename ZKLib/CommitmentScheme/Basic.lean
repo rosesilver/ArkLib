@@ -5,7 +5,7 @@ Authors: Quang Dao
 -/
 
 import VCVio
-import ZKLib.OracleReduction.Security
+import ZKLib.OracleReduction.Security.Basic
 
 /-!
   # Commitment Schemes with Oracle Openings

@@ -1,3 +1,9 @@
+/-
+Copyright (c) 2024 ZKLib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Quang Dao
+-/
+
 import ZKLib.OracleReduction.Basic
 
 /-!
@@ -16,31 +22,12 @@ import ZKLib.OracleReduction.Basic
   - Zero-knowledge: This will be defined in the future
 -/
 
-section Relation
-
-def Function.language {α β} (rel : α → β → Prop) : Set α :=
-  {stmt | ∃ wit, rel stmt wit}
-
-def trivialRel : Bool → Unit → Prop := fun b _ => b
-
-@[simp]
-theorem trivialRel_language : trivialRel.language = { true } := by
-  unfold Function.language trivialRel; simp
-
-end Relation
-
 noncomputable section
 
 namespace Reduction
 
 open OracleComp OracleSpec ProtocolSpec
 open scoped NNReal
-
--- open unitInterval
-
--- /- Unit interval embedded into `NNReal` -/
--- instance unitInterval.toNNReal : Coe unitInterval NNReal where
---   coe := fun ⟨x, h⟩ => ⟨x, (Set.mem_Icc.mp h).left⟩
 
 variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     [∀ i, VCVCompatible (pSpec.Challenge i)] {StmtIn WitIn StmtOut WitOut : Type}
@@ -391,47 +378,49 @@ open scoped NNReal
 
 variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     [∀ i, ToOracle (pSpec.Message i)] [∀ i, VCVCompatible (pSpec.Challenge i)]
-    {StmtIn WitIn StmtOut WitOut : Type} {ιₛ : Type} [DecidableEq ιₛ]
-    {OStmt : ιₛ → Type} [∀ i, ToOracle (OStmt i)]
+    {StmtIn WitIn StmtOut WitOut : Type} {ιₛᵢ : Type} [DecidableEq ιₛᵢ]
+    {OStmtIn : ιₛᵢ → Type} [∀ i, ToOracle (OStmtIn i)]
+    {OStmtOut : ιₛᵢ → Type}
 
 def completeness
-    (relIn : (StmtIn × ∀ i, OStmt i) → WitIn → Prop)
-    (relOut : (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)) → WitOut → Prop)
-    (oracleReduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmt)
+    (relIn : (StmtIn × ∀ i, OStmtIn i) → WitIn → Prop)
+    (relOut : (StmtOut × (∀ i, OStmtOut i)) → WitOut → Prop)
+    (oracleReduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmtIn OStmtOut)
     (completenessError : ℝ≥0) : Prop :=
   Reduction.completeness relIn relOut oracleReduction.toReduction completenessError
 
 def perfectCompleteness
-    (relIn : (StmtIn × ∀ i, OStmt i) → WitIn → Prop)
-    (relOut : (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)) → WitOut → Prop)
-    (oracleReduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmt) : Prop :=
+    (relIn : (StmtIn × ∀ i, OStmtIn  i) → WitIn → Prop)
+    (relOut : (StmtOut × (∀ i, OStmtOut i)) → WitOut → Prop)
+    (oracleReduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmtIn OStmtOut) :
+      Prop :=
   Reduction.perfectCompleteness relIn relOut oracleReduction.toReduction
 
 def soundness
-    (langIn : Set (StmtIn × ∀ i, OStmt i))
-    (langOut : Set (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)))
-    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmt)
+    (langIn : Set (StmtIn × ∀ i, OStmtIn i))
+    (langOut : Set (StmtOut × (∀ i, OStmtOut i)))
+    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
     (soundnessError : ℝ≥0) : Prop :=
   Reduction.soundness langIn langOut verifier.toVerifier soundnessError
 
-def knowledgeSoundness (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmt)
-    (relIn : (StmtIn × ∀ i, OStmt i) → WitIn → Prop)
-    (relOut : (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)) → WitOut → Prop)
+def knowledgeSoundness (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
+    (relIn : (StmtIn × ∀ i, OStmtIn i) → WitIn → Prop)
+    (relOut : (StmtOut × (∀ i, OStmtOut i)) → WitOut → Prop)
     (knowledgeError : ℝ≥0) : Prop :=
   Reduction.knowledgeSoundness relIn relOut verifier.toVerifier knowledgeError
 
 def rbrSoundness
-    (langIn : Set (StmtIn × ∀ i, OStmt i))
-    (langOut : Set (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)))
-    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmt)
+    (langIn : Set (StmtIn × ∀ i, OStmtIn i))
+    (langOut : Set (StmtOut × (∀ i, OStmtOut i)))
+    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
     (stateFunction : StateFunction langOut verifier.toVerifier)
     (rbrSoundnessError : pSpec.ChallengeIndex → ℝ≥0) : Prop :=
   Reduction.rbrSoundness langIn langOut verifier.toVerifier stateFunction rbrSoundnessError
 
 def rbrKnowledgeSoundness
-    (relIn : (StmtIn × ∀ i, OStmt i) → WitIn → Prop)
-    (relOut : (StmtOut × (∀ i, OStmt i) × (∀ i, pSpec.Message i)) → WitOut → Prop)
-    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmt)
+    (relIn : (StmtIn × ∀ i, OStmtIn i) → WitIn → Prop)
+    (relOut : (StmtOut × (∀ i, OStmtOut i)) → WitOut → Prop)
+    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
     (stateFunction : StateFunction relOut.language verifier.toVerifier)
     (rbrKnowledgeError : pSpec.ChallengeIndex → ℝ≥0) : Prop :=
   Reduction.rbrKnowledgeSoundness relIn relOut verifier.toVerifier stateFunction rbrKnowledgeError

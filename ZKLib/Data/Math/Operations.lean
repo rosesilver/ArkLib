@@ -275,7 +275,7 @@ def getLastD (a : Array α) (v₀ : α) : α := a.getD (a.size - 1) v₀
 
 end Array
 
-namespace Mathlib
+namespace List
 
 namespace Vector
 
@@ -298,7 +298,7 @@ def chunkPairwise {α : Type} : {n : Nat} → Vector α (2 * n) → Vector (α �
 
 end Vector
 
-end Mathlib
+end List
 
 /-- Equivalence between `α` and the sum of `{a // p a}` and `{a // ¬ p a}` -/
 @[simps]

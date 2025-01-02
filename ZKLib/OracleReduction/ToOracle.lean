@@ -69,6 +69,34 @@ def ToOracle.toOracleSpec {ι : Type} (v : ι → Type) [O : ∀ i, ToOracle (v 
 
 notation "[" term "]ₒ" => ToOracle.toOracleSpec term
 
+/-- Combines multiple oracle specifications into a single oracle by routing queries to the
+      appropriate underlying oracle. Takes:
+    - A base oracle specification `oSpec`
+    - An indexed type family `T` with `ToOracle` instances
+    - Values of that type family
+  Returns a stateless oracle that routes queries to the appropriate underlying oracle. -/
+def routeOracles1 {ι : Type} (oSpec : OracleSpec ι) {ι' : Type} {T : ι' → Type}
+    [∀ i, ToOracle (T i)] (t : ∀ i, T i) : oSpec ++ₒ [T]ₒ →[Unit]ₛₒ oSpec :=
+  statelessOracle fun i q => match i with
+    | Sum.inl i => OracleComp.query i q
+    | Sum.inr i => pure (ToOracleData.oracle (t i) q)
+
+/-- Combines multiple oracle specifications into a single oracle by routing queries to the
+      appropriate underlying oracle. Takes:
+    - A base oracle specification `oSpec`
+    - Two indexed type families `T₁` and `T₂` with `ToOracle` instances
+    - Values of those type families
+  Returns a stateless oracle that routes queries to the appropriate underlying oracle. -/
+def routeOracles2 {ι : Type} (oSpec : OracleSpec ι)
+    {ι₁ : Type} {T₁ : ι₁ → Type} [∀ i, ToOracle (T₁ i)]
+    {ι₂ : Type} {T₂ : ι₂ → Type} [∀ i, ToOracle (T₂ i)]
+    (t₁ : ∀ i, T₁ i) (t₂ : ∀ i, T₂ i) : oSpec ++ₒ ([T₁]ₒ ++ₒ [T₂]ₒ) →[Unit]ₛₒ oSpec :=
+  statelessOracle fun i q => match i with
+    | Sum.inl i => OracleComp.query i q
+    | Sum.inr (Sum.inl i) => pure (ToOracleData.oracle (t₁ i) q)
+    | Sum.inr (Sum.inr i) => pure (ToOracleData.oracle (t₂ i) q)
+
+/-! ## `ToOracle` Instances -/
 section Polynomial
 
 open Polynomial MvPolynomial
@@ -127,15 +155,15 @@ instance instToOracleForallFin : ToOracle (Fin n → α) where
   oracle := fun vec i => vec i
   query_decidableEq' := by simp!; infer_instance
 
-/-- Vectors of the form `Mathlib.Vector α n` can be accessed via queries on their indices. -/
-instance instToOracleMathlibVector : ToOracle (Mathlib.Vector α n) where
+/-- Vectors of the form `List.Vector α n` can be accessed via queries on their indices. -/
+instance instToOracleListVector : ToOracle (List.Vector α n) where
   Query := Fin n
   Response := α
   oracle := fun vec i => vec[i]
   query_decidableEq' := by simp!; infer_instance
 
 /-- Vectors of the form `Vector α n` can be accessed via queries on their indices. -/
-instance instToOracleBatteriesVector : ToOracle (Vector α n) where
+instance instToOracleVector : ToOracle (Vector α n) where
   Query := Fin n
   Response := α
   oracle := fun vec i => vec[i]

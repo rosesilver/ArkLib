@@ -53,9 +53,9 @@ notation:10 "GF(" term:10 ")" => GaloisField term 1
 
 -- In this definition, the field defined by (BinaryTower k) corresponds to GF(2^{2^{k-1}})
 def BinaryTower (k : ℕ) :
-    (F : Type _) × (Mathlib.Vector F (k + 1)) × (CommRing F) × (Inhabited F) :=
+    (F : Type _) × (List.Vector F (k + 1)) × (CommRing F) × (Inhabited F) :=
   match k with
-  | 0 => ⟨ GF(2), Mathlib.Vector.cons (1 : GF(2)) Mathlib.Vector.nil, inferInstance, inferInstance ⟩
+  | 0 => ⟨ GF(2), List.Vector.cons (1 : GF(2)) List.Vector.nil, inferInstance, inferInstance ⟩
   | k + 1 =>
     let ⟨ F, elts, _, _ ⟩ := BinaryTower k
     let currX : F := elts.1.getLastI
@@ -80,7 +80,7 @@ instance CommRing (k : ℕ) : CommRing (Field k) := (BinaryTower k).2.2.1
 instance Inhabited (k : ℕ) : Inhabited (Field k) := (BinaryTower k).2.2.2
 
 @[simp]
-def list (k : ℕ) : Mathlib.Vector (Field k) (k + 1) := (BinaryTower k).2.1
+def list (k : ℕ) : List.Vector (Field k) (k + 1) := (BinaryTower k).2.1
 
 @[simp]
 def poly (k : ℕ) : Polynomial (Field (k - 1)) :=
