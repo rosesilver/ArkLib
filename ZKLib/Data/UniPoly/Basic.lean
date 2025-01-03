@@ -61,9 +61,8 @@ def toArray (p : UniPoly R) : Array R := p.coeffs
 
 /-- The size of the underlying array. This may not correspond to the degree of the corresponding
   polynomial if the array has leading zeroes. -/
+@[reducible]
 def size (p : UniPoly R) : Nat := p.coeffs.size
-
-@[simp] theorem size_eq_size (p : UniPoly R) : p.size = p.coeffs.size := rfl
 
 /-- The constant polynomial `C r`. -/
 def C (r : R) : UniPoly R := ⟨#[r]⟩
@@ -217,6 +216,49 @@ def divX (p : UniPoly R) : UniPoly R := ⟨p.coeffs.extract 1 p.size⟩
 
 variable {p q r : UniPoly R}
 
+-- some helper lemmas to characterize p + q
+
+theorem matchSize_size_eq {p q : UniPoly R} :
+  let (p', q') := Array.matchSize p.coeffs q.coeffs 0
+  p'.size = q'.size := by
+  apply List.matchSize_length_eq
+
+theorem matchSize_size {p q : UniPoly R} :
+  let (p', _) := Array.matchSize p.coeffs q.coeffs 0
+  p'.size = max p.size q.size := by
+  apply List.matchSize_length
+
+theorem zipWith_size {R} {f : R → R → R} {a b : Array R} :
+  a.size = b.size → (Array.zipWith a b f).size = a.size := by
+  simp; omega
+
+-- TODO generalize to matchSize + zipWith f for any f
+theorem add_size {p q : UniPoly R} : (p + q).size = max p.size q.size := by
+  show (Array.zipWith _ _ _).size = max p.size q.size
+  rw [zipWith_size matchSize_size_eq, matchSize_size]
+
+-- TODO generalize to matchSize + zipWith f for any f
+theorem add_coeff {p q : UniPoly R} {i: ℕ} (hi: i < (p + q).size) :
+  (p + q).coeffs[i] = p.coeffs.getD i 0 + q.coeffs.getD i 0
+:= by
+  simp [instHAdd, instAdd, add, Add.add]
+  rw [List.getElem_matchSize_1, List.getElem_matchSize_2]
+  repeat rw [Array.getElem?_eq_toList]
+
+-- TODO generalize to matchSize + zipWith f for any f
+theorem add_coeff? (p q : UniPoly R) (i: ℕ) :
+  (p + q).coeffs.getD i 0 = p.coeffs.getD i 0 + q.coeffs.getD i 0
+:= by
+  rcases (Nat.lt_or_ge i (p + q).coeffs.size) with h_lt | h_ge
+  · rw [← add_coeff h_lt, Array.getD_eq_get?, Array.getElem?_eq_getElem h_lt]
+    simp
+  have h_lt' : i ≥ max p.size q.size := by rwa [← add_size]
+  have h_p : i ≥ p.size := by omega
+  have h_q : i ≥ q.size := by omega
+  simp [Array.getElem?_eq_none_iff.mpr, h_ge, h_p, h_q]
+
+-- algebra theorems about add
+
 theorem add_comm : p + q = q + p := by
   simp only [instHAdd, Add.add, add, List.zipWith_toArray, mk.injEq, Array.mk.injEq]
   exact List.zipWith_comm_of_comm _ (fun x y ↦ by change x + y = y + x; rw [_root_.add_comm]) _ _
@@ -234,8 +276,16 @@ theorem add_comm : p + q = q + p := by
   exact List.zipWith_const (by simp) (by simp)
 
 theorem add_assoc : p + q + r = p + (q + r) := by
-  simp [instHAdd, instAdd, add, List.matchSize]
-  sorry
+  ext i
+  -- size is equal
+  show (p + q + r).size = (p + (q + r)).size
+  simp only [add_size]
+  omega
+  -- coefficients are equal
+  show (p + q + r).coeffs[i] = (p + (q + r)).coeffs[i]
+  simp only [add_coeff, add_coeff?]
+  apply _root_.add_assoc
+
 
 -- TODO: define `SemiRing` structure on `UniPoly`
 -- instance : AddCommMonoid (UniPoly R) := {

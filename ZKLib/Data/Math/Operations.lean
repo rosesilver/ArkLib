@@ -197,8 +197,57 @@ theorem matchSize_eq_iff_forall_eq (l₁ l₂ : List α) (unit : α) :
   by sorry
     -- TODO: finish this lemma based on `rightpad_getD_eq_getD`
 
+theorem matchSize_length_eq (l₁ l₂ : List α) (unit : α) :
+    (matchSize l₁ l₂ unit).1.length = (matchSize l₁ l₂ unit).2.length := by
+  simp [matchSize]; omega
 
+theorem matchSize_length (l₁ l₂ : List α) (unit : α) :
+    (matchSize l₁ l₂ unit).1.length = max l₁.length l₂.length := by
+  simp [matchSize]; omega
 
+theorem matchSize_length₂ (l₁ l₂ : List α) (unit : α) :
+    (matchSize l₁ l₂ unit).2.length = max l₁.length l₂.length := by
+  rw [← matchSize_length_eq, matchSize_length]
+
+theorem getElem?_matchSize_1 (l₁ l₂ : List α) (unit : α) (i : Nat) :
+    (matchSize l₁ l₂ unit).1[i]?.getD unit = l₁[i]?.getD unit := by
+  rcases (Nat.lt_or_ge i l₁.length) with h_lt₁ | h_ge₁
+  · simp [h_lt₁, matchSize_length] -- eliminate `getD`
+    dsimp [matchSize]
+    simp [h_lt₁, getElem_append]
+  simp [List.getElem?_eq_none h_ge₁] -- eliminate second `getD` for `unit`
+  rcases (Nat.lt_or_ge i l₂.length) with h_lt₂ | h_ge₂
+  · simp [h_lt₂, matchSize_length] -- eliminate first `getD`
+    dsimp [matchSize]
+    simp [h_ge₁, getElem_append]
+  · have h_ge' : i ≥ (l₁.matchSize l₂ unit).1.length := by simp [h_ge₁, h_ge₂, matchSize_length]
+    simp [List.getElem?_eq_none h_ge']
+
+theorem getElem?_matchSize_2 (l₁ l₂ : List α) (unit : α) (i : Nat) :
+    (matchSize l₁ l₂ unit).2[i]?.getD unit = l₂[i]?.getD unit := by
+  rcases (Nat.lt_or_ge i l₂.length) with h_lt₂ | h_ge₂
+  · simp [h_lt₂, matchSize_length₂] -- eliminate `getD`
+    dsimp [matchSize]
+    simp [h_lt₂, getElem_append]
+  simp [getElem?_eq_none h_ge₂] -- eliminate second `getD` for `unit`
+  rcases (Nat.lt_or_ge i l₁.length) with h_lt₁ | h_ge₁
+  · simp [h_lt₁, matchSize_length₂] -- eliminate first `getD`
+    dsimp [matchSize]
+    simp [h_ge₂, getElem_append]
+  · have h_ge' : i ≥ (l₁.matchSize l₂ unit).2.length := by simp [h_ge₁, h_ge₂, matchSize_length₂]
+    simp [getElem?_eq_none h_ge']
+
+theorem getElem_matchSize_1 {a b : List α} {unit : α} {i : Nat} :
+  (h: i < (matchSize a b unit).1.length) → (matchSize a b unit).1[i] = a[i]?.getD unit := by
+  intro h
+  rw [← getElem?_matchSize_1 a b]
+  simp [h]
+
+theorem getElem_matchSize_2 {a b : List α} {unit : α} {i : Nat} :
+  (h: i < (matchSize a b unit).2.length) → (matchSize a b unit).2[i] = b[i]?.getD unit := by
+  intro h
+  rw [← getElem?_matchSize_2 a b]
+  simp [h]
 
 /-- `List.dropWhile` but starting from the last element. Performed by `dropWhile` on the reversed
   list, followed by a reversal. -/
@@ -247,6 +296,10 @@ def rightpad (n : Nat) (unit : α) (a : Array α) : Array α :=
 def matchSize (a : Array α) (b : Array α) (unit : α) : Array α × Array α :=
   let tuple := List.matchSize a.toList b.toList unit
   (⟨tuple.1⟩, ⟨tuple.2⟩)
+
+theorem getElem?_eq_toList {a : Array α} {i : ℕ} : a.toList[i]? = a[i]? := by
+  rw (occs := .pos [2]) [← List.toArray_toList a]
+  rw [List.getElem?_toArray]
 
 -- @[simp] theorem matchSize_comm (a : Array α) (b : Array α) (unit : α) :
 --     matchSize a b unit = (matchSize b a unit).swap := by
