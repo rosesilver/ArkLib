@@ -106,7 +106,8 @@ def zsmul [Ring R] (z : ℤ) (p : UniPoly R) : UniPoly R :=
   .mk (Array.map (fun a => z * a) p.coeffs)
 
 /-- Negation of a `UniPoly`. -/
-def neg [Ring R] (p : UniPoly R) : UniPoly R := p.smul (-1)
+def neg [Ring R] (p : UniPoly R) : UniPoly R :=
+  ⟨ p.coeffs.map (fun a => -a) ⟩
 
 /-- Subtraction of two `UniPoly`s. -/
 def sub [Ring R] (p q : UniPoly R) : UniPoly R := p.add q.neg
