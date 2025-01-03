@@ -8,6 +8,7 @@ import Mathlib.InformationTheory.Hamming
 import Mathlib.LinearAlgebra.Lagrange
 import Mathlib.Data.Set.Finite.Lattice
 import Mathlib.Topology.MetricSpace.Infsep
+import Mathlib.Data.ENat.Lattice
 
 /-!
   # Basics of Coding Theory

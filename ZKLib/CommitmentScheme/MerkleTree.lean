@@ -11,11 +11,22 @@ import ZKLib.CommitmentScheme.Basic
 
 /-!
   # Merkle Trees as a vector commitment
+
+  ## Notes & TODOs
+
+  We want this treatment to be as comprehensive as possible. In particular, our formalization
+  should (eventually) include all complexities such as the following:
+
+  - Multi-instance extraction & simulation
+  - Dealing with arbitrary trees (may have arity > 2, or is not complete)
+  - Path pruning optimization
 -/
 
 namespace MerkleTree
 
-open Mathlib OracleSpec OracleComp
+open List OracleSpec OracleComp
+
+#check Tree
 
 variable (α : Type) [DecidableEq α] [Inhabited α] [Fintype α]
 
@@ -51,39 +62,26 @@ def Cache.cons (n : ℕ) (leaves : List.Vector α (2 ^ (n + 1))) (cache : Cache 
   Fin.reverseInduction leaves (fun j _ => cache j)
 
 /-- Compute the next layer of the Merkle tree -/
-def buildLayer (n : ℕ) (h : n > 0) (leaves : List.Vector α (2 ^ n)) :
-    OracleComp (oracleSpec α) (List.Vector α (2 ^ (n - 1))) := do
-  -- Rewrite `2 ^ n` as `2 ^ (n - 1) * 2`
-  have : 2 ^ n = 2 ^ (n - 1) * 2 := by
-    have : n = (n - 1) + 1 := by omega
-    rw [this, pow_succ]
-    simp
-  -- Rewrite `leaves` as `2 ^ (n - 1) * 2`
-  have leaves : List.Vector α (2 ^ (n - 1) * 2) := by
-    rwa [this] at leaves
+def buildLayer (n : ℕ) {m : ℕ} (h : m = n + 1) (leaves : List.Vector α (2 ^ m)) :
+    OracleComp (oracleSpec α) (List.Vector α (2 ^ n)) := do
+  let leaves : List.Vector α (2 ^ n * 2) := by rwa [h, pow_succ] at leaves
   -- Pair up the leaves to form pairs
-  let pairs : List.Vector (α × α) (2 ^ (n - 1)) :=
+  let pairs : List.Vector (α × α) (2 ^ n) :=
     List.Vector.ofFn (fun i =>
       (leaves.get ⟨2 * i, by omega⟩, leaves.get ⟨2 * i + 1, by omega⟩))
   -- Hash each pair to get the next layer
-  let hashes : List.Vector α (2 ^ (n - 1)) ←
+  let hashes : List.Vector α (2 ^ n) ←
     List.Vector.mmap (fun ⟨left, right⟩ => query () ⟨left, right⟩) pairs
   return hashes
 
 /-- Build the full Merkle tree, returning the cache -/
-def buildMerkleTree (n : ℕ) (leaves : List.Vector α (2 ^ n)) :
-    OracleComp (oracleSpec α) (Cache α n) := do
-  if h : n = 0 then
-    -- When we are at the root, just return the (single) leaf
-    return fun j => by subst h; simp; exact leaves
-  else
-    -- Build the next layer
-    let hashes ← buildLayer α n (Nat.zero_lt_of_ne_zero h) leaves
-    -- Recursively build the rest of the tree
-    let cache : Cache α (n - 1) := ← buildMerkleTree (n - 1) hashes
-    -- Add the base layer to the cache
-    have hEq : n = (n - 1) + 1 := (Nat.sub_one_add_one h).symm
-    return hEq ▸ (Cache.cons α (n - 1) (hEq ▸ leaves) cache)
+def buildMerkleTree (n : ℕ) {m : ℕ} (h : m = n + 1) (leaves : List.Vector α (2 ^ m)) :
+    OracleComp (oracleSpec α) (Cache α (n + 1)) := do
+  -- Build the next layer
+  let hashes ← buildLayer α n (by omega) leaves
+  -- Recursively build the rest of the tree
+  let cache ← buildMerkleTree (n - 1) (sorry) hashes
+  return Cache.cons α n sorry sorry
 
 /-- Get the root of the Merkle tree -/
 def getRoot {n : ℕ} (cache : Cache α n) : α :=
@@ -101,16 +99,16 @@ def findNeighbors {n : ℕ} (i : Fin (2 ^ n)) : (j : Fin n) → Fin (2 ^ (j.val 
   -- `10 big` => `01 little` => `2`
   finFunctionFinEquiv.toFun (this ▸ neighbor.reverse.get)
 
-@[simp]
-theorem getRoot_trivial (a : α) : getRoot α <$> (buildMerkleTree α 0 ⟨[a], rfl⟩) = pure a := by
-  simp [getRoot, buildMerkleTree, List.Vector.head];
+-- @[simp]
+-- theorem getRoot_trivial (a : α) : getRoot α <$> (buildMerkleTree α 0 ⟨[a], rfl⟩) = pure a := by
+--   simp [getRoot, buildMerkleTree, List.Vector.head];
 
-@[simp]
-theorem getRoot_single (a b : α) :
-    getRoot α <$> buildMerkleTree α 1 ⟨[a, b], rfl⟩ = (query () (a, b)) := by
-  simp [buildMerkleTree, buildLayer, List.Vector.ofFn, List.Vector.head, List.Vector.get]
-  unfold Cache.cons getRoot
-  simp [map_bind, Fin.reverseInduction]
+-- @[simp]
+-- theorem getRoot_single (a b : α) :
+--     getRoot α <$> buildMerkleTree α 1 ⟨[a, b], rfl⟩ = (query () (a, b)) := by
+--   simp [buildMerkleTree, buildLayer, List.Vector.ofFn, List.Vector.head, List.Vector.get]
+--   unfold Cache.cons getRoot
+--   simp [map_bind, Fin.reverseInduction]
 
 /-- Generate a Merkle proof that a given leaf at index `i` is in the Merkle tree. The proof consists
   of the Merkle tree nodes that are needed to recompute the root from the given leaf. -/

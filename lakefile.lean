@@ -48,7 +48,7 @@ require mathlib from git
 -- require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v1.0.0"
 
 require VCVio from git
-  "https://github.com/quangvdao/VCV-io.git" @ "mathlib-update"
+  "https://github.com/dtumad/VCV-io.git" @ "master"
 
 @[default_target]
 lean_lib «ZKLib» {
