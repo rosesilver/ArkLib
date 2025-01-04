@@ -70,6 +70,27 @@ def C (r : R) : UniPoly R := ⟨#[r]⟩
 /-- The variable `X`. -/
 def X : UniPoly R := ⟨#[0, 1]⟩
 
+/-- Return the index of the last non-zero coefficient of a `UniPoly` -/
+def last_non_zero [BEq R] (p: UniPoly R) : Option (Fin p.size) :=
+  p.coeffs.findIdxRev? (· != 0)
+
+/-- Remove leading zeroes from a `UniPoly`. Requires `BEq` to check if the coefficients are zero. -/
+-- def trim [BEq R] (p : UniPoly R) : UniPoly R := ⟨p.coeffs.popWhile (fun a => a == 0)⟩
+def trim [BEq R] (p : UniPoly R) : UniPoly R :=
+  match p.last_non_zero with
+  | none => ⟨#[]⟩
+  | some i => ⟨p.coeffs.extract 0 (i.val + 1)⟩
+
+/-- Return the degree of a `UniPoly`. -/
+def degree [BEq R] (p : UniPoly R) : Nat :=
+  match p.last_non_zero with
+  | none => 0
+  | some i => i
+
+/-- Return the leading coefficient of a `UniPoly` as the last coefficient of the trimmed array,
+or `0` if the trimmed array is empty. -/
+def leadingCoeff [BEq R] (p : UniPoly R) : R := p.trim.coeffs.getLastD 0
+
 section Operations
 
 variable {S : Type*}
@@ -97,12 +118,9 @@ def smul (r : R) (p : UniPoly R) : UniPoly R :=
   .mk (Array.map (fun a => r * a) p.coeffs)
 
 /-- Scalar multiplication of `UniPoly` by a natural number. -/
-def nsmul (n : ℕ) (p : UniPoly R) : UniPoly R :=
+def nsmul_raw (n : ℕ) (p : UniPoly R) : UniPoly R :=
   .mk (Array.map (fun a => n * a) p.coeffs)
 
-/-- Scalar multiplication of `UniPoly` by an integer. -/
-def zsmul [Ring R] (z : ℤ) (p : UniPoly R) : UniPoly R :=
-  .mk (Array.map (fun a => z * a) p.coeffs)
 
 /-- Negation of a `UniPoly`. -/
 def neg [Ring R] (p : UniPoly R) : UniPoly R :=
@@ -127,12 +145,14 @@ def pow (p : UniPoly R) (n : Nat) : UniPoly R := (mul p)^[n] (C 1)
 
 -- TODO: define repeated squaring version of `pow`
 
+def nsmul [BEq R] (n : ℕ) (p : UniPoly R) : UniPoly R :=
+  nsmul_raw n p |> trim
+
 instance : Zero (UniPoly R) := ⟨UniPoly.mk #[]⟩
 instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
 instance : Add (UniPoly R) := ⟨UniPoly.add⟩
 instance : SMul R (UniPoly R) := ⟨UniPoly.smul⟩
-instance : SMul ℕ (UniPoly R) := ⟨UniPoly.nsmul⟩
-instance [Ring R] : SMul ℤ (UniPoly R) := ⟨UniPoly.zsmul⟩
+instance [BEq R] : SMul ℕ (UniPoly R) := ⟨nsmul⟩
 instance [Ring R] : Neg (UniPoly R) := ⟨UniPoly.neg⟩
 instance [Ring R] : Sub (UniPoly R) := ⟨UniPoly.sub⟩
 instance : Mul (UniPoly R) := ⟨UniPoly.mul⟩
@@ -155,26 +175,6 @@ def degreeBound (p : UniPoly R) : WithBot Nat :=
 def natDegreeBound (p : UniPoly R) : Nat :=
   (degreeBound p).getD 0
 
-/-- Return the index of the last non-zero coefficient of a `UniPoly` -/
-def last_non_zero [BEq R] (p: UniPoly R) : Option (Fin p.size) :=
-  p.coeffs.findIdxRev? (· != 0)
-
-/-- Remove leading zeroes from a `UniPoly`. Requires `BEq` to check if the coefficients are zero. -/
--- def trim [BEq R] (p : UniPoly R) : UniPoly R := ⟨p.coeffs.popWhile (fun a => a == 0)⟩
-def trim [BEq R] (p : UniPoly R) : UniPoly R :=
-  match p.last_non_zero with
-  | none => ⟨#[]⟩
-  | some i => ⟨p.coeffs.extract 0 (i.val + 1)⟩
-
-/-- Return the degree of a `UniPoly`. -/
-def degree [BEq R] (p : UniPoly R) : Nat :=
-  match p.last_non_zero with
-  | none => 0
-  | some i => i
-
-/-- Return the leading coefficient of a `UniPoly` as the last coefficient of the trimmed array,
-or `0` if the trimmed array is empty. -/
-def leadingCoeff [BEq R] (p : UniPoly R) : R := p.trim.coeffs.getLastD 0
 
 /-- Check if a `UniPoly` is monic, i.e. its leading coefficient is 1. -/
 def monic [BEq R] (p : UniPoly R) : Bool := p.leadingCoeff == 1
@@ -289,27 +289,46 @@ theorem add_assoc : p + q + r = p + (q + r) := by
     simp only [add_coeff, add_coeff?]
     apply _root_.add_assoc
 
-def nsmul_canonical [BEq R] (n : ℕ) (p : UniPoly R) : UniPoly R :=
-  nsmul n p |> trim
-
-theorem nsmul_zero [BEq R] [LawfulBEq R] (p : UniPoly R) : nsmul_canonical 0 p = 0 := by
-  suffices (nsmul 0 p).last_non_zero = none by simp [nsmul_canonical, trim, *]
+theorem nsmul_zero [BEq R] [LawfulBEq R] (p : UniPoly R) : nsmul 0 p = 0 := by
+  suffices (nsmul_raw 0 p).last_non_zero = none by simp [nsmul, trim, *]
   unfold last_non_zero
   apply Array.findIdxRev?_eq_none
   intro a ha
   suffices a = 0 by simp only [bne_self_eq_false, *]
-  rw [nsmul, Array.mem_map] at ha
+  rw [nsmul_raw, Array.mem_map] at ha
   simp only [Nat.cast_zero, zero_mul] at ha
   tauto
 
 theorem nsmul_succ [BEq R] (n : ℕ) (p: UniPoly R) :
-  nsmul_canonical (n + 1) p = nsmul_canonical n p + p
+  nsmul (n + 1) p = nsmul n p + p
 := by
   sorry
 
-instance [BEq R] [LawfulBEq R] : AddCommMonoid (UniPoly R) := {
-  add_assoc, zero_add, add_zero, add_comm, nsmul := nsmul_canonical, nsmul_zero, nsmul_succ
-}
+-- TODO this theorem is not true with current definitions
+theorem neg_add_cancel [Ring R] (p : UniPoly R) : -p + p = 0 := by
+  ext i
+  · show ((-p + p).size : ℕ) = (0 : UniPoly R).size
+    sorry -- not true
+  · show ((-p + p).coeffs[i] : R) = (0 : UniPoly R).coeffs[i]
+    sorry -- not true
+
+instance [BEq R] [LawfulBEq R] : AddCommMonoid (UniPoly R) where
+  add_assoc := add_assoc
+  zero_add := zero_add
+  add_zero := add_zero
+  add_comm := add_comm
+  nsmul := nsmul
+  nsmul_zero := nsmul_zero
+  nsmul_succ := nsmul_succ
+
+instance [BEq R] [LawfulBEq R] [Ring R] : AddGroup (UniPoly R) where
+  neg := neg
+  sub := sub
+  zsmul := zsmulRec
+  neg_add_cancel := neg_add_cancel
+
+instance [BEq R] [LawfulBEq R] [Ring R] : AddCommGroup (UniPoly R) where
+  add_comm := add_comm
 
 -- TODO: define `SemiRing` structure on `UniPoly`
 
