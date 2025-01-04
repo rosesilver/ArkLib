@@ -76,7 +76,6 @@ def last_non_zero [BEq R] (p: UniPoly R) : Option (Fin p.size) :=
   p.coeffs.findIdxRev? (· != 0)
 
 /-- Remove leading zeroes from a `UniPoly`. Requires `BEq` to check if the coefficients are zero. -/
--- def trim [BEq R] (p : UniPoly R) : UniPoly R := ⟨p.coeffs.popWhile (fun a => a == 0)⟩
 def trim [BEq R] (p : UniPoly R) : UniPoly R :=
   match p.last_non_zero with
   | none => ⟨#[]⟩
@@ -248,49 +247,81 @@ theorem zipWith_size {R} {f : R → R → R} {a b : Array R} :
   simp; omega
 
 -- TODO generalize to matchSize + zipWith f for any f
-theorem add_size {p q : UniPoly R} : (p + q).size = max p.size q.size := by
-  show (Array.zipWith _ _ _).size = max p.size q.size
+theorem add_size {p q : UniPoly Q} : (add_raw p q).size = max p.size q.size := by
+  show (Array.zipWith _ _ _ ).size = max p.size q.size
   rw [zipWith_size matchSize_size_eq, matchSize_size]
 
 -- TODO generalize to matchSize + zipWith f for any f
-theorem add_coeff {p q : UniPoly R} {i: ℕ} (hi: i < (p + q).size) :
-  (p + q).coeffs[i] = p.coeffs.getD i 0 + q.coeffs.getD i 0
+theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
+  (add_raw p q).coeffs[i] = p.coeffs.getD i 0 + q.coeffs.getD i 0
 := by
-  simp [instHAdd, instAdd, add, Add.add]
+  simp [add_raw]
   rw [List.getElem_matchSize_1, List.getElem_matchSize_2]
   repeat rw [Array.getElem?_eq_toList]
 
 -- TODO generalize to matchSize + zipWith f for any f
-theorem add_coeff? (p q : UniPoly R) (i: ℕ) :
-  (p + q).coeffs.getD i 0 = p.coeffs.getD i 0 + q.coeffs.getD i 0
+theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
+  (add_raw p q).coeffs.getD i 0 = p.coeffs.getD i 0 + q.coeffs.getD i 0
 := by
-  rcases (Nat.lt_or_ge i (p + q).coeffs.size) with h_lt | h_ge
+  rcases (Nat.lt_or_ge i (add_raw p q).coeffs.size) with h_lt | h_ge
   · rw [← add_coeff h_lt]; simp [h_lt]
   have h_lt' : i ≥ max p.size q.size := by rwa [← add_size]
   have h_p : i ≥ p.size := by omega
   have h_q : i ≥ q.size := by omega
   simp [h_ge, h_p, h_q]
 
+def equiv₁ (p q : UniPoly R) : Prop :=
+  ∀ i, p.coeffs.getD i 0 = q.coeffs.getD i 0
+
+def equiv₂ (p q : UniPoly R) : Prop :=
+  ∀ i,
+    ((hp : i < p.size) → (hq : i < q.size) → p.coeffs[i] = q.coeffs[i])
+  ∧ ((hp : i ≥ p.size) → (hq : i < q.size) → q.coeffs[i] = 0)
+  ∧ ((hp : i < p.size) → (hq : i ≥ q.size) → p.coeffs[i] = 0)
+
+def equiv_trim_eq₁ (p q : UniPoly R) : equiv₁ p q → p.trim = q.trim := by
+  sorry
+
+def equiv_trim_eq (p q : UniPoly R) : equiv₂ p q → p.trim = q.trim := by
+  sorry
+
+theorem trim_coeffs (p : UniPoly R) (i : ℕ) : p.trim.coeffs.getD i 0 = p.coeffs.getD i 0 := by
+  sorry
+
+-- TODO generalize to matchSize + zipWith f for any f
+lemma trim_add_trim (p q : UniPoly R) : p.trim + q = p + q := by
+  apply equiv_trim_eq₁
+  intro i
+  rw [add_coeff?, add_coeff?, trim_coeffs]
+
+theorem trim_eq : p = q → p.trim = q.trim := congrArg UniPoly.trim
+
 -- algebra theorems about add
 
 theorem add_comm : p + q = q + p := by
+  apply trim_eq
   ext
   · simp only [add_size]; omega
   · simp only [add_coeff]
     apply _root_.add_comm
 
-@[simp] theorem zero_add : 0 + p = p := by
+def canonical (p : UniPoly R) := p = p.trim
+
+@[simp] theorem zero_add (hp : p.canonical) : 0 + p = p := by
+  rw (occs := .pos [2]) [hp]
+  apply trim_eq
   ext <;> simp [add_size, add_coeff, *]
 
-@[simp] theorem add_zero : p + 0 = p := by
-  rw [add_comm, zero_add]
+@[simp] theorem add_zero (hp : p.canonical) : p + 0 = p := by
+  rw [add_comm, zero_add p hp]
 
 theorem add_assoc : p + q + r = p + (q + r) := by
+  show (add_raw p q).trim + r = p + (add_raw q r).trim
+  rw [trim_add_trim, add_comm p, trim_add_trim, add_comm _ p]
+  apply trim_eq
   ext i
-  · show (p + q + r).size = (p + (q + r)).size
-    simp only [add_size]; omega
-  · show (p + q + r).coeffs[i] = (p + (q + r)).coeffs[i]
-    simp only [add_coeff, add_coeff?]
+  · simp only [add_size]; omega
+  · simp only [add_coeff, add_coeff?]
     apply _root_.add_assoc
 
 theorem nsmul_zero [LawfulBEq R] (p : UniPoly R) : nsmul 0 p = 0 := by
@@ -308,7 +339,6 @@ theorem nsmul_succ (n : ℕ) (p: UniPoly R) :
 := by
   sorry
 
--- TODO this theorem is not true with current definitions
 theorem neg_add_cancel [Ring R] (p : UniPoly R) : -p + p = 0 := by
   ext i
   · show ((-p + p).size : ℕ) = (0 : UniPoly R).size
@@ -318,8 +348,8 @@ theorem neg_add_cancel [Ring R] (p : UniPoly R) : -p + p = 0 := by
 
 instance [LawfulBEq R] : AddCommMonoid (UniPoly R) where
   add_assoc := add_assoc
-  zero_add := zero_add
-  add_zero := add_zero
+  zero_add := sorry
+  add_zero := sorry
   add_comm := add_comm
   nsmul := nsmul
   nsmul_zero := nsmul_zero
