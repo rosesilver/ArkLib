@@ -250,42 +250,30 @@ theorem add_coeff? (p q : UniPoly R) (i: ℕ) :
   (p + q).coeffs.getD i 0 = p.coeffs.getD i 0 + q.coeffs.getD i 0
 := by
   rcases (Nat.lt_or_ge i (p + q).coeffs.size) with h_lt | h_ge
-  · rw [← add_coeff h_lt, Array.getD_eq_get?, Array.getElem?_eq_getElem h_lt]
-    simp
+  · rw [← add_coeff h_lt]; simp [h_lt]
   have h_lt' : i ≥ max p.size q.size := by rwa [← add_size]
   have h_p : i ≥ p.size := by omega
   have h_q : i ≥ q.size := by omega
-  simp [Array.getElem?_eq_none_iff.mpr, h_ge, h_p, h_q]
+  simp [h_ge, h_p, h_q]
 
 -- algebra theorems about add
 
 theorem add_comm : p + q = q + p := by
-  simp only [instHAdd, Add.add, add, List.zipWith_toArray, mk.injEq, Array.mk.injEq]
-  exact List.zipWith_comm_of_comm _ (fun x y ↦ by change x + y = y + x; rw [_root_.add_comm]) _ _
+  ext
+  · simp only [add_size]; omega
+  · simp only [add_coeff]
+    apply _root_.add_comm
 
 @[simp] theorem zero_add : 0 + p = p := by
-  simp [instHAdd, instAdd, add, List.matchSize]
-  refine UniPoly.ext (Array.ext' ?_)
-  simp only
-  rw [List.zipWith_congr
-        (g := fun _ x ↦ x)
-        (h := by simp [List.forall₂_iff_get]
-                 intros i h
-                 change 0 + p.coeffs[i] = p.coeffs[i]
-                 simp)]
-  exact List.zipWith_const (by simp) (by simp)
+  ext <;> simp [add_size, add_coeff, *]
 
 theorem add_assoc : p + q + r = p + (q + r) := by
   ext i
-  -- size is equal
-  show (p + q + r).size = (p + (q + r)).size
-  simp only [add_size]
-  omega
-  -- coefficients are equal
-  show (p + q + r).coeffs[i] = (p + (q + r)).coeffs[i]
-  simp only [add_coeff, add_coeff?]
-  apply _root_.add_assoc
-
+  · show (p + q + r).size = (p + (q + r)).size
+    simp only [add_size]; omega
+  · show (p + q + r).coeffs[i] = (p + (q + r)).coeffs[i]
+    simp only [add_coeff, add_coeff?]
+    apply _root_.add_assoc
 
 -- TODO: define `SemiRing` structure on `UniPoly`
 -- instance : AddCommMonoid (UniPoly R) := {

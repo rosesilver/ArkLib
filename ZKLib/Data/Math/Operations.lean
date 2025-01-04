@@ -301,6 +301,12 @@ theorem getElem?_eq_toList {a : Array α} {i : ℕ} : a.toList[i]? = a[i]? := by
   rw (occs := .pos [2]) [← List.toArray_toList a]
   rw [List.getElem?_toArray]
 
+-- simplify `a[i]?` to `some a[i]` or `none` given hypotheses about `i` vs `a.size`
+@[simp] theorem getElem?_eq_none {a: Array α} {i: Nat} : (a.size ≤ i) → a[i]? = none :=
+  Array.getElem?_eq_none_iff.mpr
+
+attribute [simp] Array.getElem?_eq_getElem
+
 -- @[simp] theorem matchSize_comm (a : Array α) (b : Array α) (unit : α) :
 --     matchSize a b unit = (matchSize b a unit).swap := by
 --   simp [matchSize, List.matchSize]
