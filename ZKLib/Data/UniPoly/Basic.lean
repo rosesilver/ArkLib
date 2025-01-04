@@ -52,7 +52,8 @@ deriving Repr
 
 namespace UniPoly
 
-variable {R : Type*} [Semiring R]
+variable {R : Type*} [Semiring R] [BEq R]
+variable {Q : Type*} [Semiring Q]
 
 instance [DecidableEq R] : Inhabited (UniPoly' R) := ⟨⟨#[], rfl⟩⟩
 
@@ -109,18 +110,24 @@ def eval (x : R) (p : UniPoly R) : R :=
 
 /-- Addition of two `UniPoly`s. Defined as the pointwise sum of the underlying coefficient arrays
   (properly padded with zeroes). -/
-def add (p q : UniPoly R) : UniPoly R :=
+def add_raw (p q : UniPoly R) : UniPoly R :=
   let ⟨p', q'⟩ := Array.matchSize p.coeffs q.coeffs 0
   .mk (Array.zipWith p' q' (· + ·) )
+
+/-- Addition of two `UniPoly`s. -/
+def add (p q : UniPoly R) : UniPoly R :=
+  add_raw p q |> trim
 
 /-- Scalar multiplication of `UniPoly` by an element of `R`. -/
 def smul (r : R) (p : UniPoly R) : UniPoly R :=
   .mk (Array.map (fun a => r * a) p.coeffs)
 
-/-- Scalar multiplication of `UniPoly` by a natural number. -/
 def nsmul_raw (n : ℕ) (p : UniPoly R) : UniPoly R :=
   .mk (Array.map (fun a => n * a) p.coeffs)
 
+/-- Scalar multiplication of `UniPoly` by a natural number. -/
+def nsmul (n : ℕ) (p : UniPoly R) : UniPoly R :=
+  nsmul_raw n p |> trim
 
 /-- Negation of a `UniPoly`. -/
 def neg [Ring R] (p : UniPoly R) : UniPoly R :=
@@ -145,14 +152,11 @@ def pow (p : UniPoly R) (n : Nat) : UniPoly R := (mul p)^[n] (C 1)
 
 -- TODO: define repeated squaring version of `pow`
 
-def nsmul [BEq R] (n : ℕ) (p : UniPoly R) : UniPoly R :=
-  nsmul_raw n p |> trim
-
 instance : Zero (UniPoly R) := ⟨UniPoly.mk #[]⟩
 instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
 instance : Add (UniPoly R) := ⟨UniPoly.add⟩
 instance : SMul R (UniPoly R) := ⟨UniPoly.smul⟩
-instance [BEq R] : SMul ℕ (UniPoly R) := ⟨nsmul⟩
+instance : SMul ℕ (UniPoly R) := ⟨nsmul⟩
 instance [Ring R] : Neg (UniPoly R) := ⟨UniPoly.neg⟩
 instance [Ring R] : Sub (UniPoly R) := ⟨UniPoly.sub⟩
 instance : Mul (UniPoly R) := ⟨UniPoly.mul⟩
@@ -177,12 +181,12 @@ def natDegreeBound (p : UniPoly R) : Nat :=
 
 
 /-- Check if a `UniPoly` is monic, i.e. its leading coefficient is 1. -/
-def monic [BEq R] (p : UniPoly R) : Bool := p.leadingCoeff == 1
+def monic (p : UniPoly R) : Bool := p.leadingCoeff == 1
 
 -- TODO: remove dependence on `BEq` for division and modulus
 
 /-- Division and modulus of `p : UniPoly R` by a monic `q : UniPoly R`. -/
-def divModByMonicAux [BEq R] [Field R] (p : UniPoly R) (q : UniPoly R) :
+def divModByMonicAux [Field R] (p : UniPoly R) (q : UniPoly R) :
     UniPoly R × UniPoly R :=
   go (p.size - q.size) p q
 where
@@ -199,42 +203,42 @@ where
       ⟨e + C p.leadingCoeff * X^k, f⟩
 
 /-- Division of `p : UniPoly R` by a monic `q : UniPoly R`. -/
-def divByMonic [BEq R] [Field R] (p : UniPoly R) (q : UniPoly R) :
+def divByMonic [Field R] (p : UniPoly R) (q : UniPoly R) :
     UniPoly R :=
   (divModByMonicAux p q).1
 
 /-- Modulus of `p : UniPoly R` by a monic `q : UniPoly R`. -/
-def modByMonic [BEq R] [Field R] (p : UniPoly R) (q : UniPoly R) :
+def modByMonic [Field R] (p : UniPoly R) (q : UniPoly R) :
     UniPoly R :=
   (divModByMonicAux p q).2
 
 /-- Division of two `UniPoly`s. -/
-def div [BEq R] [Field R] (p q : UniPoly R) : UniPoly R :=
+def div [Field R] (p q : UniPoly R) : UniPoly R :=
   (C (q.leadingCoeff)⁻¹ • p).divByMonic (C (q.leadingCoeff)⁻¹ * q)
 
 /-- Modulus of two `UniPoly`s. -/
-def mod [BEq R] [Field R] (p q : UniPoly R) : UniPoly R :=
+def mod [Field R] (p q : UniPoly R) : UniPoly R :=
   (C (q.leadingCoeff)⁻¹ • p).modByMonic (C (q.leadingCoeff)⁻¹ * q)
 
-instance [BEq R] [Field R] : Div (UniPoly R) := ⟨UniPoly.div⟩
-instance [BEq R] [Field R] : Mod (UniPoly R) := ⟨UniPoly.mod⟩
+instance [Field R] : Div (UniPoly R) := ⟨UniPoly.div⟩
+instance [Field R] : Mod (UniPoly R) := ⟨UniPoly.mod⟩
 
 /-- Pseudo-division of a `UniPoly` by `X`, which shifts all non-constant coefficients
 to the left by one. -/
 def divX (p : UniPoly R) : UniPoly R := ⟨p.coeffs.extract 1 p.size⟩
 
-@[simp] theorem zero_def : (0 : UniPoly R) = ⟨#[]⟩ := rfl
+@[simp] theorem zero_def : (0 : UniPoly Q) = ⟨#[]⟩ := rfl
 
 variable (p q r : UniPoly R)
 
 -- some helper lemmas to characterize p + q
 
-theorem matchSize_size_eq {p q : UniPoly R} :
+theorem matchSize_size_eq {p q : UniPoly Q} :
   let (p', q') := Array.matchSize p.coeffs q.coeffs 0
   p'.size = q'.size := by
   apply List.matchSize_length_eq
 
-theorem matchSize_size {p q : UniPoly R} :
+theorem matchSize_size {p q : UniPoly Q} :
   let (p', _) := Array.matchSize p.coeffs q.coeffs 0
   p'.size = max p.size q.size := by
   apply List.matchSize_length
@@ -289,7 +293,7 @@ theorem add_assoc : p + q + r = p + (q + r) := by
     simp only [add_coeff, add_coeff?]
     apply _root_.add_assoc
 
-theorem nsmul_zero [BEq R] [LawfulBEq R] (p : UniPoly R) : nsmul 0 p = 0 := by
+theorem nsmul_zero [LawfulBEq R] (p : UniPoly R) : nsmul 0 p = 0 := by
   suffices (nsmul_raw 0 p).last_non_zero = none by simp [nsmul, trim, *]
   unfold last_non_zero
   apply Array.findIdxRev?_eq_none
@@ -299,7 +303,7 @@ theorem nsmul_zero [BEq R] [LawfulBEq R] (p : UniPoly R) : nsmul 0 p = 0 := by
   simp only [Nat.cast_zero, zero_mul] at ha
   tauto
 
-theorem nsmul_succ [BEq R] (n : ℕ) (p: UniPoly R) :
+theorem nsmul_succ (n : ℕ) (p: UniPoly R) :
   nsmul (n + 1) p = nsmul n p + p
 := by
   sorry
@@ -312,7 +316,7 @@ theorem neg_add_cancel [Ring R] (p : UniPoly R) : -p + p = 0 := by
   · show ((-p + p).coeffs[i] : R) = (0 : UniPoly R).coeffs[i]
     sorry -- not true
 
-instance [BEq R] [LawfulBEq R] : AddCommMonoid (UniPoly R) where
+instance [LawfulBEq R] : AddCommMonoid (UniPoly R) where
   add_assoc := add_assoc
   zero_add := zero_add
   add_zero := add_zero
@@ -321,13 +325,13 @@ instance [BEq R] [LawfulBEq R] : AddCommMonoid (UniPoly R) where
   nsmul_zero := nsmul_zero
   nsmul_succ := nsmul_succ
 
-instance [BEq R] [LawfulBEq R] [Ring R] : AddGroup (UniPoly R) where
+instance [LawfulBEq R] [Ring R] : AddGroup (UniPoly R) where
   neg := neg
   sub := sub
   zsmul := zsmulRec
   neg_add_cancel := neg_add_cancel
 
-instance [BEq R] [LawfulBEq R] [Ring R] : AddCommGroup (UniPoly R) where
+instance [LawfulBEq R] [Ring R] : AddCommGroup (UniPoly R) where
   add_comm := add_comm
 
 -- TODO: define `SemiRing` structure on `UniPoly`
@@ -344,16 +348,16 @@ def equiv (p q : UniPoly R) : Prop :=
   | (p', q') => p' = q'
 
 /-- Reflexivity of the equivalence relation. -/
-@[simp] theorem equiv_refl (p : UniPoly R) : equiv p p :=
+@[simp] theorem equiv_refl (p : UniPoly Q) : equiv p p :=
   by simp [equiv, List.matchSize]
 
 /-- Symmetry of the equivalence relation. -/
-@[simp] theorem equiv_symm {p q : UniPoly R} : equiv p q → equiv q p :=
+@[simp] theorem equiv_symm {p q : UniPoly Q} : equiv p q → equiv q p :=
   fun h => by simp [equiv] at *; exact Eq.symm h
 
 open List in
 /-- Transitivity of the equivalence relation. -/
-@[simp] theorem equiv_trans {p q r : UniPoly R} : equiv p q → equiv q r → equiv p r :=
+@[simp] theorem equiv_trans {p q r : UniPoly Q} : equiv p q → equiv q r → equiv p r :=
   fun hpq hqr => by
     simp_all [equiv, Array.matchSize]
     have hpq' := (List.matchSize_eq_iff_forall_eq p.coeffs.toList q.coeffs.toList 0).mp hpq
@@ -439,7 +443,7 @@ def TropicallyBoundPolynomial.toUniPoly {R : Type} [Semiring R]
   match p with
   | (p, n) => UniPoly.mk (Array.range (degBound n.untrop) |>.map (fun i => p.coeff i))
 
-noncomputable def Equiv.UniPoly.TropicallyBoundPolynomial {R : Type} [Semiring R] :
+noncomputable def Equiv.UniPoly.TropicallyBoundPolynomial {R : Type} [BEq R] [Semiring R] :
     UniPoly R ≃+* Polynomial R × Tropical (OrderDual (WithBot ℕ)) where
       toFun := UniPoly.toTropicallyBoundPolynomial
       invFun := TropicallyBoundPolynomial.toUniPoly
