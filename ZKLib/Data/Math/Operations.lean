@@ -325,11 +325,11 @@ where
         find i (Nat.le_of_lt h_lt)
 
 /-- if the condition is false on all elements, then findIdxRev? finds nothing -/
-theorem findIdxRev?_eq_none (cond : α → Bool) (as : Array α) (h : ∀ a ∈ as, cond a = false) :
+theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ a ∈ as, cond a = false) :
   findIdxRev? cond as = none
   := by apply aux
 where
-  aux (i : Nat) (hi : i ≤ as.size) : findIdxRev?.find cond as i hi = none := by
+  aux i hi : findIdxRev?.find cond as i hi = none := by
     unfold findIdxRev?.find
     split
     next => tauto
