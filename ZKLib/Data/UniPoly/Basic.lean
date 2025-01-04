@@ -155,11 +155,22 @@ def degreeBound (p : UniPoly R) : WithBot Nat :=
 def natDegreeBound (p : UniPoly R) : Nat :=
   (degreeBound p).getD 0
 
-/-- Remove leading zeroes from a `UniPoly`. Requires `BEq` to check if the coefficients are zero. -/
-def trim [BEq R] (p : UniPoly R) : UniPoly R := ⟨p.coeffs.popWhile (fun a => a == 0)⟩
+/-- Return the index of the last non-zero coefficient of a `UniPoly` -/
+def last_non_zero [BEq R] (p: UniPoly R) : Option (Fin p.size) :=
+  p.coeffs.findIdxRev? (· != 0)
 
-/-- Return the degree of a `UniPoly` as size of the underlying trimmed array. -/
-def degree [BEq R] (p : UniPoly R) : Nat := p.trim.size
+/-- Remove leading zeroes from a `UniPoly`. Requires `BEq` to check if the coefficients are zero. -/
+-- def trim [BEq R] (p : UniPoly R) : UniPoly R := ⟨p.coeffs.popWhile (fun a => a == 0)⟩
+def trim [BEq R] (p : UniPoly R) : UniPoly R :=
+  match p.last_non_zero with
+  | none => ⟨#[]⟩
+  | some i => ⟨p.coeffs.extract 0 (i.val + 1)⟩
+
+/-- Return the degree of a `UniPoly`. -/
+def degree [BEq R] (p : UniPoly R) : Nat :=
+  match p.last_non_zero with
+  | none => 0
+  | some i => i
 
 /-- Return the leading coefficient of a `UniPoly` as the last coefficient of the trimmed array,
 or `0` if the trimmed array is empty. -/
@@ -214,7 +225,7 @@ def divX (p : UniPoly R) : UniPoly R := ⟨p.coeffs.extract 1 p.size⟩
 
 @[simp] theorem zero_def : (0 : UniPoly R) = ⟨#[]⟩ := rfl
 
-variable {p q r : UniPoly R}
+variable (p q r : UniPoly R)
 
 -- some helper lemmas to characterize p + q
 
@@ -267,6 +278,9 @@ theorem add_comm : p + q = q + p := by
 @[simp] theorem zero_add : 0 + p = p := by
   ext <;> simp [add_size, add_coeff, *]
 
+@[simp] theorem add_zero : p + 0 = p := by
+  rw [add_comm, zero_add]
+
 theorem add_assoc : p + q + r = p + (q + r) := by
   ext i
   · show (p + q + r).size = (p + (q + r)).size
@@ -275,16 +289,29 @@ theorem add_assoc : p + q + r = p + (q + r) := by
     simp only [add_coeff, add_coeff?]
     apply _root_.add_assoc
 
+def nsmul_canonical [BEq R] (n : ℕ) (p : UniPoly R) : UniPoly R :=
+  nsmul n p |> trim
+
+theorem nsmul_zero [BEq R] [LawfulBEq R] (p : UniPoly R) : nsmul_canonical 0 p = 0 := by
+  suffices (nsmul 0 p).last_non_zero = none by simp [nsmul_canonical, trim, *]
+  unfold last_non_zero
+  apply Array.findIdxRev?_eq_none
+  intro a ha
+  suffices a = 0 by simp only [bne_self_eq_false, *]
+  rw [nsmul, Array.mem_map] at ha
+  simp only [Nat.cast_zero, zero_mul] at ha
+  tauto
+
+theorem nsmul_succ [BEq R] (n : ℕ) (p: UniPoly R) :
+  nsmul_canonical (n + 1) p = nsmul_canonical n p + p
+:= by
+  sorry
+
+instance [BEq R] [LawfulBEq R] : AddCommMonoid (UniPoly R) := {
+  add_assoc, zero_add, add_zero, add_comm, nsmul := nsmul_canonical, nsmul_zero, nsmul_succ
+}
+
 -- TODO: define `SemiRing` structure on `UniPoly`
--- instance : AddCommMonoid (UniPoly R) := {
---   add_assoc := fun p q r => by simp [instHAdd, instAdd, add]
---   zero_add := sorry
---   add_zero := sorry
---   add_comm := sorry
---   nsmul := sorry
--- }
-
-
 
 end Operations
 
