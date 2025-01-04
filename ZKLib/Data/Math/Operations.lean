@@ -311,6 +311,38 @@ attribute [simp] Array.getElem?_eq_getElem
 --     matchSize a b unit = (matchSize b a unit).swap := by
 --   simp [matchSize, List.matchSize]
 
+/-- find index from the end of an array -/
+def findIdxRev? (cond : α → Bool) (as : Array α) : Option (Fin as.size) :=
+  find as.size (Nat.le_refl _)
+where
+  find : (i : Nat) → i ≤ as.size → Option (Fin as.size)
+    | 0,   _ => none
+    | i+1, h =>
+      have h_lt : i < as.size := Nat.lt_of_lt_of_le (Nat.lt_succ_self _) h
+      if (cond as[i]) then
+        some ⟨ i, h_lt ⟩
+      else
+        find i (Nat.le_of_lt h_lt)
+
+/-- if the condition is false on all elements, then findIdxRev? finds nothing -/
+theorem findIdxRev?_eq_none (cond : α → Bool) (as : Array α) (h : ∀ a ∈ as, cond a = false) :
+  findIdxRev? cond as = none
+  := by apply aux
+where
+  aux (i : Nat) (hi : i ≤ as.size) : findIdxRev?.find cond as i hi = none := by
+    unfold findIdxRev?.find
+    split
+    next => tauto
+    next _ _ j _ =>
+      simp only
+      split -- then/else cases inside .find
+      next cond_true =>
+        guard_hyp cond_true : cond as[j] = true
+        have cond_false : cond as[j] = false := h as[j] (getElem_mem _)
+        rw [cond_false] at cond_true
+        contradiction
+      -- recursively invoke the theorem we are proving!
+      apply aux
 
 /-- Right-pads an array with `unit` elements until its length is a power of two. Returns the padded
   array and the number of elements added. -/
