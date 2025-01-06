@@ -315,7 +315,7 @@ attribute [simp] Array.getElem?_eq_getElem
 def findIdxRev? (cond : α → Bool) (as : Array α) : Option (Fin as.size) :=
   find as.size (Nat.le_refl _)
 where
-  find : (i : Nat) → i ≤ as.size → Option (Fin as.size)
+  find : (i : ℕ) → i ≤ as.size → Option (Fin as.size)
     | 0,   _ => none
     | i+1, h =>
       have h_lt : i < as.size := Nat.lt_of_lt_of_le (Nat.lt_succ_self _) h
@@ -325,24 +325,47 @@ where
         find i (Nat.le_of_lt h_lt)
 
 /-- if the condition is false on all elements, then findIdxRev? finds nothing -/
-theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ a ∈ as, cond a = false) :
+theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ a ∈ as, ¬ cond a) :
   findIdxRev? cond as = none
-  := by apply aux
+:= by
+  apply aux
 where
   aux i hi : findIdxRev?.find cond as i hi = none := by
     unfold findIdxRev?.find
     split
     next => tauto
     next _ _ j _ =>
-      simp only
+      dsimp only
       split -- then/else cases inside .find
       next cond_true =>
-        guard_hyp cond_true : cond as[j] = true
-        have cond_false : cond as[j] = false := h as[j] (getElem_mem _)
-        rw [cond_false] at cond_true
+        have cond_false : ¬ cond as[j] := h as[j] (getElem_mem _)
+        have : False := cond_false cond_true
         contradiction
       -- recursively invoke the theorem we are proving!
       apply aux
+
+/-- if the condition is true on some element, then findIdxRev? finds something -/
+theorem findIdxRev?_eq_some {cond} {as : Array α} (h: ∃ a ∈ as, cond a) :
+  ∃ k : Fin as.size, findIdxRev? cond as = some k
+:= by
+  obtain ⟨ a, ha, hcond ⟩ := h
+  obtain ⟨ k, hk, rfl ⟩ := Array.mem_iff_getElem.mp ha
+  apply aux as.size (Nat.le_refl _) ⟨ .mk k hk, hk, hcond ⟩
+where
+  aux (i : ℕ) (hi: i ≤ as.size) (h': ∃ i' : Fin as.size, i' < i ∧ cond as[i']) :
+    ∃ k, findIdxRev?.find cond as i hi = some k := by
+    unfold findIdxRev?.find
+    split
+    next => tauto
+    next _ _ j hj =>
+      dsimp only
+      split -- then/else cases inside .find
+      · use .mk j hj
+      · obtain ⟨ k, hk, hcond ⟩ := h'
+        apply aux -- recursively invoke the theorem we are proving!
+        have : k.val ≠ j := by rintro rfl; contradiction
+        have : k.val < j := by omega
+        use k
 
 /-- Right-pads an array with `unit` elements until its length is a power of two. Returns the padded
   array and the number of elements added. -/
