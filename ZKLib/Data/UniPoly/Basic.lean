@@ -85,11 +85,74 @@ def trim [BEq R] (p : UniPoly R) : UniPoly R :=
 def degree [BEq R] (p : UniPoly R) : Nat :=
   match p.last_non_zero with
   | none => 0
-  | some i => i
+  | some i => i.val + 1
 
 /-- Return the leading coefficient of a `UniPoly` as the last coefficient of the trimmed array,
 or `0` if the trimmed array is empty. -/
 def leadingCoeff [BEq R] (p : UniPoly R) : R := p.trim.coeffs.getLastD 0
+
+namespace trim
+
+theorem size_eq_degree (p : UniPoly R) : p.trim.size = p.degree := by
+  unfold trim degree
+  match h : p.last_non_zero with
+  | none => simp
+  | some i => simp [Fin.is_lt, Nat.succ_le_of_lt]
+
+theorem size_le_size (p : UniPoly R) : p.trim.size ≤ p.size := by
+  unfold trim
+  match h : p.last_non_zero with
+  | none => simp
+  | some i => simp [Array.size_extract]
+
+theorem coeff_eq_getD_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
+  p.trim.coeffs.getD i 0 = p.coeffs[i] := by
+  unfold trim last_non_zero
+  by_cases h: ∀ a ∈ p.coeffs, a = 0
+  · rw [Array.findIdxRev?_eq_none]
+    simp [h, Array.getElem?_eq]
+    symm
+    rw [h p.coeffs[i] (Array.getElem_mem hi)]
+    intro a ha
+    simp [h a ha]
+  sorry
+
+theorem coeff_eq_getD [LawfulBEq R] (p : UniPoly R) (i : ℕ) :
+  p.trim.coeffs.getD i 0 = p.coeffs.getD i 0 := by
+  rcases (Nat.lt_or_ge i p.size) with hi | hi
+  · rw [coeff_eq_getD_lt hi]
+    simp [hi]
+  · have hi' : i ≥ p.trim.size := by linarith [size_le_size p]
+    simp [hi, hi']
+
+lemma getD_eq_getElem {p : UniPoly Q} {i} (hp : i < p.size) :
+  p.coeffs.getD i 0 = p.coeffs[i] := by
+  simp [hp]
+
+def equiv (p q : UniPoly R) : Prop :=
+  ∀ i, p.coeffs.getD i 0 = q.coeffs.getD i 0
+
+lemma eq_degree_of_equiv {p q : UniPoly R} : equiv p q → p.degree = q.degree := by
+  unfold equiv degree last_non_zero
+  sorry
+
+-- def equiv₂ (p q : UniPoly R) : Prop :=
+--   ∀ i,
+--     ((hp : i < p.size) → (hq : i < q.size) → p.coeffs[i] = q.coeffs[i])
+--   ∧ ((hp : i ≥ p.size) → (hq : i < q.size) → q.coeffs[i] = 0)
+--   ∧ ((hp : i < p.size) → (hq : i ≥ q.size) → p.coeffs[i] = 0)
+
+theorem eq_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.trim = q.trim := by
+  unfold equiv
+  intro h
+  ext
+  show p.trim.size = q.trim.size
+  · rw [size_eq_degree, size_eq_degree]
+    apply eq_degree_of_equiv h
+  rw [← getD_eq_getElem, ← getD_eq_getElem]
+  rw [coeff_eq_getD, coeff_eq_getD, h _]
+
+end trim
 
 section Operations
 
@@ -270,36 +333,16 @@ theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
   have h_q : i ≥ q.size := by omega
   simp [h_ge, h_p, h_q]
 
-def equiv₁ (p q : UniPoly R) : Prop :=
-  ∀ i, p.coeffs.getD i 0 = q.coeffs.getD i 0
-
-def equiv₂ (p q : UniPoly R) : Prop :=
-  ∀ i,
-    ((hp : i < p.size) → (hq : i < q.size) → p.coeffs[i] = q.coeffs[i])
-  ∧ ((hp : i ≥ p.size) → (hq : i < q.size) → q.coeffs[i] = 0)
-  ∧ ((hp : i < p.size) → (hq : i ≥ q.size) → p.coeffs[i] = 0)
-
-def equiv_trim_eq₁ (p q : UniPoly R) : equiv₁ p q → p.trim = q.trim := by
-  sorry
-
-def equiv_trim_eq (p q : UniPoly R) : equiv₂ p q → p.trim = q.trim := by
-  sorry
-
-theorem trim_coeffs (p : UniPoly R) (i : ℕ) : p.trim.coeffs.getD i 0 = p.coeffs.getD i 0 := by
-  sorry
-
 -- TODO generalize to matchSize + zipWith f for any f
-lemma trim_add_trim (p q : UniPoly R) : p.trim + q = p + q := by
-  apply equiv_trim_eq₁
+lemma trim_add_trim [LawfulBEq R] (p q : UniPoly R) : p.trim + q = p + q := by
+  apply trim.eq_of_equiv
   intro i
-  rw [add_coeff?, add_coeff?, trim_coeffs]
-
-theorem trim_eq : p = q → p.trim = q.trim := congrArg UniPoly.trim
+  rw [add_coeff?, add_coeff?, trim.coeff_eq_getD]
 
 -- algebra theorems about add
 
 theorem add_comm : p + q = q + p := by
-  apply trim_eq
+  apply congrArg trim
   ext
   · simp only [add_size]; omega
   · simp only [add_coeff]
@@ -309,16 +352,16 @@ def canonical (p : UniPoly R) := p = p.trim
 
 @[simp] theorem zero_add (hp : p.canonical) : 0 + p = p := by
   rw (occs := .pos [2]) [hp]
-  apply trim_eq
+  apply congrArg trim
   ext <;> simp [add_size, add_coeff, *]
 
 @[simp] theorem add_zero (hp : p.canonical) : p + 0 = p := by
   rw [add_comm, zero_add p hp]
 
-theorem add_assoc : p + q + r = p + (q + r) := by
+theorem add_assoc [LawfulBEq R] : p + q + r = p + (q + r) := by
   show (add_raw p q).trim + r = p + (add_raw q r).trim
   rw [trim_add_trim, add_comm p, trim_add_trim, add_comm _ p]
-  apply trim_eq
+  apply congrArg trim
   ext i
   · simp only [add_size]; omega
   · simp only [add_coeff, add_coeff?]
@@ -347,7 +390,7 @@ theorem neg_add_cancel [Ring R] (p : UniPoly R) : -p + p = 0 := by
     sorry -- not true
 
 instance [LawfulBEq R] : AddCommMonoid (UniPoly R) where
-  add_assoc := add_assoc
+  add_assoc p q r := add_assoc p q r
   zero_add := sorry
   add_zero := sorry
   add_comm := add_comm
