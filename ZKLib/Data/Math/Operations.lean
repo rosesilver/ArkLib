@@ -313,16 +313,26 @@ attribute [simp] Array.getElem?_eq_getElem
 
 /-- find index from the end of an array -/
 def findIdxRev? (cond : α → Bool) (as : Array α) : Option (Fin as.size) :=
-  find as.size (Nat.le_refl _)
+  find ⟨ as.size, Nat.lt_succ_self _ ⟩
 where
-  find : (i : ℕ) → i ≤ as.size → Option (Fin as.size)
-    | 0,   _ => none
-    | i+1, h =>
-      have h_lt : i < as.size := Nat.lt_of_lt_of_le (Nat.lt_succ_self _) h
+  find : Fin (as.size + 1) → Option (Fin as.size)
+    | 0 => none
+    | ⟨ i+1, h ⟩ =>
       if (cond as[i]) then
-        some ⟨ i, h_lt ⟩
+        some ⟨ i, Nat.lt_of_succ_lt_succ h ⟩
       else
-        find i (Nat.le_of_lt h_lt)
+        find ⟨ i, Nat.lt_of_succ_lt h ⟩
+
+/-- if findIdxRev? finds an index, the condition is satisfied on that element -/
+def findIdxRev?_def {cond} {as: Array α} {k : Fin as.size} :
+  findIdxRev? cond as = some k → cond as[k] := by
+  suffices aux : ∀ i, findIdxRev?.find cond as i = some k → cond as[k] by apply aux
+  intro i
+  unfold findIdxRev?.find
+  induction i using findIdxRev?.find.induct cond as with
+  | case1 => simp
+  | case2 => simp [*]; rintro rfl; assumption
+  | case3 _ _ not_true ih => unfold findIdxRev?.find; simp [*]; assumption
 
 /-- if the condition is false on all elements, then findIdxRev? finds nothing -/
 theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ a ∈ as, ¬ cond a) :
@@ -330,12 +340,11 @@ theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ a ∈ as, ¬ cond a)
 := by
   apply aux
 where
-  aux i hi : findIdxRev?.find cond as i hi = none := by
+  aux i : findIdxRev?.find cond as i = none := by
     unfold findIdxRev?.find
     split
     next => tauto
-    next _ _ j _ =>
-      dsimp only
+    next _ j _ =>
       split -- then/else cases inside .find
       next cond_true =>
         have cond_false : ¬ cond as[j] := h as[j] (getElem_mem _)
@@ -350,18 +359,17 @@ theorem findIdxRev?_eq_some {cond} {as : Array α} (h: ∃ a ∈ as, cond a) :
 := by
   obtain ⟨ a, ha, hcond ⟩ := h
   obtain ⟨ k, hk, rfl ⟩ := Array.mem_iff_getElem.mp ha
-  apply aux as.size (Nat.le_refl _) ⟨ .mk k hk, hk, hcond ⟩
+  apply aux ⟨ as.size, Nat.lt_succ_self _ ⟩ ⟨ .mk k hk, hk, hcond ⟩
 where
-  aux (i : ℕ) (hi: i ≤ as.size) (h': ∃ i' : Fin as.size, i' < i ∧ cond as[i']) :
-    ∃ k, findIdxRev?.find cond as i hi = some k := by
+  aux (i : Fin (as.size + 1)) (h': ∃ i' : Fin as.size, i' < i.val ∧ cond as[i']) :
+    ∃ k, findIdxRev?.find cond as i = some k := by
     unfold findIdxRev?.find
     split
     next => tauto
-    next _ _ j hj =>
-      dsimp only
+    next _ j hj =>
       split -- then/else cases inside .find
-      · use .mk j hj
-      · obtain ⟨ k, hk, hcond ⟩ := h'
+      · use .mk j (by linarith)
+      · obtain ⟨ k, hk : k < j + 1, hcond ⟩ := h'
         apply aux -- recursively invoke the theorem we are proving!
         have : k.val ≠ j := by rintro rfl; contradiction
         have : k.val < j := by omega

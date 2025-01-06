@@ -372,7 +372,7 @@ theorem nsmul_zero [LawfulBEq R] (p : UniPoly R) : nsmul 0 p = 0 := by
   unfold last_non_zero
   apply Array.findIdxRev?_eq_none
   intro a ha
-  suffices a = 0 by simp only [bne_self_eq_false, *]
+  suffices a = 0 by simp [*]
   rw [nsmul_raw, Array.mem_map] at ha
   simp only [Nat.cast_zero, zero_mul] at ha
   tauto
