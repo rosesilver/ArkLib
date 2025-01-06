@@ -334,6 +334,31 @@ def findIdxRev?_def {cond} {as: Array α} {k : Fin as.size} :
   | case2 => simp [*]; rintro rfl; assumption
   | case3 _ _ not_true ih => unfold findIdxRev?.find; simp [*]; assumption
 
+/-- if findIdxRev? finds an index, then for every greater index the condition doesn't hold -/
+def findIdxRev?_maximal {cond} {as: Array α} {k : Fin as.size} :
+  findIdxRev? cond as = some k → ∀ j : Fin as.size, j > k → ¬ cond as[j] := by
+  suffices aux : ∀ i, findIdxRev?.find cond as i = some k → ∀ j :
+    Fin as.size, j > k → j.val < i → ¬ cond as[j] by
+    intro h j j_gt_k
+    exact aux ⟨ as.size, Nat.lt_succ_self _ ⟩ h j j_gt_k j.is_lt
+  intro i
+  induction i using findIdxRev?.find.induct cond as with
+  | case1 => unfold findIdxRev?.find; simp
+  | case2 i =>
+    unfold findIdxRev?.find
+    simp [*]
+    rintro rfl j (_: j > i) (_: j < i + 1) -- contradiction
+    linarith
+  | case3 i _ not_true ih =>
+    unfold findIdxRev?.find
+    simp [*]
+    intro h j j_gt_k j_lt_isucc
+    specialize ih h j j_gt_k
+    rcases (Nat.lt_or_eq_of_le (Nat.le_of_lt_succ j_lt_isucc): j < i ∨ j = i) with (j_lt_i | rfl)
+    · specialize ih j_lt_i
+      rwa [Bool.not_eq_true] at ih
+    · simp only [not_true]
+
 /-- if the condition is false on all elements, then findIdxRev? finds nothing -/
 theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ a ∈ as, ¬ cond a) :
   findIdxRev? cond as = none
