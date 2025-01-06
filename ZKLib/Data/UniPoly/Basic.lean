@@ -108,14 +108,18 @@ theorem size_le_size (p : UniPoly R) : p.trim.size ≤ p.size := by
 theorem coeff_eq_getD_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
   p.trim.coeffs.getD i 0 = p.coeffs[i] := by
   unfold trim last_non_zero
-  by_cases h: ∀ a ∈ p.coeffs, a = 0
-  · rw [Array.findIdxRev?_eq_none]
-    simp [h, Array.getElem?_eq]
-    symm
-    rw [h p.coeffs[i] (Array.getElem_mem hi)]
-    intro a ha
-    simp [h a ha]
-  sorry
+  by_cases h: ∀ a ∈ p.coeffs, ¬ (a != 0)
+  · rw [Array.findIdxRev?_eq_none h]
+    simp [Array.getElem?_eq]
+    set a := p.coeffs[i]
+    specialize h a (Array.getElem_mem hi)
+    rw [bne_iff_ne, ne_eq, not_not] at h
+    exact Eq.symm h
+  · have h' : ∃ a ∈ p.coeffs, a != 0 := by push_neg at h; assumption
+    obtain ⟨ k, hk ⟩ := Array.findIdxRev?_eq_some h'
+    simp [hk]
+    have h_zero_after_k := Array.findIdxRev?_maximal hk
+    -- split between i <= k and i > k
 
 theorem coeff_eq_getD [LawfulBEq R] (p : UniPoly R) (i : ℕ) :
   p.trim.coeffs.getD i 0 = p.coeffs.getD i 0 := by
