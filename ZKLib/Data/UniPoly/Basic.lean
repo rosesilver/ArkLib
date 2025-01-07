@@ -16,18 +16,6 @@ import ZKLib.Data.Math.Operations
   - ...
 -/
 
-namespace Array
-
-def trim {R : Type*} [DecidableEq R] (a : Array R) (y : R) : Array R :=
-  a.popWhile (fun x => x = y)
-
-theorem trim_trim {R : Type*} [DecidableEq R] (a : Array R) (y : R) :
-    (a.trim y).trim y = a.trim y := by
-  simp [trim]
-  sorry
-
-end Array
-
 open Polynomial
 
 /-- A type analogous to `Polynomial` that supports computable operations. This polynomial is
@@ -42,20 +30,10 @@ structure UniPoly (R : Type*) [Ring R] where
   coeffs : Array R
 deriving Inhabited, DecidableEq, Repr
 
-@[ext, specialize]
-structure UniPoly' (R : Type*) [Ring R] [DecidableEq R] where
-  coeffs : Array R
-  hTrim : coeffs.trim 0 = coeffs
-  -- Alternatively (requires `Nontrivial R` as well)
-  -- hTrim' : coeffs.getLastD 1 ≠ 0
-deriving Repr
-
 namespace UniPoly
 
 variable {R : Type*} [Ring R] [BEq R]
 variable {Q : Type*} [Ring Q]
-
-instance [DecidableEq R] : Inhabited (UniPoly' R) := ⟨⟨#[], rfl⟩⟩
 
 /-- Another way to access `coeffs` -/
 def toArray (p : UniPoly R) : Array R := p.coeffs
@@ -263,7 +241,32 @@ theorem eq_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.trim = q.t
   rw [← getD_eq_getElem, ← getD_eq_getElem]
   rw [coeff_eq_getD, coeff_eq_getD, h _]
 
+theorem trim_equiv [LawfulBEq R] (p : UniPoly R) : equiv p.trim p := by
+  apply coeff_eq_getD
+
+theorem trim_twice [LawfulBEq R] (p : UniPoly R) : p.trim.trim = p.trim := by
+  apply eq_of_equiv
+  apply trim_equiv
 end Trim
+
+/-- canonical version of UniPoly -/
+def UniPolyC (R : Type*) [BEq R] [Ring R] := { p : UniPoly R // p.trim = p }
+
+@[ext] theorem UniPolyC.ext {p q : UniPolyC R} (h : p.val = q.val) : p = q := Subtype.eq h
+
+instance : Zero (UniPoly R) := ⟨UniPoly.mk #[]⟩
+
+@[simp] theorem zero_def : (0 : UniPoly Q) = ⟨#[]⟩ := rfl
+
+theorem zero_canonical {R : Type*} [BEq R] [Ring R] : (0 : UniPoly R).trim = 0 := by
+  have : (0 : UniPoly R).last_non_zero = none := by
+    simp [last_non_zero];
+    apply Array.findIdxRev?_emtpy_none
+    rfl
+  rw [trim, this]
+  rfl
+
+instance : Inhabited (UniPolyC R) := ⟨⟨#[]⟩, zero_canonical⟩
 
 section Operations
 
@@ -325,7 +328,6 @@ def pow (p : UniPoly R) (n : Nat) : UniPoly R := (mul p)^[n] (C 1)
 
 -- TODO: define repeated squaring version of `pow`
 
-instance : Zero (UniPoly R) := ⟨UniPoly.mk #[]⟩
 instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
 instance : Add (UniPoly R) := ⟨UniPoly.add⟩
 instance : SMul R (UniPoly R) := ⟨UniPoly.smul⟩
@@ -400,8 +402,6 @@ instance [Field R] : Mod (UniPoly R) := ⟨UniPoly.mod⟩
 to the left by one. -/
 def divX (p : UniPoly R) : UniPoly R := ⟨p.coeffs.extract 1 p.size⟩
 
-@[simp] theorem zero_def : (0 : UniPoly Q) = ⟨#[]⟩ := rfl
-
 variable (p q r : UniPoly R)
 
 -- some helper lemmas to characterize p + q
@@ -459,14 +459,14 @@ theorem add_comm : p + q = q + p := by
   · simp only [add_coeff]
     apply _root_.add_comm
 
-def canonical (p : UniPoly R) := p = p.trim
+def canonical (p : UniPoly R) := p.trim = p
 
-@[simp] theorem zero_add (hp : p.canonical) : 0 + p = p := by
-  rw (occs := .pos [2]) [hp]
+theorem zero_add (hp : p.canonical) : 0 + p = p := by
+  rw (occs := .pos [2]) [← hp]
   apply congrArg trim
   ext <;> simp [add_size, add_coeff, *]
 
-@[simp] theorem add_zero (hp : p.canonical) : p + 0 = p := by
+theorem add_zero (hp : p.canonical) : p + 0 = p := by
   rw [add_comm, zero_add p hp]
 
 theorem add_assoc [LawfulBEq R] : p + q + r = p + (q + r) := by
@@ -493,38 +493,80 @@ theorem nsmul_succ (n : ℕ) (p: UniPoly R) :
 := by
   sorry
 
-lemma zero_canonical [LawfulBEq R] : (0 : UniPoly R) = .trim 0 := by
-  have : (0 : UniPoly R).last_non_zero = none := by simp [Trim.last_non_zero_none]
-  rw [trim, this]
-  rfl
-
 theorem neg_add_cancel [LawfulBEq R] (p : UniPoly R) : -p + p = 0 := by
-  rw [zero_canonical]
+  rw [← zero_canonical]
   apply Trim.eq_of_equiv; unfold Trim.equiv; intro i
   rw [add_coeff?]
   rcases (Nat.lt_or_ge i p.size) with hi | hi <;> simp [hi, Neg.neg, neg]
 
-instance [LawfulBEq R] : AddCommMonoid (UniPoly R) where
-  add_assoc p q r := add_assoc p q r
-  zero_add := sorry
-  add_zero := sorry
+end Operations
+
+namespace OperationsC
+-- additive group on UniPolyC
+variable {R : Type*} [Ring R] [BEq R] [LawfulBEq R]
+variable (p q r : UniPolyC R)
+
+-- instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
+
+instance : Add (UniPolyC R) where
+  add p q := ⟨p.val + q.val, by apply Trim.trim_twice⟩
+
+theorem add_comm : p + q = q + p := by
+  apply UniPolyC.ext; apply UniPoly.add_comm
+
+theorem add_assoc : p + q + r = p + (q + r) := by
+  apply UniPolyC.ext; apply UniPoly.add_assoc
+
+instance : Zero (UniPolyC R) := ⟨0, zero_canonical⟩
+
+theorem zero_add : 0 + p = p := by
+  apply UniPolyC.ext
+  apply UniPoly.zero_add p.val p.prop
+
+theorem add_zero : p + 0 = p := by
+  apply UniPolyC.ext
+  apply UniPoly.add_zero p.val p.prop
+
+def nsmul (n : ℕ) (p : UniPolyC R) : UniPolyC R :=
+  ⟨UniPoly.nsmul n p.val, by apply Trim.trim_twice⟩
+
+theorem nsmul_zero : nsmul 0 p = 0 := by
+  apply UniPolyC.ext; apply UniPoly.nsmul_zero
+
+theorem nsmul_succ (n : ℕ) (p : UniPolyC R) : nsmul (n + 1) p = nsmul n p + p := by
+  apply UniPolyC.ext; apply UniPoly.nsmul_succ
+
+instance : Neg (UniPolyC R) where
+  neg p : UniPolyC R := ⟨ -p.val, by sorry ⟩
+
+instance : Sub (UniPolyC R) where
+  sub p q := p + -q
+
+theorem neg_add_cancel : -p + p = 0 := by
+  apply UniPolyC.ext
+  apply UniPoly.neg_add_cancel
+
+instance [LawfulBEq R] : AddCommMonoid (UniPolyC R) where
+  add_assoc := add_assoc
+  zero_add := zero_add
+  add_zero := add_zero
   add_comm := add_comm
   nsmul := nsmul
   nsmul_zero := nsmul_zero
   nsmul_succ := nsmul_succ
 
-instance [LawfulBEq R] : AddGroup (UniPoly R) where
-  neg := neg
-  sub := sub
+instance [LawfulBEq R] : AddGroup (UniPolyC R) where
+  neg := Neg.neg
+  sub := Sub.sub
   zsmul := zsmulRec
   neg_add_cancel := neg_add_cancel
 
-instance [LawfulBEq R] : AddCommGroup (UniPoly R) where
+instance [LawfulBEq R] : AddCommGroup (UniPolyC R) where
   add_comm := add_comm
 
--- TODO: define `SemiRing` structure on `UniPoly`
+-- TODO: define `SemiRing` structure on `UniPoly` and `UniPolyC`
 
-end Operations
+end OperationsC
 
 
 section Equiv

@@ -378,6 +378,13 @@ where
       -- recursively invoke the theorem we are proving!
       apply aux
 
+theorem findIdxRev?_emtpy_none {cond} {as : Array α} (h : as = #[]) :
+  findIdxRev? cond as = none
+:= by
+  rw [h]
+  apply findIdxRev?_eq_none
+  simp
+
 /-- if the condition is true on some element, then findIdxRev? finds something -/
 theorem findIdxRev?_eq_some {cond} {as : Array α} (h: ∃ a ∈ as, cond a) :
   ∃ k : Fin as.size, findIdxRev? cond as = some k
