@@ -91,7 +91,75 @@ def degree [BEq R] (p : UniPoly R) : Nat :=
 or `0` if the trimmed array is empty. -/
 def leadingCoeff [BEq R] (p : UniPoly R) : R := p.trim.coeffs.getLastD 0
 
-namespace trim
+namespace Trim
+
+-- characterize .last_non_zero
+theorem last_non_zero_none [LawfulBEq R] {p : UniPoly R} :
+  (∀ i, (hi : i < p.size) → p.coeffs[i] = 0) → p.last_non_zero = none
+:= by
+  intro h
+  apply Array.findIdxRev?_eq_none
+  intro a ha
+  suffices a = 0 by rwa [bne_iff_ne, ne_eq, not_not]
+  -- translate index access to array membership
+  -- TODO if this is nicer to use then we should use index access in `Array.findIdxRev?` theorems
+  obtain ⟨ i, hi, rfl: p.coeffs[i] = a ⟩ := Array.mem_iff_getElem.mp ha
+  exact h i hi
+
+theorem last_non_zero_some [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) (h: p.coeffs[i] ≠ 0) :
+  ∃ k, p.last_non_zero = some k
+:= Array.findIdxRev?_eq_some ⟨p.coeffs[i], Array.getElem_mem _, bne_iff_ne.mpr h⟩
+
+-- theorem to pass to `cases` when reasoning about last_non_zero and trim
+theorem last_none_zero_cases [LawfulBEq R] (p : UniPoly R) :
+  (p.last_non_zero = none ∧ (∀ i, (hi : i < p.size) → p.coeffs[i] = 0))
+  ∨ (∃ k, p.last_non_zero = some k)
+:= by
+  by_cases h : ∀ i, (hi : i < p.size) → p.coeffs[i] = 0
+  · left; exact ⟨last_non_zero_none h, h⟩
+  · right
+    push_neg at h
+    rcases h with ⟨ i, hi, h ⟩
+    exact last_non_zero_some hi h
+
+theorem last_non_zero_spec [LawfulBEq R] {p : UniPoly R} {k} :
+  p.last_non_zero = some k
+  → p.coeffs[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p.coeffs[j] = 0)
+:= by
+  intro (h : p.last_non_zero = some k)
+  constructor
+  · by_contra
+    have h : p.coeffs[k] != 0 := Array.findIdxRev?_def h
+    rwa [‹p.coeffs[k] = 0›, bne_self_eq_false, Bool.false_eq_true] at h
+  · intro j hj j_gt_k
+    have h : ¬(p.coeffs[j] != 0) := Array.findIdxRev?_maximal h ⟨ j, hj ⟩ j_gt_k
+    rwa [bne_iff_ne, ne_eq, not_not] at h
+
+-- the property of `last_non_zero_spec` uniquely identifies an element,
+-- and that allows us to prove the reverse as well
+def last_non_zero_prop {p : UniPoly R} (k: Fin p.size) : Prop :=
+  p.coeffs[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p.coeffs[j] = 0)
+
+lemma last_non_zero_unique {p : UniPoly Q} {k k' : Fin p.size} :
+  last_non_zero_prop k → last_non_zero_prop k' → k = k'
+:= by
+  suffices weaker : ∀ k k', last_non_zero_prop k → last_non_zero_prop k' → k ≤ k' by
+    intro h h'
+    exact Fin.le_antisymm (weaker k k' h h') (weaker k' k h' h)
+  intro k k' ⟨ h_nonzero, h ⟩ ⟨ h_nonzero', h' ⟩
+  by_contra k_not_le
+  have : p.coeffs[k] = 0 := h' k k.is_lt (Nat.lt_of_not_ge k_not_le)
+  contradiction
+
+theorem last_non_zero_some_iff [LawfulBEq R]  {p : UniPoly R} {k} :
+  p.last_non_zero = some k ↔ (p.coeffs[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p.coeffs[j] = 0))
+:= by
+  constructor
+  · apply last_non_zero_spec
+  intro h_prop
+  have ⟨ k', h_some'⟩ := last_non_zero_some k.is_lt h_prop.left
+  have k_is_k' := last_non_zero_unique (last_non_zero_spec h_some') h_prop
+  rwa [← k_is_k']
 
 theorem size_eq_degree (p : UniPoly R) : p.trim.size = p.degree := by
   unfold trim degree
@@ -147,15 +215,43 @@ lemma getD_eq_getElem {p : UniPoly Q} {i} (hp : i < p.size) :
 def equiv (p q : UniPoly R) : Prop :=
   ∀ i, p.coeffs.getD i 0 = q.coeffs.getD i 0
 
-lemma eq_degree_of_equiv {p q : UniPoly R} : equiv p q → p.degree = q.degree := by
-  unfold equiv degree last_non_zero
-  sorry
+lemma getD_eq_zero {p : UniPoly Q} :
+    (∀ i, (hi : i < p.size) → p.coeffs[i] = 0) ↔ ∀ i, p.coeffs.getD i 0 = 0
+:= by
+  constructor <;> intro h i
+  · cases Nat.lt_or_ge i p.size <;> simp [h, *]
+  · intro hi; specialize h i; simp [hi] at h; assumption
 
--- def equiv₂ (p q : UniPoly R) : Prop :=
---   ∀ i,
---     ((hp : i < p.size) → (hq : i < q.size) → p.coeffs[i] = q.coeffs[i])
---   ∧ ((hp : i ≥ p.size) → (hq : i < q.size) → q.coeffs[i] = 0)
---   ∧ ((hp : i < p.size) → (hq : i ≥ q.size) → p.coeffs[i] = 0)
+lemma eq_degree_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.degree = q.degree := by
+  unfold equiv degree
+  intro h_equiv
+  rcases last_none_zero_cases p with ⟨ h_none, h_all_zero ⟩ | h_some
+  · rw [h_none]
+    have h_zero_p : ∀ i, p.coeffs.getD i 0 = 0 := getD_eq_zero.mp h_all_zero
+    have h_zero_q : ∀ i, q.coeffs.getD i 0 = 0 := by intro i; rw [← h_equiv, h_zero_p]
+    have h_none_q : q.last_non_zero = none := last_non_zero_none (getD_eq_zero.mpr h_zero_q)
+    rw [h_none_q]
+  obtain ⟨ k, h_some_p ⟩ := h_some
+  have h_equiv_k := h_equiv k
+  have ⟨ h_nonzero_p, h_max_p ⟩ := last_non_zero_spec h_some_p
+  have k_lt_q : k < q.size := by
+    rcases Nat.lt_or_ge k q.size with h_lt | h_ge
+    · exact h_lt
+    simp [h_ge] at h_equiv_k
+    contradiction
+  simp [k_lt_q] at h_equiv_k
+  have h_nonzero_q : q.coeffs[k.val] ≠ 0 := by rwa [← h_equiv_k]
+  have h_max_q : ∀ j, (hj : j < q.size) → j > k → q.coeffs[j] = 0 := by
+    intro j hj j_gt_k
+    have h_eq := h_equiv j
+    simp [hj] at h_eq
+    rw [← h_eq]
+    rcases Nat.lt_or_ge j p.size with hj | hj
+    · simp [hj, h_max_p j hj j_gt_k]
+    · simp [hj]
+  have h_some_q : q.last_non_zero = some ⟨ k, k_lt_q ⟩ :=
+    last_non_zero_some_iff.mpr ⟨ h_nonzero_q, h_max_q ⟩
+  rw [h_some_p, h_some_q]
 
 theorem eq_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.trim = q.trim := by
   unfold equiv
@@ -167,7 +263,7 @@ theorem eq_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.trim = q.t
   rw [← getD_eq_getElem, ← getD_eq_getElem]
   rw [coeff_eq_getD, coeff_eq_getD, h _]
 
-end trim
+end Trim
 
 section Operations
 
@@ -350,9 +446,9 @@ theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
 
 -- TODO generalize to matchSize + zipWith f for any f
 lemma trim_add_trim [LawfulBEq R] (p q : UniPoly R) : p.trim + q = p + q := by
-  apply trim.eq_of_equiv
+  apply Trim.eq_of_equiv
   intro i
-  rw [add_coeff?, add_coeff?, trim.coeff_eq_getD]
+  rw [add_coeff?, add_coeff?, Trim.coeff_eq_getD]
 
 -- algebra theorems about add
 
