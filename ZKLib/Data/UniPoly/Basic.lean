@@ -247,6 +247,36 @@ theorem trim_equiv [LawfulBEq R] (p : UniPoly R) : equiv p.trim p := by
 theorem trim_twice [LawfulBEq R] (p : UniPoly R) : p.trim.trim = p.trim := by
   apply eq_of_equiv
   apply trim_equiv
+
+theorem canonical_iff [LawfulBEq R] {p : UniPoly R} :
+   p.trim = p ↔ ∀ hp : p.coeffs.size > 0, p.coeffs.getLast hp ≠ 0
+:= by
+  sorry
+
+theorem canonical_of_empty [LawfulBEq R] {p : UniPoly R} : p.coeffs.size = 0 → p.trim = p := by
+  rw [canonical_iff]; intros; linarith
+
+theorem non_zero_map [LawfulBEq R] (f : R → R) (hf : ∀ r, f r = 0 → r = 0) (p : UniPoly R) :
+  let fp := UniPoly.mk (p.coeffs.map f);
+  p.trim = p → fp.trim = fp
+:= by
+  intro fp p_canon
+  by_cases hp : p.coeffs.size > 0
+  -- positive case
+  have h_nonzero := canonical_iff.mp p_canon hp
+  have : p.coeffs.size = fp.coeffs.size  := by simp
+  have gt_0 : fp.coeffs.size > 0 := by linarith
+  have : fp.coeffs.getLast gt_0 = f (p.coeffs.getLast hp) := by simp [Array.getLast]
+  have h_nonzero_f : fp.coeffs.getLast gt_0 ≠ 0 := by
+    rw [this]
+    by_contra h_zero
+    specialize hf (p.coeffs.getLast hp) h_zero
+    contradiction
+  exact canonical_iff.mpr (fun gt_0 => h_nonzero_f)
+  -- zero case
+  have : p.coeffs.size = 0 := by linarith
+  have : fp.coeffs.size = 0 := by simp [this]
+  apply canonical_of_empty this
 end Trim
 
 /-- canonical version of UniPoly -/
@@ -488,10 +518,25 @@ theorem nsmul_zero [LawfulBEq R] (p : UniPoly R) : nsmul 0 p = 0 := by
   simp only [Nat.cast_zero, zero_mul] at ha
   tauto
 
-theorem nsmul_succ (n : ℕ) (p: UniPoly R) :
-  nsmul (n + 1) p = nsmul n p + p
-:= by
-  sorry
+theorem nsmul_raw_succ (n : ℕ) (p : UniPoly Q) :
+  nsmul_raw (n + 1) p = add_raw (nsmul_raw n p) p := by
+  unfold nsmul_raw
+  ext
+  · simp [add_size]
+  next i _ hi =>
+    simp [add_size] at hi
+    simp [add_coeff, hi]
+    rw [_root_.add_mul (R:=Q) n 1 p.coeffs[i], one_mul]
+
+theorem nsmul_succ [LawfulBEq R] (n : ℕ) {p: UniPoly R} : nsmul (n + 1) p = nsmul n p + p := by
+  unfold nsmul
+  rw [trim_add_trim]
+  apply congrArg trim
+  apply nsmul_raw_succ
+
+theorem neg_trim [LawfulBEq R] (p : UniPoly R) : p.trim = p → (-p).trim = -p := by
+  apply Trim.non_zero_map
+  simp
 
 theorem neg_add_cancel [LawfulBEq R] (p : UniPoly R) : -p + p = 0 := by
   rw [← zero_canonical]
@@ -505,8 +550,6 @@ namespace OperationsC
 -- additive group on UniPolyC
 variable {R : Type*} [Ring R] [BEq R] [LawfulBEq R]
 variable (p q r : UniPolyC R)
-
--- instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
 
 instance : Add (UniPolyC R) where
   add p q := ⟨p.val + q.val, by apply Trim.trim_twice⟩
@@ -537,7 +580,7 @@ theorem nsmul_succ (n : ℕ) (p : UniPolyC R) : nsmul (n + 1) p = nsmul n p + p 
   apply UniPolyC.ext; apply UniPoly.nsmul_succ
 
 instance : Neg (UniPolyC R) where
-  neg p : UniPolyC R := ⟨ -p.val, by sorry ⟩
+  neg p := ⟨-p.val, neg_trim p.val p.prop⟩
 
 instance : Sub (UniPolyC R) where
   sub p q := p + -q
