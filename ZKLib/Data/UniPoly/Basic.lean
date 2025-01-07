@@ -118,8 +118,19 @@ theorem coeff_eq_getD_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
   · have h' : ∃ a ∈ p.coeffs, a != 0 := by push_neg at h; assumption
     obtain ⟨ k, hk ⟩ := Array.findIdxRev?_eq_some h'
     simp [hk]
-    have h_zero_after_k := Array.findIdxRev?_maximal hk
-    -- split between i <= k and i > k
+    -- split between i > k and i <= k
+    have h_size : k + 1 = (p.coeffs.extract 0 (k + 1)).size := by
+      simp [Array.size_extract]
+      exact Nat.succ_le_of_lt k.is_lt
+    rcases (Nat.lt_or_ge k i) with hik | hik
+    · have hik' : i ≥ (p.coeffs.extract 0 (k + 1)).size := by linarith
+      rw [Array.getElem?_eq_none hik', Option.getD_none]
+      have h_zero := Array.findIdxRev?_maximal hk ⟨ i, hi ⟩ hik
+      simp at h_zero
+      rw [‹p.coeffs[i] = 0›]
+    · have hik' : i < (p.coeffs.extract 0 (k + 1)).size := by linarith
+      rw [Array.getElem?_eq_getElem hik', Option.getD_some, Array.getElem_extract]
+      simp only [zero_add]
 
 theorem coeff_eq_getD [LawfulBEq R] (p : UniPoly R) (i : ℕ) :
   p.trim.coeffs.getD i 0 = p.coeffs.getD i 0 := by
