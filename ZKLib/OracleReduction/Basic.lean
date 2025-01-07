@@ -116,8 +116,6 @@ variable {pSpec : ProtocolSpec n}
 -- instance instFinEnumChallengeIndex : FinEnum pSpec.ChallengeIndex :=
 --   FinEnum.Subtype.finEnum fun x ↦ pSpec.getDir x = Direction.V_to_P
 
-def pSpecTest : ProtocolSpec 2 := ![(.P_to_V, ℕ), (.V_to_P, ℤ)]
-
 /-- Nicely, a transcript up to the last round of the protocol is definitionally equivalent to a full
     transcript. -/
 @[inline]
@@ -230,7 +228,7 @@ structure Verifier (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι) (StmtIn Stmt
 
 /-- A prover in an interactive **oracle** reduction is a prover in the non-oracle reduction whose
     input statement also consists of the underlying messages for the oracle statements -/
-@[reducible]
+@[reducible, inline]
 def OracleProver (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     (StmtIn WitIn StmtOut WitOut : Type)
     {ιₛᵢ : Type} (OStmtIn : ιₛᵢ → Type) {ιₛₒ : Type} (OStmtOut : ιₛₒ → Type) :=
@@ -268,14 +266,22 @@ structure OracleVerifier (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
 --     (OStmtOut : ιₛₒ → Type) (embed : ιₛₒ ↪ ιₛᵢ ⊕ ιₘ) :
 --     ∀ i, OStmtOut i := fun i => by sorry
 
-/-- An oracle verifier can be seen as a (non-oracle) verifier by providing the oracle interface
-  using its knowledge of the oracle statements and the transcript messages in the clear -/
-def OracleVerifier.toVerifier {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+namespace OracleVerifier
+
+variable {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     [Oₘ : ∀ i, ToOracle (pSpec.Message i)] {StmtIn StmtOut : Type}
     {ιₛᵢ : Type} {OStmtIn : ιₛᵢ → Type} [Oₛᵢ : ∀ i, ToOracle (OStmtIn i)]
     {ιₛₒ : Type} {OStmtOut : ιₛₒ → Type}
-    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut) :
-    Verifier pSpec oSpec (StmtIn × ∀ i, OStmtIn i) (StmtOut × (∀ i, OStmtOut i)) where
+    (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
+
+#check QueryLog
+
+/-- The list of queries to the oracle statements and the transcript messages made by the verifier -/
+def queries : QueryLog ([OStmtIn]ₒ ++ₒ [pSpec.Message]ₒ) := sorry
+
+/-- An oracle verifier can be seen as a (non-oracle) verifier by providing the oracle interface
+  using its knowledge of the oracle statements and the transcript messages in the clear -/
+def toVerifier : Verifier pSpec oSpec (StmtIn × ∀ i, OStmtIn i) (StmtOut × (∀ i, OStmtOut i)) where
   verify := fun ⟨stmt, oStmt⟩ transcript => do
     let ⟨stmtOut, _⟩ ← simulate (routeOracles2 oSpec oStmt transcript.messages) ()
       (verifier.verify stmt transcript.challenges)
@@ -283,6 +289,8 @@ def OracleVerifier.toVerifier {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
       | Sum.inl j => by simpa only [verifier.hEq, h] using (oStmt j)
       | Sum.inr j => by simpa only [verifier.hEq, h] using (transcript j)
     return (stmtOut, oStmtOut)
+
+end OracleVerifier
 
 /-- An (interactive) reduction for a given protocol specification `pSpec`, and relative to oracles
   defined by `oSpec`, consists of a prover and a verifier. -/
@@ -327,6 +335,12 @@ abbrev OracleProof (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     [Oₘ : ∀ i, ToOracle (pSpec.Message i)] (Statement Witness : Type)
     {ιₛ : Type} (OStatement : ιₛ → Type) [Oₛ : ∀ i, ToOracle (OStatement i)] :=
   OracleReduction pSpec oSpec Statement Witness Bool Unit OStatement (fun _ : Empty => Unit)
+
+/-- A **non-interactive reduction** is an interactive reduction with only a single message from the
+  prover to the verifier (and none in the other direction). -/
+abbrev NonInteractiveReduction (oSpec : OracleSpec ι)
+    (StmtIn WitIn StmtOut WitOut : Type) (Message : Type) :=
+  Reduction ![(.P_to_V, Message)] oSpec StmtIn WitIn StmtOut WitOut
 
 end Format
 

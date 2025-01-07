@@ -76,7 +76,7 @@ instance : IsSingleRound (pSpec R n) where
   and hence can be turned into an oracle for evaluating the polynomial -/
 instance instToOracleMessagePSpec : ToOracle ((pSpec R n).Message default) := by
   simp only [pSpec, default, getDir_apply, getType_apply, Matrix.cons_val_zero]
-  exact instToOracleBatteriesVector
+  exact instToOracleVector
 
 /-- Recognize that the challenge from the verifier to the prover has type `R`, and hence can be
   sampled uniformly at random -/
