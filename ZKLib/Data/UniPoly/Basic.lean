@@ -37,13 +37,13 @@ For example the Array `#[1,2,3]` represents the polynomial `1 + 2x + 3x^2`. Two 
 the same polynomial via zero-padding, for example `#[1,2,3] = #[1,2,3,0,0,0,...]`.
  -/
 @[ext, specialize]
-structure UniPoly (R : Type*) [Semiring R] where
+structure UniPoly (R : Type*) [Ring R] where
   mk::
   coeffs : Array R
 deriving Inhabited, DecidableEq, Repr
 
 @[ext, specialize]
-structure UniPoly' (R : Type*) [Semiring R] [DecidableEq R] where
+structure UniPoly' (R : Type*) [Ring R] [DecidableEq R] where
   coeffs : Array R
   hTrim : coeffs.trim 0 = coeffs
   -- Alternatively (requires `Nontrivial R` as well)
@@ -52,8 +52,8 @@ deriving Repr
 
 namespace UniPoly
 
-variable {R : Type*} [Semiring R] [BEq R]
-variable {Q : Type*} [Semiring Q]
+variable {R : Type*} [Ring R] [BEq R]
+variable {Q : Type*} [Ring Q]
 
 instance [DecidableEq R] : Inhabited (UniPoly' R) := ⟨⟨#[], rfl⟩⟩
 
@@ -303,11 +303,11 @@ def nsmul (n : ℕ) (p : UniPoly R) : UniPoly R :=
   nsmul_raw n p |> trim
 
 /-- Negation of a `UniPoly`. -/
-def neg [Ring R] (p : UniPoly R) : UniPoly R :=
+def neg (p : UniPoly R) : UniPoly R :=
   ⟨ p.coeffs.map (fun a => -a) ⟩
 
 /-- Subtraction of two `UniPoly`s. -/
-def sub [Ring R] (p q : UniPoly R) : UniPoly R := p.add q.neg
+def sub (p q : UniPoly R) : UniPoly R := p.add q.neg
 
 /-- Multiplication of a `UniPoly` by `X ^ i`, i.e. pre-pending `i` zeroes to the
 underlying array of coefficients. -/
@@ -330,12 +330,12 @@ instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
 instance : Add (UniPoly R) := ⟨UniPoly.add⟩
 instance : SMul R (UniPoly R) := ⟨UniPoly.smul⟩
 instance : SMul ℕ (UniPoly R) := ⟨nsmul⟩
-instance [Ring R] : Neg (UniPoly R) := ⟨UniPoly.neg⟩
-instance [Ring R] : Sub (UniPoly R) := ⟨UniPoly.sub⟩
+instance : Neg (UniPoly R) := ⟨UniPoly.neg⟩
+instance : Sub (UniPoly R) := ⟨UniPoly.sub⟩
 instance : Mul (UniPoly R) := ⟨UniPoly.mul⟩
 instance : Pow (UniPoly R) Nat := ⟨UniPoly.pow⟩
 instance : NatCast (UniPoly R) := ⟨fun n => UniPoly.C (n : R)⟩
-instance [Ring R] : IntCast (UniPoly R) := ⟨fun n => UniPoly.C (n : R)⟩
+instance : IntCast (UniPoly R) := ⟨fun n => UniPoly.C (n : R)⟩
 
 /-- Convert a `UniPoly` to a `Polynomial`. -/
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
@@ -493,12 +493,16 @@ theorem nsmul_succ (n : ℕ) (p: UniPoly R) :
 := by
   sorry
 
-theorem neg_add_cancel [Ring R] (p : UniPoly R) : -p + p = 0 := by
-  ext i
-  · show ((-p + p).size : ℕ) = (0 : UniPoly R).size
-    sorry -- not true
-  · show ((-p + p).coeffs[i] : R) = (0 : UniPoly R).coeffs[i]
-    sorry -- not true
+lemma zero_canonical [LawfulBEq R] : (0 : UniPoly R) = .trim 0 := by
+  have : (0 : UniPoly R).last_non_zero = none := by simp [Trim.last_non_zero_none]
+  rw [trim, this]
+  rfl
+
+theorem neg_add_cancel [LawfulBEq R] (p : UniPoly R) : -p + p = 0 := by
+  rw [zero_canonical]
+  apply Trim.eq_of_equiv; unfold Trim.equiv; intro i
+  rw [add_coeff?]
+  rcases (Nat.lt_or_ge i p.size) with hi | hi <;> simp [hi, Neg.neg, neg]
 
 instance [LawfulBEq R] : AddCommMonoid (UniPoly R) where
   add_assoc p q r := add_assoc p q r
@@ -509,13 +513,13 @@ instance [LawfulBEq R] : AddCommMonoid (UniPoly R) where
   nsmul_zero := nsmul_zero
   nsmul_succ := nsmul_succ
 
-instance [LawfulBEq R] [Ring R] : AddGroup (UniPoly R) where
+instance [LawfulBEq R] : AddGroup (UniPoly R) where
   neg := neg
   sub := sub
   zsmul := zsmulRec
   neg_add_cancel := neg_add_cancel
 
-instance [LawfulBEq R] [Ring R] : AddCommGroup (UniPoly R) where
+instance [LawfulBEq R] : AddCommGroup (UniPoly R) where
   add_comm := add_comm
 
 -- TODO: define `SemiRing` structure on `UniPoly`
@@ -574,14 +578,14 @@ end Equiv
 namespace Lagrange
 
 -- unique polynomial of degree n that has nodes at ω^i for i = 0, 1, ..., n-1
-def nodal {R : Type*} [Semiring R] (n : ℕ) (ω : R) : UniPoly R := sorry
+def nodal {R : Type*} [Ring R] (n : ℕ) (ω : R) : UniPoly R := sorry
   -- .mk (Array.range n |>.map (fun i => ω^i))
 
 /--
 This function produces the polynomial which is of degree n and is equal to r i at ω^i for i = 0, 1,
 ..., n-1.
 -/
-def interpolate {R : Type*} [Semiring R] (n : ℕ) (ω : R) (r : Vector R n) : UniPoly R := sorry
+def interpolate {R : Type*} [Ring R] (n : ℕ) (ω : R) (r : Vector R n) : UniPoly R := sorry
   -- .mk (Array.finRange n |>.map (fun i => r[i])) * nodal n ω
 
 end Lagrange
@@ -614,7 +618,7 @@ def TropicallyBoundPoly (R) [Semiring R] : Subsemiring
   zero_mem' := Polynomial.degree_zero.le
 
 
-noncomputable def UniPoly.toTropicallyBoundPolynomial {R : Type} [Semiring R] (p : UniPoly R) :
+noncomputable def UniPoly.toTropicallyBoundPolynomial {R : Type} [Ring R] (p : UniPoly R) :
     Polynomial R × Tropical (OrderDual (WithBot ℕ)) :=
   (UniPoly.toPoly p, Tropical.trop (OrderDual.toDual (UniPoly.degreeBound p)))
 
@@ -622,12 +626,12 @@ def degBound (b: WithBot ℕ) : ℕ := match b with
   | ⊥ => 0
   | some n => n + 1
 
-def TropicallyBoundPolynomial.toUniPoly {R : Type} [Semiring R]
+def TropicallyBoundPolynomial.toUniPoly {R : Type} [Ring R]
     (p : Polynomial R × Tropical (OrderDual (WithBot ℕ))) : UniPoly R :=
   match p with
   | (p, n) => UniPoly.mk (Array.range (degBound n.untrop) |>.map (fun i => p.coeff i))
 
-noncomputable def Equiv.UniPoly.TropicallyBoundPolynomial {R : Type} [BEq R] [Semiring R] :
+noncomputable def Equiv.UniPoly.TropicallyBoundPolynomial {R : Type} [BEq R] [Ring R] :
     UniPoly R ≃+* Polynomial R × Tropical (OrderDual (WithBot ℕ)) where
       toFun := UniPoly.toTropicallyBoundPolynomial
       invFun := TropicallyBoundPolynomial.toUniPoly
