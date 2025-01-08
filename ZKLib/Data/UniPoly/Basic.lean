@@ -147,7 +147,7 @@ theorem last_non_zero_induct [LawfulBEq R] {motive : UniPoly R → Prop}
     have ⟨ h_nonzero, h_max ⟩ := last_non_zero_spec h_some
     exact case2 p k h_some h_nonzero h_max
 
-/-- eliminator for `p.trim`, e.g. use with the induction tactic as follows:
+/-- eliminator for `p.trim`; use with the induction tactic as follows:
   ```
   induction p using Trim.elim with
   | case1 p h_empty h_all_zero => ...
@@ -159,14 +159,28 @@ theorem induct [LawfulBEq R] {motive : UniPoly R → Prop}
   (case2 : ∀ p : UniPoly R, ∀ k : Fin p.size, p.trim = ⟨p.coeffs.extract 0 (k + 1)⟩
     → p.coeffs[k] ≠ 0 → (∀ j : ℕ, (hj : j < p.size) → j > k → p.coeffs[j] = 0) → motive p)
   (p : UniPoly R) : motive p
-:= by
-  induction p using last_non_zero_induct with
+:= by induction p using last_non_zero_induct with
   | case1 p h_none h_all_zero =>
     have h_empty : p.trim = ⟨#[]⟩ := by unfold trim; rw [h_none]
     exact case1 p h_empty h_all_zero
   | case2 p k h_some h_nonzero h_max =>
     have h_extract : p.trim = ⟨p.coeffs.extract 0 (k + 1)⟩ := by unfold trim; rw [h_some]
     exact case2 p k h_extract h_nonzero h_max
+
+/-- eliminator for `p.trim`; e.g. use for case distinction as follows:
+  ```
+  rcases (Trim.elim p) with ⟨ h_empty, h_all_zero ⟩ | ⟨ k, h_extract, h_nonzero, h_max ⟩
+  ```
+-/
+theorem elim [LawfulBEq R] (p : UniPoly R) :
+    (p.trim = ⟨#[]⟩ ∧  (∀ i, (hi : i < p.size) → p.coeffs[i] = 0))
+  ∨ (∃ k : Fin p.size,
+        p.trim = ⟨p.coeffs.extract 0 (k + 1)⟩
+      ∧ p.coeffs[k] ≠ 0
+      ∧ (∀ j : ℕ, (hj : j < p.size) → j > k → p.coeffs[j] = 0))
+:= by induction p using induct with
+  | case1 p h_empty h_all_zero => left; exact ⟨h_empty, h_all_zero⟩
+  | case2 p k h_extract h_nonzero h_max => right; exact ⟨k, h_extract, h_nonzero, h_max⟩
 
 theorem size_eq_degree (p : UniPoly R) : p.trim.size = p.degree := by
   unfold trim degree
@@ -270,35 +284,95 @@ theorem trim_twice [LawfulBEq R] (p : UniPoly R) : p.trim.trim = p.trim := by
   apply eq_of_equiv
   apply trim_equiv
 
-theorem canonical_iff [LawfulBEq R] {p : UniPoly R} :
-   p.trim = p ↔ ∀ hp : p.coeffs.size > 0, p.coeffs.getLast hp ≠ 0
-:= by
-  sorry
+theorem canonical_empty : (UniPoly.mk #[]).trim = UniPoly.mk (R:=R) #[] := by
+  have : (UniPoly.mk (R:=R) #[]).last_non_zero = none := by
+    simp [last_non_zero];
+    apply Array.findIdxRev?_emtpy_none
+    rfl
+  rw [trim, this]
 
-theorem canonical_of_empty [LawfulBEq R] {p : UniPoly R} : p.coeffs.size = 0 → p.trim = p := by
-  rw [canonical_iff]; intros; linarith
+theorem canonical_of_size_zero {p : UniPoly R} : p.coeffs.size = 0 → p.trim = p := by
+  intro h
+  suffices h_empty : p = .mk #[] by rw [h_empty]; exact canonical_empty
+  apply UniPoly.ext
+  exact Array.eq_empty_of_size_eq_zero h
+
+theorem canonical_nonempty_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
+  p.trim = p ↔ p.last_non_zero = some ⟨ p.size - 1, Nat.pred_lt_self hp ⟩
+:= by
+  unfold trim
+  induction p using last_non_zero_induct with
+  | case1 p h_none h_all_zero =>
+    simp [h_none]
+    by_contra h_empty
+    subst h_empty
+    contradiction
+  | case2 p k h_some h_nonzero h_max =>
+    simp [h_some]
+    constructor
+    · intro h
+      ext
+      conv => rhs; congr; congr; rw [← h]
+      have : k + 1 ≤ p.size := Nat.succ_le_of_lt k.is_lt
+      simp [Array.size_extract, this]
+    · intro h
+      apply UniPoly.ext
+      have : k + 1 = p.size := by rw [h]; exact Nat.succ_pred_eq_of_pos hp
+      rw [this]
+      exact Array.extract_all p.coeffs
+
+theorem last_non_zero_last_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
+  p.last_non_zero = some ⟨ p.size - 1, Nat.pred_lt_self hp ⟩ ↔ p.coeffs.getLast hp ≠ 0
+:= by
+  induction p using last_non_zero_induct with
+  | case1 => simp [Array.getLast, *]
+  | case2 p k h_some h_nonzero h_max =>
+    simp only [h_some, Option.some_inj, Array.getLast]
+    constructor
+    · intro h
+      have : k = p.size - 1 := by rw [h]
+      conv => lhs; congr; case i => rw [← this]
+      assumption
+    · intro h
+      rcases Nat.lt_trichotomy k (p.size - 1) with h_lt | h_eq | h_gt
+      · specialize h_max (p.size - 1) (Nat.pred_lt_self hp) h_lt
+        contradiction
+      · ext; assumption
+      · have : k < p.size := k.is_lt
+        have : k ≥ p.size := Nat.le_of_pred_lt h_gt
+        linarith
+
+theorem canonical_iff [LawfulBEq R] {p : UniPoly R} :
+   p.trim = p ↔ ∀ hp : p.size > 0, p.coeffs.getLast hp ≠ 0
+:= by
+  constructor
+  · intro h hp
+    rwa [← last_non_zero_last_iff hp, ← canonical_nonempty_iff hp]
+  · rintro h
+    rcases Nat.eq_zero_or_pos p.size with h_zero | hp
+    · exact canonical_of_size_zero h_zero
+    · rw [canonical_nonempty_iff hp, last_non_zero_last_iff hp]
+      exact h hp
 
 theorem non_zero_map [LawfulBEq R] (f : R → R) (hf : ∀ r, f r = 0 → r = 0) (p : UniPoly R) :
   let fp := UniPoly.mk (p.coeffs.map f);
   p.trim = p → fp.trim = fp
 := by
   intro fp p_canon
-  by_cases hp : p.coeffs.size > 0
+  by_cases hp : p.size > 0
   -- positive case
+  apply canonical_iff.mpr
+  intro hfp
   have h_nonzero := canonical_iff.mp p_canon hp
-  have : p.coeffs.size = fp.coeffs.size  := by simp
-  have gt_0 : fp.coeffs.size > 0 := by linarith
-  have : fp.coeffs.getLast gt_0 = f (p.coeffs.getLast hp) := by simp [Array.getLast]
-  have h_nonzero_f : fp.coeffs.getLast gt_0 ≠ 0 := by
-    rw [this]
-    by_contra h_zero
-    specialize hf (p.coeffs.getLast hp) h_zero
-    contradiction
-  exact canonical_iff.mpr (fun gt_0 => h_nonzero_f)
+  have : fp.coeffs.getLast hfp = f (p.coeffs.getLast hp) := by simp [Array.getLast]
+  rw [this]
+  by_contra h_zero
+  specialize hf (p.coeffs.getLast hp) h_zero
+  contradiction
   -- zero case
-  have : p.coeffs.size = 0 := by linarith
-  have : fp.coeffs.size = 0 := by simp [this]
-  apply canonical_of_empty this
+  have : p.size = 0 := by linarith
+  have : fp.size = 0 := by simp [this]
+  apply canonical_of_size_zero this
 end Trim
 
 /-- canonical version of UniPoly -/
