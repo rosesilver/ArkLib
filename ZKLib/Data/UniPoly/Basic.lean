@@ -379,19 +379,7 @@ def UniPolyC (R : Type*) [BEq R] [Ring R] := { p : UniPoly R // p.trim = p }
 
 @[ext] theorem UniPolyC.ext {p q : UniPolyC R} (h : p.val = q.val) : p = q := Subtype.eq h
 
-instance : Zero (UniPoly R) := ⟨UniPoly.mk #[]⟩
-
-@[simp] theorem zero_def : (0 : UniPoly Q) = ⟨#[]⟩ := rfl
-
-theorem zero_canonical {R : Type*} [BEq R] [Ring R] : (0 : UniPoly R).trim = 0 := by
-  have : (0 : UniPoly R).last_non_zero = none := by
-    simp [last_non_zero];
-    apply Array.findIdxRev?_emtpy_none
-    rfl
-  rw [trim, this]
-  rfl
-
-instance : Inhabited (UniPolyC R) := ⟨⟨#[]⟩, zero_canonical⟩
+instance : Inhabited (UniPolyC R) := ⟨⟨#[]⟩, Trim.canonical_empty⟩
 
 section Operations
 
@@ -453,6 +441,7 @@ def pow (p : UniPoly R) (n : Nat) : UniPoly R := (mul p)^[n] (C 1)
 
 -- TODO: define repeated squaring version of `pow`
 
+instance : Zero (UniPoly R) := ⟨UniPoly.mk #[]⟩
 instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
 instance : Add (UniPoly R) := ⟨UniPoly.add⟩
 instance : SMul R (UniPoly R) := ⟨UniPoly.smul⟩
@@ -575,7 +564,9 @@ lemma trim_add_trim [LawfulBEq R] (p q : UniPoly R) : p.trim + q = p + q := by
   intro i
   rw [add_coeff?, add_coeff?, Trim.coeff_eq_getD]
 
--- algebra theorems about add
+-- algebra theorems about addition
+
+@[simp] theorem zero_def : (0 : UniPoly Q) = ⟨#[]⟩ := rfl
 
 theorem add_comm : p + q = q + p := by
   apply congrArg trim
@@ -585,6 +576,8 @@ theorem add_comm : p + q = q + p := by
     apply _root_.add_comm
 
 def canonical (p : UniPoly R) := p.trim = p
+
+theorem zero_canonical : (0 : UniPoly R).trim = 0 := Trim.canonical_empty
 
 theorem zero_add (hp : p.canonical) : 0 + p = p := by
   rw (occs := .pos [2]) [← hp]
@@ -680,25 +673,18 @@ theorem neg_add_cancel : -p + p = 0 := by
   apply UniPolyC.ext
   apply UniPoly.neg_add_cancel
 
-instance [LawfulBEq R] : AddCommMonoid (UniPolyC R) where
+instance [LawfulBEq R] : AddCommGroup (UniPolyC R) where
   add_assoc := add_assoc
   zero_add := zero_add
   add_zero := add_zero
   add_comm := add_comm
-  nsmul := nsmul
+  neg_add_cancel := neg_add_cancel
+  nsmul := nsmul -- TODO do we actually need this custom implementation?
   nsmul_zero := nsmul_zero
   nsmul_succ := nsmul_succ
+  zsmul := zsmulRec -- TODO do we want a custom efficient implementation?
 
-instance [LawfulBEq R] : AddGroup (UniPolyC R) where
-  neg := Neg.neg
-  sub := Sub.sub
-  zsmul := zsmulRec
-  neg_add_cancel := neg_add_cancel
-
-instance [LawfulBEq R] : AddCommGroup (UniPolyC R) where
-  add_comm := add_comm
-
--- TODO: define `SemiRing` structure on `UniPoly` and `UniPolyC`
+-- TODO: define `SemiRing` structure on `UniPolyC`
 
 end OperationsC
 
