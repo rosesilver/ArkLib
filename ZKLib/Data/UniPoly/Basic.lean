@@ -50,24 +50,24 @@ def C (r : R) : UniPoly R := ⟨#[r]⟩
 def X : UniPoly R := ⟨#[0, 1]⟩
 
 /-- Return the index of the last non-zero coefficient of a `UniPoly` -/
-def last_nonzero [BEq R] (p: UniPoly R) : Option (Fin p.size) :=
+def last_nonzero (p: UniPoly R) : Option (Fin p.size) :=
   p.coeffs.findIdxRev? (· != 0)
 
 /-- Remove leading zeroes from a `UniPoly`. Requires `BEq` to check if the coefficients are zero. -/
-def trim [BEq R] (p : UniPoly R) : UniPoly R :=
+def trim (p : UniPoly R) : UniPoly R :=
   match p.last_nonzero with
   | none => ⟨#[]⟩
   | some i => ⟨p.coeffs.extract 0 (i.val + 1)⟩
 
 /-- Return the degree of a `UniPoly`. -/
-def degree [BEq R] (p : UniPoly R) : Nat :=
+def degree (p : UniPoly R) : Nat :=
   match p.last_nonzero with
   | none => 0
   | some i => i.val + 1
 
 /-- Return the leading coefficient of a `UniPoly` as the last coefficient of the trimmed array,
 or `0` if the trimmed array is empty. -/
-def leadingCoeff [BEq R] (p : UniPoly R) : R := p.trim.coeffs.getLastD 0
+def leadingCoeff (p : UniPoly R) : R := p.trim.coeffs.getLastD 0
 
 namespace Trim
 
@@ -468,8 +468,6 @@ def natDegreeBound (p : UniPoly R) : Nat :=
 
 /-- Check if a `UniPoly` is monic, i.e. its leading coefficient is 1. -/
 def monic (p : UniPoly R) : Bool := p.leadingCoeff == 1
-
--- TODO: remove dependence on `BEq` for division and modulus
 
 /-- Division and modulus of `p : UniPoly R` by a monic `q : UniPoly R`. -/
 def divModByMonicAux [Field R] (p : UniPoly R) (q : UniPoly R) :
