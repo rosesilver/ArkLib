@@ -240,17 +240,16 @@ lemma eq_degree_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.degre
   unfold equiv degree
   intro h_equiv
   induction p using last_non_zero_induct with
-  | case1 p h_none h_all_zero =>
-    rw [h_none]
+  | case1 p h_none_p h_all_zero =>
     have h_zero_p : ∀ i, p.coeffs.getD i 0 = 0 := getD_eq_zero.mp h_all_zero
     have h_zero_q : ∀ i, q.coeffs.getD i 0 = 0 := by intro i; rw [← h_equiv, h_zero_p]
     have h_none_q : q.last_non_zero = none := last_non_zero_none (getD_eq_zero.mpr h_zero_q)
-    rw [h_none_q]
+    rw [h_none_p, h_none_q]
   | case2 p k h_some_p h_nonzero_p h_max_p =>
     have h_equiv_k := h_equiv k
     have k_lt_q : k < q.size := by
-      rcases Nat.lt_or_ge k q.size with h_lt | h_ge
-      · exact h_lt
+      by_contra h_not_lt
+      have h_ge := Nat.le_of_not_lt h_not_lt
       simp [h_ge] at h_equiv_k
       contradiction
     simp [k_lt_q] at h_equiv_k
