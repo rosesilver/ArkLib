@@ -145,18 +145,6 @@ instance instChallengeToOracle {pSpec : ProtocolSpec n} {i : pSpec.ChallengeInde
   oracle := fun c _ => c
   query_decidableEq' := by simp only; infer_instance
 
--- /-- Turn each verifier's challenge into an oracle, where one needs to query
---   with an input statement
---   and a prior transcript to get a challenge (useful for Fiat-Shamir) -/
--- @[reducible, inline, specialize]
--- instance instChallengeToOracleFiatShamir {pSpec : ProtocolSpec n} {i : pSpec.ChallengeIndex}
---     {StmtIn : Type} [DecidableEq StmtIn] [h : ∀ j, DecidableEq (pSpec j).2]
---     [VCVCompatible (pSpec.Challenge i)] : ToOracle (pSpec.Challenge i) where
---   Query := StmtIn × Transcript i.1.castSucc pSpec
---   Response := pSpec.Challenge i
---   oracle := fun c _ => c
---   query_decidableEq' := by simp [Transcript]; infer_instance
-
 end ProtocolSpec
 
 open ProtocolSpec
@@ -335,6 +323,13 @@ abbrev OracleProof (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     [Oₘ : ∀ i, ToOracle (pSpec.Message i)] (Statement Witness : Type)
     {ιₛ : Type} (OStatement : ιₛ → Type) [Oₛ : ∀ i, ToOracle (OStatement i)] :=
   OracleReduction pSpec oSpec Statement Witness Bool Unit OStatement (fun _ : Empty => Unit)
+
+abbrev NonInteractiveProver (oSpec : OracleSpec ι)
+    (StmtIn WitIn StmtOut WitOut : Type) (Message : Type) :=
+  Prover ![(.P_to_V, Message)] oSpec StmtIn WitIn StmtOut WitOut
+
+abbrev NonInteractiveVerifier (oSpec : OracleSpec ι) (StmtIn StmtOut : Type) (Message : Type) :=
+  Verifier ![(.P_to_V, Message)] oSpec StmtIn StmtOut
 
 /-- A **non-interactive reduction** is an interactive reduction with only a single message from the
   prover to the verifier (and none in the other direction). -/
