@@ -533,12 +533,12 @@ lemma zipWith_size {R} {f : R → R → R} {a b : Array R} :
   a.size = b.size → (Array.zipWith a b f).size = a.size := by
   simp; omega
 
--- TODO could generalize this to matchSize + zipWith f for any f
+-- TODO we could generalize the next few lemmas to matchSize + zipWith f for any f
+
 theorem add_size {p q : UniPoly Q} : (add_raw p q).size = max p.size q.size := by
   show (Array.zipWith _ _ _ ).size = max p.size q.size
   rw [zipWith_size matchSize_size_eq, matchSize_size]
 
--- TODO could generalize this generalize to matchSize + zipWith f for any f
 theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
   (add_raw p q).coeffs[i] = p.coeffs.getD i 0 + q.coeffs.getD i 0
 := by
@@ -547,7 +547,6 @@ theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
   repeat rw [List.rightpad_getElem_eq_getD]
   simp only [List.getD_eq_getElem?_getD, Array.getElem?_eq_toList]
 
--- TODO could generalize this generalize to matchSize + zipWith f for any f
 theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
   (add_raw p q).coeffs.getD i 0 = p.coeffs.getD i 0 + q.coeffs.getD i 0
 := by
@@ -558,7 +557,6 @@ theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
   have h_q : i ≥ q.size := by omega
   simp [h_ge, h_p, h_q]
 
--- TODO generalize to matchSize + zipWith f for any f
 lemma trim_add_trim [LawfulBEq R] (p q : UniPoly R) : p.trim + q = p + q := by
   apply Trim.eq_of_equiv
   intro i
