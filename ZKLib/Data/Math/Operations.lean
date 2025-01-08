@@ -292,7 +292,7 @@ def findIdxRev?_def {cond} {as: Array α} {k : Fin as.size} :
   induction i using findIdxRev?.find.induct cond as with
   | case1 => simp
   | case2 => simp [*]; rintro rfl; assumption
-  | case3 _ _ not_true ih => unfold findIdxRev?.find; simp [*]; assumption
+  | case3 => unfold findIdxRev?.find; simp [*]; assumption
 
 /-- if findIdxRev? finds an index, then for every greater index the condition doesn't hold -/
 def findIdxRev?_maximal {cond} {as: Array α} {k : Fin as.size} :
@@ -320,7 +320,7 @@ def findIdxRev?_maximal {cond} {as: Array α} {k : Fin as.size} :
     · simp only [not_true]
 
 /-- if the condition is false on all elements, then findIdxRev? finds nothing -/
-theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ a ∈ as, ¬ cond a) :
+theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ i, (hi : i < as.size) → ¬ cond as[i]) :
   findIdxRev? cond as = none
 := by
   apply aux
@@ -332,7 +332,7 @@ where
     next _ j _ =>
       split -- then/else cases inside .find
       next cond_true =>
-        have cond_false : ¬ cond as[j] := h as[j] (getElem_mem _)
+        have cond_false : ¬ cond as[j] := h j _
         have : False := cond_false cond_true
         contradiction
       -- recursively invoke the theorem we are proving!
@@ -346,12 +346,11 @@ theorem findIdxRev?_emtpy_none {cond} {as : Array α} (h : as = #[]) :
   simp
 
 /-- if the condition is true on some element, then findIdxRev? finds something -/
-theorem findIdxRev?_eq_some {cond} {as : Array α} (h: ∃ a ∈ as, cond a) :
+theorem findIdxRev?_eq_some {cond} {as : Array α} (h: ∃ i, ∃ hi : i < as.size, cond as[i]) :
   ∃ k : Fin as.size, findIdxRev? cond as = some k
 := by
-  obtain ⟨ a, ha, hcond ⟩ := h
-  obtain ⟨ k, hk, rfl ⟩ := Array.mem_iff_getElem.mp ha
-  apply aux ⟨ as.size, Nat.lt_succ_self _ ⟩ ⟨ .mk k hk, hk, hcond ⟩
+  obtain ⟨ i, hi, hcond ⟩ := h
+  apply aux ⟨ as.size, Nat.lt_succ_self _ ⟩ ⟨ .mk i hi, hi, hcond ⟩
 where
   aux (i : Fin (as.size + 1)) (h': ∃ i' : Fin as.size, i' < i.val ∧ cond as[i']) :
     ∃ k, findIdxRev?.find cond as i = some k := by

@@ -77,16 +77,13 @@ theorem last_non_zero_none [LawfulBEq R] {p : UniPoly R} :
 := by
   intro h
   apply Array.findIdxRev?_eq_none
-  intro a ha
-  suffices a = 0 by rwa [bne_iff_ne, ne_eq, not_not]
-  -- translate index access to array membership
-  -- TODO if this is nicer to use then we should use index access in `Array.findIdxRev?` theorems
-  obtain ⟨ i, hi, rfl: p.coeffs[i] = a ⟩ := Array.mem_iff_getElem.mp ha
-  exact h i hi
+  intros
+  rw [bne_iff_ne, ne_eq, not_not]
+  apply_assumption
 
 theorem last_non_zero_some [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) (h: p.coeffs[i] ≠ 0) :
   ∃ k, p.last_non_zero = some k
-:= Array.findIdxRev?_eq_some ⟨p.coeffs[i], Array.getElem_mem _, bne_iff_ne.mpr h⟩
+:= Array.findIdxRev?_eq_some ⟨i, hi, bne_iff_ne.mpr h⟩
 
 theorem last_non_zero_spec [LawfulBEq R] {p : UniPoly R} {k} :
   p.last_non_zero = some k
