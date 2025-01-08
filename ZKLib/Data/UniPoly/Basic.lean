@@ -520,34 +520,39 @@ variable (p q r : UniPoly R)
 
 -- some helper lemmas to characterize p + q
 
-theorem matchSize_size_eq {p q : UniPoly Q} :
+lemma matchSize_size_eq {p q : UniPoly Q} :
   let (p', q') := Array.matchSize p.coeffs q.coeffs 0
   p'.size = q'.size := by
-  apply List.matchSize_length_eq
+  show (List.rightpad _ _ _).length = (List.rightpad _ _ _).length
+  rw [List.rightpad_length, List.rightpad_length]
+  omega
 
-theorem matchSize_size {p q : UniPoly Q} :
+lemma matchSize_size {p q : UniPoly Q} :
   let (p', _) := Array.matchSize p.coeffs q.coeffs 0
   p'.size = max p.size q.size := by
-  apply List.matchSize_length
+  show (List.rightpad _ _ _).length = max (List.length _) (List.length _)
+  rw [List.rightpad_length]
+  omega
 
-theorem zipWith_size {R} {f : R → R → R} {a b : Array R} :
+lemma zipWith_size {R} {f : R → R → R} {a b : Array R} :
   a.size = b.size → (Array.zipWith a b f).size = a.size := by
   simp; omega
 
--- TODO generalize to matchSize + zipWith f for any f
+-- TODO could generalize this to matchSize + zipWith f for any f
 theorem add_size {p q : UniPoly Q} : (add_raw p q).size = max p.size q.size := by
   show (Array.zipWith _ _ _ ).size = max p.size q.size
   rw [zipWith_size matchSize_size_eq, matchSize_size]
 
--- TODO generalize to matchSize + zipWith f for any f
+-- TODO could generalize this generalize to matchSize + zipWith f for any f
 theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
   (add_raw p q).coeffs[i] = p.coeffs.getD i 0 + q.coeffs.getD i 0
 := by
   simp [add_raw]
-  rw [List.getElem_matchSize_1, List.getElem_matchSize_2]
-  repeat rw [Array.getElem?_eq_toList]
+  unfold List.matchSize
+  repeat rw [List.rightpad_getElem_eq_getD]
+  simp only [List.getD_eq_getElem?_getD, Array.getElem?_eq_toList]
 
--- TODO generalize to matchSize + zipWith f for any f
+-- TODO could generalize this generalize to matchSize + zipWith f for any f
 theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
   (add_raw p q).coeffs.getD i 0 = p.coeffs.getD i 0 + q.coeffs.getD i 0
 := by

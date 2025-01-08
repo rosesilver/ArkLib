@@ -166,19 +166,32 @@ theorem rightpad_eq_if_rightpad_eq_of_ge (l l' : List α) (m n n' : Nat) (h : n 
     simp at h
     by_cases h' : m ≤ l.length <;> omega
 
--- TODO: finish this lemma, may need many cases
+lemma getD_eq_getElem {l : List α} {i : Nat} {unit : α} (hi : i < l.length) :
+    l.getD i unit = l[i] := by
+  rw [getD_eq_getElem?_getD, getElem?_eq_getElem hi, Option.getD_some]
+
+lemma getD_eq_default {l : List α} {i : Nat} {unit : α} (hi : i ≥ l.length) :
+    l.getD i unit = unit := by
+  rw [getD_eq_getElem?_getD, getElem?_eq_none hi, Option.getD_none]
+
 @[simp] theorem rightpad_getD_eq_getD (l : List α) (n : Nat) (unit : α) (i : Nat) :
     (rightpad n unit l).getD i unit = l.getD i unit := by
-  by_cases h : i < min n l.length
-  · have : i < l.length := by omega
-    simp [this]
-    sorry
-  · simp [h, List.getD]; sorry
+  rcases (Nat.lt_or_ge i l.length) with h_lt | h_ge
+  · have h_lt': i < (rightpad n unit l).length := by rw [rightpad_length]; omega
+    simp only [h_lt, h_lt', getD_eq_getElem] -- eliminate `getD`
+    simp [h_lt, getElem_append]
+  rw [getD_eq_default h_ge] -- eliminate second `getD` for `unit`
+  rcases (Nat.lt_or_ge i n) with h_lt₂ | h_ge₂
+  · have h_lt' : i < (rightpad n unit l).length := by rw [rightpad_length]; omega
+    rw [getD_eq_getElem h_lt'] -- eliminate first `getD`
+    simp [h_ge, getElem_append]
+  · have h_ge' : i ≥ (rightpad n unit l).length := by rw [rightpad_length]; omega
+    rw [getD_eq_default h_ge'] -- eliminate first `getD`
 
-#check List.getD_eq_get?
-#check List.get?_append
-
-
+theorem rightpad_getElem_eq_getD {a b : List α} {unit : α} {i : Nat}
+  (h: i < (a.rightpad b.length unit).length) :
+    (a.rightpad b.length unit)[i] = a.getD i unit := by
+  rw [← rightpad_getD_eq_getD a b.length, getD_eq_getElem h]
 
 /-- Given two lists of potentially different lengths, right-pads the shorter list with `unit`
   elements until they are the same length. -/
@@ -189,65 +202,12 @@ theorem matchSize_comm (l₁ : List α) (l₂ : List α) (unit : α) :
     matchSize l₁ l₂ unit = (matchSize l₂ l₁ unit).swap := by
   simp [matchSize]
 
-
 /-- `List.matchSize` returns two equal lists iff the two lists agree at every index `i : Nat`
   (extended by `unit` if necessary). -/
 theorem matchSize_eq_iff_forall_eq (l₁ l₂ : List α) (unit : α) :
     (fun (x, y) => x = y) (matchSize l₁ l₂ unit) ↔ ∀ i : Nat, l₁.getD i unit = l₂.getD i unit :=
   by sorry
     -- TODO: finish this lemma based on `rightpad_getD_eq_getD`
-
-theorem matchSize_length_eq (l₁ l₂ : List α) (unit : α) :
-    (matchSize l₁ l₂ unit).1.length = (matchSize l₁ l₂ unit).2.length := by
-  simp [matchSize]; omega
-
-theorem matchSize_length (l₁ l₂ : List α) (unit : α) :
-    (matchSize l₁ l₂ unit).1.length = max l₁.length l₂.length := by
-  simp [matchSize]; omega
-
-theorem matchSize_length₂ (l₁ l₂ : List α) (unit : α) :
-    (matchSize l₁ l₂ unit).2.length = max l₁.length l₂.length := by
-  rw [← matchSize_length_eq, matchSize_length]
-
-theorem getElem?_matchSize_1 (l₁ l₂ : List α) (unit : α) (i : Nat) :
-    (matchSize l₁ l₂ unit).1[i]?.getD unit = l₁[i]?.getD unit := by
-  rcases (Nat.lt_or_ge i l₁.length) with h_lt₁ | h_ge₁
-  · simp [h_lt₁, matchSize_length] -- eliminate `getD`
-    dsimp [matchSize]
-    simp [h_lt₁, getElem_append]
-  simp [List.getElem?_eq_none h_ge₁] -- eliminate second `getD` for `unit`
-  rcases (Nat.lt_or_ge i l₂.length) with h_lt₂ | h_ge₂
-  · simp [h_lt₂, matchSize_length] -- eliminate first `getD`
-    dsimp [matchSize]
-    simp [h_ge₁, getElem_append]
-  · have h_ge' : i ≥ (l₁.matchSize l₂ unit).1.length := by simp [h_ge₁, h_ge₂, matchSize_length]
-    simp [List.getElem?_eq_none h_ge']
-
-theorem getElem?_matchSize_2 (l₁ l₂ : List α) (unit : α) (i : Nat) :
-    (matchSize l₁ l₂ unit).2[i]?.getD unit = l₂[i]?.getD unit := by
-  rcases (Nat.lt_or_ge i l₂.length) with h_lt₂ | h_ge₂
-  · simp [h_lt₂, matchSize_length₂] -- eliminate `getD`
-    dsimp [matchSize]
-    simp [h_lt₂, getElem_append]
-  simp [getElem?_eq_none h_ge₂] -- eliminate second `getD` for `unit`
-  rcases (Nat.lt_or_ge i l₁.length) with h_lt₁ | h_ge₁
-  · simp [h_lt₁, matchSize_length₂] -- eliminate first `getD`
-    dsimp [matchSize]
-    simp [h_ge₂, getElem_append]
-  · have h_ge' : i ≥ (l₁.matchSize l₂ unit).2.length := by simp [h_ge₁, h_ge₂, matchSize_length₂]
-    simp [getElem?_eq_none h_ge']
-
-theorem getElem_matchSize_1 {a b : List α} {unit : α} {i : Nat} :
-  (h: i < (matchSize a b unit).1.length) → (matchSize a b unit).1[i] = a[i]?.getD unit := by
-  intro h
-  rw [← getElem?_matchSize_1 a b]
-  simp [h]
-
-theorem getElem_matchSize_2 {a b : List α} {unit : α} {i : Nat} :
-  (h: i < (matchSize a b unit).2.length) → (matchSize a b unit).2[i] = b[i]?.getD unit := by
-  intro h
-  rw [← getElem?_matchSize_2 a b]
-  simp [h]
 
 /-- `List.dropWhile` but starting from the last element. Performed by `dropWhile` on the reversed
   list, followed by a reversal. -/
