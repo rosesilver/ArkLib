@@ -166,19 +166,32 @@ theorem rightpad_eq_if_rightpad_eq_of_ge (l l' : List α) (m n n' : Nat) (h : n 
     simp at h
     by_cases h' : m ≤ l.length <;> omega
 
--- TODO: finish this lemma, may need many cases
+lemma getD_eq_getElem {l : List α} {i : Nat} {unit : α} (hi : i < l.length) :
+    l.getD i unit = l[i] := by
+  rw [getD_eq_getElem?_getD, getElem?_eq_getElem hi, Option.getD_some]
+
+lemma getD_eq_default {l : List α} {i : Nat} {unit : α} (hi : i ≥ l.length) :
+    l.getD i unit = unit := by
+  rw [getD_eq_getElem?_getD, getElem?_eq_none hi, Option.getD_none]
+
 @[simp] theorem rightpad_getD_eq_getD (l : List α) (n : Nat) (unit : α) (i : Nat) :
     (rightpad n unit l).getD i unit = l.getD i unit := by
-  by_cases h : i < min n l.length
-  · have : i < l.length := by omega
-    simp [this]
-    sorry
-  · simp [h, List.getD]; sorry
+  rcases (Nat.lt_or_ge i l.length) with h_lt | h_ge
+  · have h_lt': i < (rightpad n unit l).length := by rw [rightpad_length]; omega
+    simp only [h_lt, h_lt', getD_eq_getElem] -- eliminate `getD`
+    simp [h_lt, getElem_append]
+  rw [getD_eq_default h_ge] -- eliminate second `getD` for `unit`
+  rcases (Nat.lt_or_ge i n) with h_lt₂ | h_ge₂
+  · have h_lt' : i < (rightpad n unit l).length := by rw [rightpad_length]; omega
+    rw [getD_eq_getElem h_lt'] -- eliminate first `getD`
+    simp [h_ge, getElem_append]
+  · have h_ge' : i ≥ (rightpad n unit l).length := by rw [rightpad_length]; omega
+    rw [getD_eq_default h_ge'] -- eliminate first `getD`
 
-#check List.getD_eq_get?
-#check List.get?_append
-
-
+theorem rightpad_getElem_eq_getD {a b : List α} {unit : α} {i : Nat}
+  (h: i < (a.rightpad b.length unit).length) :
+    (a.rightpad b.length unit)[i] = a.getD i unit := by
+  rw [← rightpad_getD_eq_getD a b.length, getD_eq_getElem h]
 
 /-- Given two lists of potentially different lengths, right-pads the shorter list with `unit`
   elements until they are the same length. -/
@@ -189,16 +202,12 @@ theorem matchSize_comm (l₁ : List α) (l₂ : List α) (unit : α) :
     matchSize l₁ l₂ unit = (matchSize l₂ l₁ unit).swap := by
   simp [matchSize]
 
-
 /-- `List.matchSize` returns two equal lists iff the two lists agree at every index `i : Nat`
   (extended by `unit` if necessary). -/
 theorem matchSize_eq_iff_forall_eq (l₁ l₂ : List α) (unit : α) :
     (fun (x, y) => x = y) (matchSize l₁ l₂ unit) ↔ ∀ i : Nat, l₁.getD i unit = l₂.getD i unit :=
   by sorry
     -- TODO: finish this lemma based on `rightpad_getD_eq_getD`
-
-
-
 
 /-- `List.dropWhile` but starting from the last element. Performed by `dropWhile` on the reversed
   list, followed by a reversal. -/
@@ -248,10 +257,114 @@ def matchSize (a : Array α) (b : Array α) (unit : α) : Array α × Array α :
   let tuple := List.matchSize a.toList b.toList unit
   (⟨tuple.1⟩, ⟨tuple.2⟩)
 
+theorem getElem?_eq_toList {a : Array α} {i : ℕ} : a.toList[i]? = a[i]? := by
+  rw (occs := .pos [2]) [← List.toArray_toList a]
+  rw [List.getElem?_toArray]
+
+-- simplify `a[i]?` to `some a[i]` or `none` given hypotheses about `i` vs `a.size`
+@[simp] theorem getElem?_eq_none {a: Array α} {i: Nat} : (a.size ≤ i) → a[i]? = none :=
+  Array.getElem?_eq_none_iff.mpr
+
+attribute [simp] Array.getElem?_eq_getElem
+
 -- @[simp] theorem matchSize_comm (a : Array α) (b : Array α) (unit : α) :
 --     matchSize a b unit = (matchSize b a unit).swap := by
 --   simp [matchSize, List.matchSize]
 
+/-- find index from the end of an array -/
+def findIdxRev? (cond : α → Bool) (as : Array α) : Option (Fin as.size) :=
+  find ⟨ as.size, Nat.lt_succ_self _ ⟩
+where
+  find : Fin (as.size + 1) → Option (Fin as.size)
+    | 0 => none
+    | ⟨ i+1, h ⟩ =>
+      if (cond as[i]) then
+        some ⟨ i, Nat.lt_of_succ_lt_succ h ⟩
+      else
+        find ⟨ i, Nat.lt_of_succ_lt h ⟩
+
+/-- if findIdxRev? finds an index, the condition is satisfied on that element -/
+def findIdxRev?_def {cond} {as: Array α} {k : Fin as.size} :
+  findIdxRev? cond as = some k → cond as[k] := by
+  suffices aux : ∀ i, findIdxRev?.find cond as i = some k → cond as[k] by apply aux
+  intro i
+  unfold findIdxRev?.find
+  induction i using findIdxRev?.find.induct cond as with
+  | case1 => simp
+  | case2 => simp [*]; rintro rfl; assumption
+  | case3 => unfold findIdxRev?.find; simp [*]; assumption
+
+/-- if findIdxRev? finds an index, then for every greater index the condition doesn't hold -/
+def findIdxRev?_maximal {cond} {as: Array α} {k : Fin as.size} :
+  findIdxRev? cond as = some k → ∀ j : Fin as.size, j > k → ¬ cond as[j] := by
+  suffices aux : ∀ i, findIdxRev?.find cond as i = some k →
+    ∀ j : Fin as.size, j > k → j.val < i → ¬ cond as[j] by
+    intro h j j_gt_k
+    exact aux ⟨ as.size, Nat.lt_succ_self _ ⟩ h j j_gt_k j.is_lt
+  intro i
+  unfold findIdxRev?.find
+  induction i using findIdxRev?.find.induct cond as with
+  | case1 => simp
+  | case2 i =>
+    simp [*]
+    rintro rfl j (_: j > i) (_: j < i + 1) -- contradiction
+    linarith
+  | case3 i _ not_true ih =>
+    simp [*]
+    unfold findIdxRev?.find
+    intro h j j_gt_k j_lt_isucc
+    specialize ih h j j_gt_k
+    rcases (Nat.lt_or_eq_of_le (Nat.le_of_lt_succ j_lt_isucc): j < i ∨ j = i) with (j_lt_i | rfl)
+    · specialize ih j_lt_i
+      rwa [Bool.not_eq_true] at ih
+    · simp only [not_true]
+
+/-- if the condition is false on all elements, then findIdxRev? finds nothing -/
+theorem findIdxRev?_eq_none {cond} {as : Array α} (h : ∀ i, (hi : i < as.size) → ¬ cond as[i]) :
+  findIdxRev? cond as = none
+:= by
+  apply aux
+where
+  aux i : findIdxRev?.find cond as i = none := by
+    unfold findIdxRev?.find
+    split
+    next => tauto
+    next _ j _ =>
+      split -- then/else cases inside .find
+      next cond_true =>
+        have cond_false : ¬ cond as[j] := h j _
+        have : False := cond_false cond_true
+        contradiction
+      -- recursively invoke the theorem we are proving!
+      apply aux
+
+theorem findIdxRev?_emtpy_none {cond} {as : Array α} (h : as = #[]) :
+  findIdxRev? cond as = none
+:= by
+  rw [h]
+  apply findIdxRev?_eq_none
+  simp
+
+/-- if the condition is true on some element, then findIdxRev? finds something -/
+theorem findIdxRev?_eq_some {cond} {as : Array α} (h: ∃ i, ∃ hi : i < as.size, cond as[i]) :
+  ∃ k : Fin as.size, findIdxRev? cond as = some k
+:= by
+  obtain ⟨ i, hi, hcond ⟩ := h
+  apply aux ⟨ as.size, Nat.lt_succ_self _ ⟩ ⟨ .mk i hi, hi, hcond ⟩
+where
+  aux (i : Fin (as.size + 1)) (h': ∃ i' : Fin as.size, i' < i.val ∧ cond as[i']) :
+    ∃ k, findIdxRev?.find cond as i = some k := by
+    unfold findIdxRev?.find
+    split
+    next => tauto
+    next _ j hj =>
+      split -- then/else cases inside .find
+      · use .mk j (by linarith)
+      · obtain ⟨ k, hk : k < j + 1, hcond ⟩ := h'
+        apply aux -- recursively invoke the theorem we are proving!
+        have : k.val ≠ j := by rintro rfl; contradiction
+        have : k.val < j := by omega
+        use k
 
 /-- Right-pads an array with `unit` elements until its length is a power of two. Returns the padded
   array and the number of elements added. -/
