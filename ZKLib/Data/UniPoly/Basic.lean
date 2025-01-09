@@ -26,15 +26,6 @@ the same polynomial via zero-padding, for example `#[1,2,3] = #[1,2,3,0,0,0,...]
 @[reducible, inline, specialize]
 def UniPoly (R : Type*) := Array R
 
--- instance {R : Type*} : GetElem (UniPoly R) Nat R fun xs i => i < xs.size where
---   getElem xs i h := xs.get i h
-
--- @[ext, specialize]
--- structure UniPoly' (R : Type*) [Ring R] where
---   mk::
---   coeffs : Array R
--- deriving Inhabited, DecidableEq, Repr
-
 namespace UniPoly
 
 @[reducible]
@@ -45,11 +36,6 @@ def coeffs {R : Type*} (p : UniPoly R) : Array R := p
 
 variable {R : Type*} [Ring R] [BEq R]
 variable {Q : Type*} [Ring Q]
-
--- /-- The size of the underlying array. This may not correspond to the degree of the corresponding
---   polynomial if the array has leading zeroes. -/
--- @[reducible]
--- def size (p : UniPoly R) : Nat := p.size
 
 /-- The constant polynomial `C r`. -/
 def C (r : R) : UniPoly R := #[r]
@@ -297,7 +283,7 @@ theorem canonical_empty : (UniPoly.mk #[]).trim = UniPoly.mk (R:=R) #[] := by
 
 theorem canonical_of_size_zero {p : UniPoly R} : p.size = 0 → p.trim = p := by
   intro h
-  suffices h_empty : p = .mk #[] by rw [h_empty]; exact canonical_empty
+  suffices h_empty : p = #[] by rw [h_empty]; exact canonical_empty
   exact Array.eq_empty_of_size_eq_zero h
 
 theorem canonical_nonempty_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
@@ -443,7 +429,7 @@ def pow (p : UniPoly R) (n : Nat) : UniPoly R := (mul p)^[n] (C 1)
 
 -- TODO: define repeated squaring version of `pow`
 
-instance : Zero (UniPoly R) := ⟨UniPoly.mk #[]⟩
+instance : Zero (UniPoly R) := ⟨#[]⟩
 instance : One (UniPoly R) := ⟨UniPoly.C 1⟩
 instance : Add (UniPoly R) := ⟨UniPoly.add⟩
 instance : SMul R (UniPoly R) := ⟨UniPoly.smul⟩
