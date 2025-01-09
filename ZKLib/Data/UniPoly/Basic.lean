@@ -9,55 +9,63 @@ import Mathlib.RingTheory.Polynomial.Basic
 import ZKLib.Data.Math.Operations
 
 /-!
-  # Univariate Polynomials with Efficient Operations
+  # Computable Univariate Polynomials
 
-  This file is based on various similar implementations. Credits:
-  - Bolton Bailey
-  - ...
+  This file contains a computable datatype for univariate polynomial, `UniPoly R`. This is
+  internally represented as an array of coefficients.
 -/
 
 open Polynomial
 
-/-- A type analogous to `Polynomial` that supports computable operations. This polynomial is
-  represented internally as an Array of coefficients.
+/-- A type analogous to `Polynomial` that supports computable operations. This defined to be a
+  wrapper around `Array`.
 
 For example the Array `#[1,2,3]` represents the polynomial `1 + 2x + 3x^2`. Two arrays may represent
 the same polynomial via zero-padding, for example `#[1,2,3] = #[1,2,3,0,0,0,...]`.
  -/
-@[ext, specialize]
-structure UniPoly (R : Type*) [Ring R] where
-  mk::
-  coeffs : Array R
-deriving Inhabited, DecidableEq, Repr
+@[reducible, inline, specialize]
+def UniPoly (R : Type*) := Array R
+
+-- instance {R : Type*} : GetElem (UniPoly R) Nat R fun xs i => i < xs.size where
+--   getElem xs i h := xs.get i h
+
+-- @[ext, specialize]
+-- structure UniPoly' (R : Type*) [Ring R] where
+--   mk::
+--   coeffs : Array R
+-- deriving Inhabited, DecidableEq, Repr
 
 namespace UniPoly
+
+@[reducible]
+def mk {R : Type*} (coeffs : Array R) : UniPoly R := coeffs
+
+@[reducible]
+def coeffs {R : Type*} (p : UniPoly R) : Array R := p
 
 variable {R : Type*} [Ring R] [BEq R]
 variable {Q : Type*} [Ring Q]
 
-/-- Another way to access `coeffs` -/
-def toArray (p : UniPoly R) : Array R := p.coeffs
-
-/-- The size of the underlying array. This may not correspond to the degree of the corresponding
-  polynomial if the array has leading zeroes. -/
-@[reducible]
-def size (p : UniPoly R) : Nat := p.coeffs.size
+-- /-- The size of the underlying array. This may not correspond to the degree of the corresponding
+--   polynomial if the array has leading zeroes. -/
+-- @[reducible]
+-- def size (p : UniPoly R) : Nat := p.size
 
 /-- The constant polynomial `C r`. -/
-def C (r : R) : UniPoly R := ⟨#[r]⟩
+def C (r : R) : UniPoly R := #[r]
 
 /-- The variable `X`. -/
-def X : UniPoly R := ⟨#[0, 1]⟩
+def X : UniPoly R := #[0, 1]
 
 /-- Return the index of the last non-zero coefficient of a `UniPoly` -/
 def last_nonzero (p: UniPoly R) : Option (Fin p.size) :=
-  p.coeffs.findIdxRev? (· != 0)
+  p.findIdxRev? (· != 0)
 
 /-- Remove leading zeroes from a `UniPoly`. Requires `BEq` to check if the coefficients are zero. -/
 def trim (p : UniPoly R) : UniPoly R :=
   match p.last_nonzero with
-  | none => ⟨#[]⟩
-  | some i => ⟨p.coeffs.extract 0 (i.val + 1)⟩
+  | none => #[]
+  | some i => p.extract 0 (i.val + 1)
 
 /-- Return the degree of a `UniPoly`. -/
 def degree (p : UniPoly R) : Nat :=
@@ -67,13 +75,13 @@ def degree (p : UniPoly R) : Nat :=
 
 /-- Return the leading coefficient of a `UniPoly` as the last coefficient of the trimmed array,
 or `0` if the trimmed array is empty. -/
-def leadingCoeff (p : UniPoly R) : R := p.trim.coeffs.getLastD 0
+def leadingCoeff (p : UniPoly R) : R := p.trim.getLastD 0
 
 namespace Trim
 
 -- characterize .last_nonzero
 theorem last_nonzero_none [LawfulBEq R] {p : UniPoly R} :
-  (∀ i, (hi : i < p.size) → p.coeffs[i] = 0) → p.last_nonzero = none
+  (∀ i, (hi : i < p.size) → p[i] = 0) → p.last_nonzero = none
 := by
   intro h
   apply Array.findIdxRev?_eq_none
@@ -81,27 +89,27 @@ theorem last_nonzero_none [LawfulBEq R] {p : UniPoly R} :
   rw [bne_iff_ne, ne_eq, not_not]
   apply_assumption
 
-theorem last_nonzero_some [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) (h: p.coeffs[i] ≠ 0) :
+theorem last_nonzero_some [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) (h: p[i] ≠ 0) :
   ∃ k, p.last_nonzero = some k
 := Array.findIdxRev?_eq_some ⟨i, hi, bne_iff_ne.mpr h⟩
 
 theorem last_nonzero_spec [LawfulBEq R] {p : UniPoly R} {k} :
   p.last_nonzero = some k
-  → p.coeffs[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p.coeffs[j] = 0)
+  → p[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p[j] = 0)
 := by
   intro (h : p.last_nonzero = some k)
   constructor
   · by_contra
-    have h : p.coeffs[k] != 0 := Array.findIdxRev?_def h
-    rwa [‹p.coeffs[k] = 0›, bne_self_eq_false, Bool.false_eq_true] at h
+    have h : p[k] != 0 := Array.findIdxRev?_def h
+    rwa [‹p[k] = 0›, bne_self_eq_false, Bool.false_eq_true] at h
   · intro j hj j_gt_k
-    have h : ¬(p.coeffs[j] != 0) := Array.findIdxRev?_maximal h ⟨ j, hj ⟩ j_gt_k
+    have h : ¬(p[j] != 0) := Array.findIdxRev?_maximal h ⟨ j, hj ⟩ j_gt_k
     rwa [bne_iff_ne, ne_eq, not_not] at h
 
 -- the property of `last_nonzero_spec` uniquely identifies an element,
 -- and that allows us to prove the reverse as well
 def last_nonzero_prop {p : UniPoly R} (k: Fin p.size) : Prop :=
-  p.coeffs[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p.coeffs[j] = 0)
+  p[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p[j] = 0)
 
 lemma last_nonzero_unique {p : UniPoly Q} {k k' : Fin p.size} :
   last_nonzero_prop k → last_nonzero_prop k' → k = k'
@@ -111,11 +119,11 @@ lemma last_nonzero_unique {p : UniPoly Q} {k k' : Fin p.size} :
     exact Fin.le_antisymm (weaker k k' h h') (weaker k' k h' h)
   intro k k' ⟨ h_nonzero, h ⟩ ⟨ h_nonzero', h' ⟩
   by_contra k_not_le
-  have : p.coeffs[k] = 0 := h' k k.is_lt (Nat.lt_of_not_ge k_not_le)
+  have : p[k] = 0 := h' k k.is_lt (Nat.lt_of_not_ge k_not_le)
   contradiction
 
 theorem last_nonzero_some_iff [LawfulBEq R]  {p : UniPoly R} {k} :
-  p.last_nonzero = some k ↔ (p.coeffs[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p.coeffs[j] = 0))
+  p.last_nonzero = some k ↔ (p[k] ≠ 0 ∧ (∀ j, (hj : j < p.size) → j > k → p[j] = 0))
 := by
   constructor
   · apply last_nonzero_spec
@@ -132,12 +140,12 @@ theorem last_nonzero_some_iff [LawfulBEq R]  {p : UniPoly R} {k} :
   ```
 -/
 theorem last_nonzero_induct [LawfulBEq R] {motive : UniPoly R → Prop}
-  (case1 : ∀ p, p.last_nonzero = none → (∀ i, (hi : i < p.size) → p.coeffs[i] = 0) → motive p)
-  (case2 : ∀ p : UniPoly R, ∀ k : Fin p.size, p.last_nonzero = some k → p.coeffs[k] ≠ 0 →
-    (∀ j : ℕ, (hj : j < p.size) → j > k → p.coeffs[j] = 0) → motive p)
+  (case1 : ∀ p, p.last_nonzero = none → (∀ i, (hi : i < p.size) → p[i] = 0) → motive p)
+  (case2 : ∀ p : UniPoly R, ∀ k : Fin p.size, p.last_nonzero = some k → p[k] ≠ 0 →
+    (∀ j : ℕ, (hj : j < p.size) → j > k → p[j] = 0) → motive p)
   (p : UniPoly R) : motive p
 := by
-  by_cases h : ∀ i, (hi : i < p.size) → p.coeffs[i] = 0
+  by_cases h : ∀ i, (hi : i < p.size) → p[i] = 0
   · exact case1 p (last_nonzero_none h) h
   · push_neg at h; rcases h with ⟨ i, hi, h ⟩
     obtain ⟨ k, h_some ⟩ := last_nonzero_some hi h
@@ -152,16 +160,16 @@ theorem last_nonzero_induct [LawfulBEq R] {motive : UniPoly R → Prop}
   ```
 -/
 theorem induct [LawfulBEq R] {motive : UniPoly R → Prop}
-  (case1 : ∀ p, p.trim = ⟨#[]⟩ → (∀ i, (hi : i < p.size) → p.coeffs[i] = 0) → motive p)
-  (case2 : ∀ p : UniPoly R, ∀ k : Fin p.size, p.trim = ⟨p.coeffs.extract 0 (k + 1)⟩
-    → p.coeffs[k] ≠ 0 → (∀ j : ℕ, (hj : j < p.size) → j > k → p.coeffs[j] = 0) → motive p)
+  (case1 : ∀ p, p.trim = #[] → (∀ i, (hi : i < p.size) → p[i] = 0) → motive p)
+  (case2 : ∀ p : UniPoly R, ∀ k : Fin p.size, p.trim = p.extract 0 (k + 1)
+    → p[k] ≠ 0 → (∀ j : ℕ, (hj : j < p.size) → j > k → p[j] = 0) → motive p)
   (p : UniPoly R) : motive p
 := by induction p using last_nonzero_induct with
   | case1 p h_none h_all_zero =>
-    have h_empty : p.trim = ⟨#[]⟩ := by unfold trim; rw [h_none]
+    have h_empty : p.trim = #[] := by unfold trim; rw [h_none]
     exact case1 p h_empty h_all_zero
   | case2 p k h_some h_nonzero h_max =>
-    have h_extract : p.trim = ⟨p.coeffs.extract 0 (k + 1)⟩ := by unfold trim; rw [h_some]
+    have h_extract : p.trim = p.extract 0 (k + 1) := by unfold trim; rw [h_some]
     exact case2 p k h_extract h_nonzero h_max
 
 /-- eliminator for `p.trim`; e.g. use for case distinction as follows:
@@ -170,11 +178,11 @@ theorem induct [LawfulBEq R] {motive : UniPoly R → Prop}
   ```
 -/
 theorem elim [LawfulBEq R] (p : UniPoly R) :
-    (p.trim = ⟨#[]⟩ ∧  (∀ i, (hi : i < p.size) → p.coeffs[i] = 0))
+    (p.trim = #[] ∧  (∀ i, (hi : i < p.size) → p[i] = 0))
   ∨ (∃ k : Fin p.size,
-        p.trim = ⟨p.coeffs.extract 0 (k + 1)⟩
-      ∧ p.coeffs[k] ≠ 0
-      ∧ (∀ j : ℕ, (hj : j < p.size) → j > k → p.coeffs[j] = 0))
+        p.trim = p.extract 0 (k + 1)
+      ∧ p[k] ≠ 0
+      ∧ (∀ j : ℕ, (hj : j < p.size) → j > k → p[j] = 0))
 := by induction p using induct with
   | case1 p h_empty h_all_zero => left; exact ⟨h_empty, h_all_zero⟩
   | case2 p k h_extract h_nonzero h_max => right; exact ⟨k, h_extract, h_nonzero, h_max⟩
@@ -191,8 +199,8 @@ theorem size_le_size (p : UniPoly R) : p.trim.size ≤ p.size := by
   | none => simp
   | some i => simp [Array.size_extract]
 
-theorem coeff_eq_getD_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
-  p.trim.coeffs.getD i 0 = p.coeffs[i] := by
+theorem getD_eq_getElem_of_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
+  p.trim.getD i 0 = p[i] := by
   induction p using induct with
   | case1 p h_empty h_all_zero =>
     specialize h_all_zero i hi
@@ -200,34 +208,35 @@ theorem coeff_eq_getD_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
   | case2 p k h_extract h_nonzero h_max =>
     simp [h_extract]
     -- split between i > k and i <= k
-    have h_size : k + 1 = (p.coeffs.extract 0 (k + 1)).size := by
+    have h_size : k + 1 = (p.extract 0 (k + 1)).size := by
       simp [Array.size_extract]
       exact Nat.succ_le_of_lt k.is_lt
     rcases (Nat.lt_or_ge k i) with hik | hik
-    · have hik' : i ≥ (p.coeffs.extract 0 (k + 1)).size := by linarith
+    · have hik' : i ≥ (p.extract 0 (k + 1)).size := by linarith
       rw [Array.getElem?_eq_none hik', Option.getD_none]
       exact h_max i hi hik |> Eq.symm
-    · have hik' : i < (p.coeffs.extract 0 (k + 1)).size := by linarith
+    · have hik' : i < (p.extract 0 (k + 1)).size := by linarith
       rw [Array.getElem?_eq_getElem hik', Option.getD_some, Array.getElem_extract]
       simp only [zero_add]
 
-theorem coeff_eq_getD [LawfulBEq R] (p : UniPoly R) (i : ℕ) :
-  p.trim.coeffs.getD i 0 = p.coeffs.getD i 0 := by
+theorem getD_eq_getD [LawfulBEq R] (p : UniPoly R) (i : ℕ) :
+  p.trim.getD i 0 = p.getD i 0 := by
   rcases (Nat.lt_or_ge i p.size) with hi | hi
-  · rw [coeff_eq_getD_lt hi]
+  · rw [getD_eq_getElem_of_lt hi]
     simp [hi]
   · have hi' : i ≥ p.trim.size := by linarith [size_le_size p]
     simp [hi, hi']
 
-lemma getD_eq_getElem {p : UniPoly Q} {i} (hp : i < p.size) :
-  p.coeffs.getD i 0 = p.coeffs[i] := by
+lemma getD_eq_coeff_getElem {p : UniPoly Q} {i} (hp : i < p.size) :
+  p.getD i 0 = p[i] := by
   simp [hp]
 
+/-- Two polynomials are equivalent if they are the same after removing leading zeroes. -/
 def equiv (p q : UniPoly R) : Prop :=
-  ∀ i, p.coeffs.getD i 0 = q.coeffs.getD i 0
+  ∀ i, p.getD i 0 = q.getD i 0
 
 lemma getD_eq_zero {p : UniPoly Q} :
-    (∀ i, (hi : i < p.size) → p.coeffs[i] = 0) ↔ ∀ i, p.coeffs.getD i 0 = 0
+    (∀ i, (hi : i < p.size) → p[i] = 0) ↔ ∀ i, p.getD i 0 = 0
 := by
   constructor <;> intro h i
   · cases Nat.lt_or_ge i p.size <;> simp [h, *]
@@ -238,8 +247,8 @@ lemma eq_degree_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.degre
   intro h_equiv
   induction p using last_nonzero_induct with
   | case1 p h_none_p h_all_zero =>
-    have h_zero_p : ∀ i, p.coeffs.getD i 0 = 0 := getD_eq_zero.mp h_all_zero
-    have h_zero_q : ∀ i, q.coeffs.getD i 0 = 0 := by intro i; rw [← h_equiv, h_zero_p]
+    have h_zero_p : ∀ i, p.getD i 0 = 0 := getD_eq_zero.mp h_all_zero
+    have h_zero_q : ∀ i, q.getD i 0 = 0 := by intro i; rw [← h_equiv, h_zero_p]
     have h_none_q : q.last_nonzero = none := last_nonzero_none (getD_eq_zero.mpr h_zero_q)
     rw [h_none_p, h_none_q]
   | case2 p k h_some_p h_nonzero_p h_max_p =>
@@ -250,8 +259,8 @@ lemma eq_degree_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.degre
       simp [h_ge] at h_equiv_k
       contradiction
     simp [k_lt_q] at h_equiv_k
-    have h_nonzero_q : q.coeffs[k.val] ≠ 0 := by rwa [← h_equiv_k]
-    have h_max_q : ∀ j, (hj : j < q.size) → j > k → q.coeffs[j] = 0 := by
+    have h_nonzero_q : q[k.val] ≠ 0 := by rwa [← h_equiv_k]
+    have h_max_q : ∀ j, (hj : j < q.size) → j > k → q[j] = 0 := by
       intro j hj j_gt_k
       have h_eq := h_equiv j
       simp [hj] at h_eq
@@ -267,14 +276,13 @@ theorem eq_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.trim = q.t
   unfold equiv
   intro h
   ext
-  show p.trim.size = q.trim.size
   · rw [size_eq_degree, size_eq_degree]
     apply eq_degree_of_equiv h
-  rw [← getD_eq_getElem, ← getD_eq_getElem]
-  rw [coeff_eq_getD, coeff_eq_getD, h _]
+  rw [← getD_eq_coeff_getElem, ← getD_eq_coeff_getElem]
+  rw [getD_eq_getD, getD_eq_getD, h _]
 
 theorem trim_equiv [LawfulBEq R] (p : UniPoly R) : equiv p.trim p := by
-  apply coeff_eq_getD
+  apply getD_eq_getD
 
 theorem trim_twice [LawfulBEq R] (p : UniPoly R) : p.trim.trim = p.trim := by
   apply eq_of_equiv
@@ -287,10 +295,9 @@ theorem canonical_empty : (UniPoly.mk #[]).trim = UniPoly.mk (R:=R) #[] := by
     rfl
   rw [trim, this]
 
-theorem canonical_of_size_zero {p : UniPoly R} : p.coeffs.size = 0 → p.trim = p := by
+theorem canonical_of_size_zero {p : UniPoly R} : p.size = 0 → p.trim = p := by
   intro h
   suffices h_empty : p = .mk #[] by rw [h_empty]; exact canonical_empty
-  apply UniPoly.ext
   exact Array.eq_empty_of_size_eq_zero h
 
 theorem canonical_nonempty_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
@@ -312,13 +319,12 @@ theorem canonical_nonempty_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
       have : k + 1 ≤ p.size := Nat.succ_le_of_lt k.is_lt
       simp [Array.size_extract, this]
     · intro h
-      apply UniPoly.ext
       have : k + 1 = p.size := by rw [h]; exact Nat.succ_pred_eq_of_pos hp
       rw [this]
-      exact Array.extract_all p.coeffs
+      exact Array.extract_all p
 
 theorem last_nonzero_last_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
-  p.last_nonzero = some ⟨ p.size - 1, Nat.pred_lt_self hp ⟩ ↔ p.coeffs.getLast hp ≠ 0
+  p.last_nonzero = some ⟨ p.size - 1, Nat.pred_lt_self hp ⟩ ↔ p.getLast hp ≠ 0
 := by
   induction p using last_nonzero_induct with
   | case1 => simp [Array.getLast, *]
@@ -339,7 +345,7 @@ theorem last_nonzero_last_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
         linarith
 
 theorem canonical_iff [LawfulBEq R] {p : UniPoly R} :
-   p.trim = p ↔ ∀ hp : p.size > 0, p.coeffs.getLast hp ≠ 0
+   p.trim = p ↔ ∀ hp : p.size > 0, p.getLast hp ≠ 0
 := by
   constructor
   · intro h hp
@@ -351,7 +357,7 @@ theorem canonical_iff [LawfulBEq R] {p : UniPoly R} :
       exact h hp
 
 theorem non_zero_map [LawfulBEq R] (f : R → R) (hf : ∀ r, f r = 0 → r = 0) (p : UniPoly R) :
-  let fp := UniPoly.mk (p.coeffs.map f);
+  let fp := UniPoly.mk (p.map f);
   p.trim = p → fp.trim = fp
 := by
   intro fp p_canon
@@ -360,14 +366,14 @@ theorem non_zero_map [LawfulBEq R] (f : R → R) (hf : ∀ r, f r = 0 → r = 0)
   apply canonical_iff.mpr
   intro hfp
   have h_nonzero := canonical_iff.mp p_canon hp
-  have : fp.coeffs.getLast hfp = f (p.coeffs.getLast hp) := by simp [Array.getLast]
+  have : fp.getLast hfp = f (p.getLast hp) := by simp [Array.getLast, fp]
   rw [this]
   by_contra h_zero
-  specialize hf (p.coeffs.getLast hp) h_zero
+  specialize hf (p.getLast hp) h_zero
   contradiction
   -- zero case
   have : p.size = 0 := by linarith
-  have : fp.size = 0 := by simp [this]
+  have : fp.size = 0 := by simp [this, fp]
   apply canonical_of_size_zero this
 end Trim
 
@@ -376,7 +382,7 @@ def UniPolyC (R : Type*) [BEq R] [Ring R] := { p : UniPoly R // p.trim = p }
 
 @[ext] theorem UniPolyC.ext {p q : UniPolyC R} (h : p.val = q.val) : p = q := Subtype.eq h
 
-instance : Inhabited (UniPolyC R) := ⟨⟨#[]⟩, Trim.canonical_empty⟩
+instance : Inhabited (UniPolyC R) := ⟨#[], Trim.canonical_empty⟩
 
 section Operations
 
@@ -388,7 +394,7 @@ variable {S : Type*}
 
 /-- Evaluates a `UniPoly` at a given value, using a ring homomorphism `f: R →+* S`. -/
 def eval₂ [Semiring S] (f : R →+* S) (x : S) (p : UniPoly R) : S :=
-  p.coeffs.zipWithIndex.foldl (fun acc ⟨a, i⟩ => acc + f a * x ^ i) 0
+  p.zipWithIndex.foldl (fun acc ⟨a, i⟩ => acc + f a * x ^ i) 0
 
 /-- Evaluates a `UniPoly` at a given value. -/
 def eval (x : R) (p : UniPoly R) : R :=
@@ -397,7 +403,7 @@ def eval (x : R) (p : UniPoly R) : R :=
 /-- Addition of two `UniPoly`s. Defined as the pointwise sum of the underlying coefficient arrays
   (properly padded with zeroes). -/
 def add_raw (p q : UniPoly R) : UniPoly R :=
-  let ⟨p', q'⟩ := Array.matchSize p.coeffs q.coeffs 0
+  let ⟨p', q'⟩ := Array.matchSize p q 0
   .mk (Array.zipWith p' q' (· + ·) )
 
 /-- Addition of two `UniPoly`s. -/
@@ -406,32 +412,31 @@ def add (p q : UniPoly R) : UniPoly R :=
 
 /-- Scalar multiplication of `UniPoly` by an element of `R`. -/
 def smul (r : R) (p : UniPoly R) : UniPoly R :=
-  .mk (Array.map (fun a => r * a) p.coeffs)
+  .mk (Array.map (fun a => r * a) p)
 
 def nsmul_raw (n : ℕ) (p : UniPoly R) : UniPoly R :=
-  .mk (Array.map (fun a => n * a) p.coeffs)
+  .mk (Array.map (fun a => n * a) p)
 
 /-- Scalar multiplication of `UniPoly` by a natural number. -/
 def nsmul (n : ℕ) (p : UniPoly R) : UniPoly R :=
   nsmul_raw n p |> trim
 
 /-- Negation of a `UniPoly`. -/
-def neg (p : UniPoly R) : UniPoly R :=
-  ⟨ p.coeffs.map (fun a => -a) ⟩
+def neg (p : UniPoly R) : UniPoly R := p.map (fun a => -a)
 
 /-- Subtraction of two `UniPoly`s. -/
 def sub (p q : UniPoly R) : UniPoly R := p.add q.neg
 
 /-- Multiplication of a `UniPoly` by `X ^ i`, i.e. pre-pending `i` zeroes to the
 underlying array of coefficients. -/
-def mulPowX (i : Nat) (p : UniPoly R) : UniPoly R := .mk (Array.replicate i 0 ++ p.coeffs)
+def mulPowX (i : Nat) (p : UniPoly R) : UniPoly R := .mk (Array.replicate i 0 ++ p)
 
 /-- Multiplication of a `UniPoly` by `X`, reduces to `mulPowX 1`. -/
 @[reducible] def mulX (p : UniPoly R) : UniPoly R := p.mulPowX 1
 
 /-- Multiplication of two `UniPoly`s, using the naive `O(n^2)` algorithm. -/
 def mul (p q : UniPoly R) : UniPoly R :=
-  p.coeffs.zipWithIndex.foldl (fun acc ⟨a, i⟩ => acc.add <| (smul a q).mulPowX i) (C 0)
+  p.zipWithIndex.foldl (fun acc ⟨a, i⟩ => acc.add <| (smul a q).mulPowX i) (C 0)
 
 /-- Exponentiation of a `UniPoly` by a natural number `n` via repeated multiplication. -/
 def pow (p : UniPoly R) (n : Nat) : UniPoly R := (mul p)^[n] (C 1)
@@ -457,7 +462,7 @@ noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
 /-- Return a bound on the degree of a `UniPoly` as the size of the underlying array
 (and `⊥` if the array is empty). -/
 def degreeBound (p : UniPoly R) : WithBot Nat :=
-  match p.coeffs.size with
+  match p.size with
   | 0 => ⊥
   | .succ n => n
 
@@ -477,7 +482,7 @@ where
   go : Nat → UniPoly R → UniPoly R → UniPoly R × UniPoly R
   | 0, p, _ => ⟨0, p⟩
   | n+1, p, q =>
-      let k := p.coeffs.size - q.coeffs.size -- k should equal n, this is technically unneeded
+      let k := p.size - q.size -- k should equal n, this is technically unneeded
       let q' := C p.leadingCoeff * (q * X.pow k)
       let p' := (p - q').trim
       let (e, f) := go n p' q
@@ -509,21 +514,21 @@ instance [Field R] : Mod (UniPoly R) := ⟨UniPoly.mod⟩
 
 /-- Pseudo-division of a `UniPoly` by `X`, which shifts all non-constant coefficients
 to the left by one. -/
-def divX (p : UniPoly R) : UniPoly R := ⟨p.coeffs.extract 1 p.size⟩
+def divX (p : UniPoly R) : UniPoly R := p.extract 1 p.size
 
 variable (p q r : UniPoly R)
 
 -- some helper lemmas to characterize p + q
 
 lemma matchSize_size_eq {p q : UniPoly Q} :
-  let (p', q') := Array.matchSize p.coeffs q.coeffs 0
+  let (p', q') := Array.matchSize p q 0
   p'.size = q'.size := by
   show (List.rightpad _ _ _).length = (List.rightpad _ _ _).length
   rw [List.rightpad_length, List.rightpad_length]
   omega
 
 lemma matchSize_size {p q : UniPoly Q} :
-  let (p', _) := Array.matchSize p.coeffs q.coeffs 0
+  let (p', _) := Array.matchSize p q 0
   p'.size = max p.size q.size := by
   show (List.rightpad _ _ _).length = max (List.length _) (List.length _)
   rw [List.rightpad_length]
@@ -540,7 +545,7 @@ theorem add_size {p q : UniPoly Q} : (add_raw p q).size = max p.size q.size := b
   rw [zipWith_size matchSize_size_eq, matchSize_size]
 
 theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
-  (add_raw p q).coeffs[i] = p.coeffs.getD i 0 + q.coeffs.getD i 0
+  (add_raw p q)[i] = p.getD i 0 + q.getD i 0
 := by
   simp [add_raw]
   unfold List.matchSize
@@ -548,9 +553,9 @@ theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
   simp only [List.getD_eq_getElem?_getD, Array.getElem?_eq_toList]
 
 theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
-  (add_raw p q).coeffs.getD i 0 = p.coeffs.getD i 0 + q.coeffs.getD i 0
+  (add_raw p q).getD i 0 = p.getD i 0 + q.getD i 0
 := by
-  rcases (Nat.lt_or_ge i (add_raw p q).coeffs.size) with h_lt | h_ge
+  rcases (Nat.lt_or_ge i (add_raw p q).size) with h_lt | h_ge
   · rw [← add_coeff h_lt]; simp [h_lt]
   have h_lt' : i ≥ max p.size q.size := by rwa [← add_size]
   have h_p : i ≥ p.size := by omega
@@ -560,11 +565,12 @@ theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
 lemma trim_add_trim [LawfulBEq R] (p q : UniPoly R) : p.trim + q = p + q := by
   apply Trim.eq_of_equiv
   intro i
-  rw [add_coeff?, add_coeff?, Trim.coeff_eq_getD]
+  rw [add_coeff?, add_coeff?, Trim.getD_eq_getD]
 
 -- algebra theorems about addition
 
-@[simp] theorem zero_def : (0 : UniPoly Q) = ⟨#[]⟩ := rfl
+omit [Ring Q] in
+@[simp] theorem zero_def : (0 : UniPoly Q) = #[] := rfl
 
 theorem add_comm : p + q = q + p := by
   apply congrArg trim
@@ -608,7 +614,7 @@ theorem nsmul_raw_succ (n : ℕ) (p : UniPoly Q) :
   next i _ hi =>
     simp [add_size] at hi
     simp [add_coeff, hi]
-    rw [_root_.add_mul (R:=Q) n 1 p.coeffs[i], one_mul]
+    rw [_root_.add_mul (R:=Q) n 1 p[i], one_mul]
 
 theorem nsmul_succ [LawfulBEq R] (n : ℕ) {p: UniPoly R} : nsmul (n + 1) p = nsmul n p + p := by
   unfold nsmul
@@ -692,7 +698,7 @@ section Equiv
 /-- An equivalence relation `equiv` on `UniPoly`s where `p ~ q` iff one is a
 zero-padding of the other. -/
 def equiv (p q : UniPoly R) : Prop :=
-  match p.coeffs.matchSize q.coeffs 0 with
+  match p.matchSize q 0 with
   | (p', q') => p' = q'
 
 /-- Reflexivity of the equivalence relation. -/
@@ -708,11 +714,11 @@ open List in
 @[simp] theorem equiv_trans {p q r : UniPoly Q} : equiv p q → equiv q r → equiv p r :=
   fun hpq hqr => by
     simp_all [equiv, Array.matchSize]
-    have hpq' := (List.matchSize_eq_iff_forall_eq p.coeffs.toList q.coeffs.toList 0).mp hpq
-    have hqr' := (List.matchSize_eq_iff_forall_eq q.coeffs.toList r.coeffs.toList 0).mp hqr
-    have hpr' : ∀ (i : Nat), p.coeffs.toList.getD i 0 = r.coeffs.toList.getD i 0 :=
+    have hpq' := (List.matchSize_eq_iff_forall_eq p.toList q.toList 0).mp hpq
+    have hqr' := (List.matchSize_eq_iff_forall_eq q.toList r.toList 0).mp hqr
+    have hpr' : ∀ (i : Nat), p.toList.getD i 0 = r.toList.getD i 0 :=
       fun i => Eq.trans (hpq' i) (hqr' i)
-    exact (List.matchSize_eq_iff_forall_eq p.coeffs.toList r.coeffs.toList 0).mpr hpr'
+    exact (List.matchSize_eq_iff_forall_eq p.toList r.toList 0).mpr hpr'
 
 /-- The `UniPoly.equiv` is indeed an equivalence relation. -/
 instance instEquivalenceEquiv : Equivalence (equiv (R := R)) where
