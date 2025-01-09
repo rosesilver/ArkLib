@@ -20,10 +20,15 @@ instance instDecidableEqOption {α : Type*} [DecidableEq α] :
 
 /-- `VCVCompabible` is a type class for types that are finite, inhabited, and have decidable
   equality. These instances are needed when the type is used as the range of some `OracleSpec`. -/
-class VCVCompatible (α : Type) extends Fintype α, Inhabited α where
+class VCVCompatible (α : Type*) extends Fintype α, Inhabited α where
   [type_decidableEq' : DecidableEq α]
 
-instance {α : Type} [VCVCompatible α] : DecidableEq α := VCVCompatible.type_decidableEq'
+instance {α : Type*} [VCVCompatible α] : DecidableEq α := VCVCompatible.type_decidableEq'
+
+instance {α : Type*} [Fintype α] [Inhabited α] [DecidableEq α] : VCVCompatible α where
+  toFintype := inferInstance
+  toInhabited := inferInstance
+  type_decidableEq' := inferInstance
 
 /-- `Sampleable` extends `VCVCompabible` with `SelectableType` -/
 class Sampleable (α : Type) extends VCVCompatible α, SelectableType α

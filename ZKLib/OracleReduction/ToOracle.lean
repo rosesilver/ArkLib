@@ -6,6 +6,7 @@ Authors: Quang Dao
 
 import VCVio
 import ZKLib.Data.MvPolynomial.Notation
+import ZKLib.OracleReduction.Prelude
 -- import ZKLib.Data.MlPoly.Basic
 
 /-!
@@ -97,6 +98,17 @@ def routeOracles2 {ι : Type} (oSpec : OracleSpec ι)
     | Sum.inr (Sum.inr i) => pure (ToOracleData.oracle (t₂ i) q)
 
 /-! ## `ToOracle` Instances -/
+
+/-- Every `VCVCompatible` type can be used as an oracle, with the query being a unit and the
+  response being the type itself.
+
+We set this instance to low priority so that other instances can override it. -/
+instance (priority := low) {α : Type} [VCVCompatible α] : ToOracle α where
+  Query := Unit
+  Response := α
+  oracle := fun x _ => x
+  query_decidableEq' := by simp!; infer_instance
+
 section Polynomial
 
 open Polynomial MvPolynomial
