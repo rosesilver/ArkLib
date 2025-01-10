@@ -2,17 +2,27 @@ name: Compile blueprint
 
 on:
   push:
-    branches:
-      - main # Trigger on pushes to the default branch
-  workflow_dispatch:        # Allow manual triggering of the workflow from the GitHub Actions interface
+    # branches:
+    #   - main # Trigger on pushes to the default branch
+  workflow_dispatch: # Allow manual triggering of the workflow from the GitHub Actions interface
+  pull_request:
+    # branches: [main]
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read  # Read access to repository contents
-  pages: write    # Write access to GitHub Pages
+  contents: read # Read access to repository contents
+  pages: write # Write access to GitHub Pages
   id-token: write # Write access to ID tokens
 
 jobs:
+  cancel:
+    name: "Cancel Previous Runs (CI)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          all_but_latest: true
+          access_token: ${{ github.token }}
   build_project:
     runs-on: ubuntu-latest
     name: Build project
@@ -49,7 +59,7 @@ jobs:
 
       - name: Build project API documentation
         run: ~/.elan/bin/lake -R -Kenv=dev build ZKLib:docs
-      
+
       - name: Check for `home_page` folder # this is meant to detect a Jekyll-based website
         id: check_home_page
         run: |
@@ -84,7 +94,7 @@ jobs:
 
       - name: Check declarations mentioned in the blueprint exist in Lean code
         run: |
-            ~/.elan/bin/lake exe checkdecls blueprint/lean_decls
+          ~/.elan/bin/lake exe checkdecls blueprint/lean_decls
 
       - name: Copy API documentation to `home_page/docs`
         run: cp -r .lake/build/doc home_page/docs
@@ -98,13 +108,13 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           working-directory: home_page
-          ruby-version: "3.0"  # Specify Ruby version
-          bundler-cache: true  # Enable caching for bundler
+          ruby-version: "3.0" # Specify Ruby version
+          bundler-cache: true # Enable caching for bundler
 
       - name: Build website using Jekyll
         if: env.HOME_PAGE_EXISTS == 'true'
         working-directory: home_page
-        run: JEKYLL_ENV=production bundle exec jekyll build  # Note this will also copy the blueprint and API doc into home_page/_site
+        run: JEKYLL_ENV=production bundle exec jekyll build # Note this will also copy the blueprint and API doc into home_page/_site
 
       - name: "Upload website (API documentation, blueprint and any home page)"
         uses: actions/upload-pages-artifact@v3
@@ -117,4 +127,18 @@ jobs:
 
       - name: Make sure the API documentation cache works
         run: mv home_page/docs .lake/build/doc
-     
+  lint:
+    name: Lint Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: install Python
+        if: ${{ 'ubuntu-latest' == 'ubuntu-latest' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+
+      - uses: actions/checkout@v4
+
+      - name: lint
+        run: |
+          ./scripts/lint-style.sh
