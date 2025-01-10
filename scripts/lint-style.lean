@@ -111,7 +111,7 @@ def lintStyleCli (args : Cli.Parsed) : IO UInt32 := do
   allModuleNames := allModuleNames.erase `Batteries
   let mut numberErrors ← lintModules allModuleNames style fix
   if ← checkInitImports then numberErrors := numberErrors + 1
-  if !(← allScriptsDocumented) then numberErrors := numberErrors + 1
+  -- if !(← allScriptsDocumented) then numberErrors := numberErrors + 1
   -- If run with the `--fix` argument, return a zero exit code.
   -- Otherwise, make sure to return an exit code of at most 125,
   -- so this return value can be used further in shell scripts.

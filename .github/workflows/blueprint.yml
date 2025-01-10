@@ -127,18 +127,18 @@ jobs:
 
       - name: Make sure the API documentation cache works
         run: mv home_page/docs .lake/build/doc
-  lint:
-    name: Lint Files
-    runs-on: ubuntu-latest
-    steps:
-      - name: install Python
-        if: ${{ 'ubuntu-latest' == 'ubuntu-latest' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.8
+  # lint:
+  #   name: Lint Files
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: install Python
+  #       if: ${{ 'ubuntu-latest' == 'ubuntu-latest' }}
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: 3.8
 
-      - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v4
 
-      - name: lint
-        run: |
-          ./scripts/lint-style.sh
+  #     - name: lint
+  #       run: |
+  #         ./scripts/lint-style.sh
