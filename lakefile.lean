@@ -1,7 +1,21 @@
 import Lake
 open Lake DSL
 
-/- Options for ZKLib that are taken from mathlib -/
+/-! # Lake configuration for ZKLib
+
+Many of these configs are taken from mathlib
+ -/
+
+/-! ## Dependencies on upstream projects -/
+
+require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.16.0-rc2"
+
+require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "master"
+
+require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
+
+-- meta if get_config? env = some "dev" then
+require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
 
 /-- These options are used
 * as `leanOptions`, prefixed by `` `weak``, so that `lake build` uses them;
@@ -42,21 +56,7 @@ package «Zklib» {
   moreServerOptions := zklibOnlyLinters
 }
 
-
-require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "master"
--- require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v1.0.0"
-
-require VCVio from git
-  "https://github.com/dtumad/VCV-io.git" @ "master"
-
 @[default_target]
 lean_lib «ZKLib» {
   -- add any library configuration options here
 }
-
-require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
-
--- meta if get_config? env = some "dev" then
-require «doc-gen4» from git
-  "https://github.com/leanprover/doc-gen4" @ "main"
