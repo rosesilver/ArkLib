@@ -34,6 +34,8 @@ variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec 
 
 section Completeness
 
+variable [oSpec.FiniteRange]
+
 /--
   A reduction satisfies **completeness** with error `completenessError ≥ 0` and with respect to
   input relation `relIn` and output relation `relOut`, if for all valid statement-witness pair
@@ -66,18 +68,15 @@ theorem perfectCompleteness_eq {relIn : StmtIn → WitIn → Prop} {relOut : Stm
         ∀ stmtIn witIn, relIn stmtIn witIn = True →
           [fun ⟨stmtOut, witOut, _, _, _⟩ => relOut stmtOut witOut
           | reduction.run stmtIn witIn] = 1 := by
-  dsimp [perfectCompleteness, completeness]
-  constructor <;>
-  intro h stmtIn witIn hRel <;>
-  specialize h stmtIn witIn hRel
-  · norm_num at h
-    exact le_antisymm probEvent_le_one h
-  · simp only [h, tsub_zero, ge_iff_le, le_refl]
+  refine forall_congr' fun stmtIn => forall_congr' fun stmtOut => forall_congr' fun _ => ?_
+  rw [ENNReal.coe_zero, tsub_zero, ge_iff_le, one_le_probEvent_iff,
+    probEvent_eq_one_iff, Prod.forall]
 
 end Completeness
 
 section Soundness
 
+variable [oSpec.FiniteRange]
 
 /- We define 3 variants each of soundness and knowledge soundness, all in the adaptive setting: (our
   definitions are automatically in the adaptive setting, since there is no `crs`?)
@@ -208,7 +207,7 @@ structure StateFunction (language : Set StmtOut) (verifier : Verifier pSpec oSpe
   /-- If the state function is false for a full transcript, the verifier will output false / a new
     statement not in the language (for all choice of randomness) -/
   fn_full : ∀ stmt tr, fn (Fin.last n) stmt tr = False →
-      ((∃ x, · = some x ∧ x.1 ∈ language) <$> evalDist (verifier.run stmt tr)) False = 1
+    [(· ∈ language) | Prod.fst <$> verifier.run stmt tr] = 0
 
 /--
   A protocol with `verifier` satisfies round-by-round soundness with error `rbrSoundnessError` and
@@ -230,7 +229,7 @@ def rbrSoundness (langIn : Set StmtIn) (langOut : Set StmtOut)
     [fun ⟨⟨transcript, _, _⟩, challenge⟩ =>
       stateFunction.fn i.1.castSucc stmtIn transcript = False ∧
         stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge) = True
-    | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← query (Sum.inr i) ())] ≤
+    | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← pSpec.getChallenge i)] ≤
       rbrSoundnessError i
 
 /-- A round-by-round extractor with index `m` is given the input statement, a partial transcript
@@ -262,7 +261,7 @@ def rbrKnowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut 
       relIn stmtIn extractedWitIn = False ∧
         stateFunction.fn i.1.castSucc stmtIn transcript = False ∧
           stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge) = True
-    | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← query (Sum.inr i) ())] ≤
+    | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← pSpec.getChallenge i)] ≤
       rbrKnowledgeError i
 
 end RoundByRound
@@ -380,7 +379,7 @@ variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec 
     [∀ i, ToOracle (pSpec.Message i)] [∀ i, VCVCompatible (pSpec.Challenge i)]
     {StmtIn WitIn StmtOut WitOut : Type} {ιₛᵢ : Type} [DecidableEq ιₛᵢ]
     {OStmtIn : ιₛᵢ → Type} [∀ i, ToOracle (OStmtIn i)]
-    {OStmtOut : ιₛᵢ → Type}
+    {OStmtOut : ιₛᵢ → Type} [oSpec.FiniteRange]
 
 def completeness
     (relIn : (StmtIn × ∀ i, OStmtIn i) → WitIn → Prop)

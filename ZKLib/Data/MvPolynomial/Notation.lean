@@ -115,5 +115,6 @@ example {a b n : ℕ} (x : Fin a → ℕ) (y : Fin b → ℕ) (p : ℕ[X Fin n])
   p ⸨x, ![n], y⸩ =
     MvPolynomial.eval (Fin.append (Fin.append x ![n]) y ∘ Fin.cast (by omega)) p := rfl
 
-example {n : ℕ} (p : ℕ[X Fin (n + 1)]) (a : Fin n → ℕ) :
-  p ⸨X ⦃0⦄, a⸩ = Polynomial.map (MvPolynomial.eval a) (MvPolynomial.finSuccEquivNth _ 0 p) := rfl
+-- example {n : ℕ} (p : ℕ[X Fin (n + 1)]) (a : Fin n → ℕ) :
+--   p ⸨X ⦃0⦄, a⸩ = Polynomial.map (MvPolynomial.eval a) (MvPolynomial.finSuccEquivNth _ 0 p) :=
+--rfl

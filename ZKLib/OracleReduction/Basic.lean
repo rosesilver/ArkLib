@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-import ZKLib.Data.Math.Fin
 import ZKLib.OracleReduction.Prelude
 import ZKLib.OracleReduction.ToOracle
 -- import Mathlib.Data.FinEnum
@@ -138,12 +137,15 @@ def FullTranscript.challenges (transcript : FullTranscript pSpec) (i : Challenge
 /-- Turn each verifier's challenge into an oracle, where querying a unit type gives back the
   challenge -/
 @[reducible, inline, specialize]
-instance instChallengeToOracle {pSpec : ProtocolSpec n} {i : pSpec.ChallengeIndex}
-    [VCVCompatible (pSpec.Challenge i)] : ToOracle (pSpec.Challenge i) where
+instance instChallengeToOracle {pSpec : ProtocolSpec n} {i : pSpec.ChallengeIndex} :
+    ToOracle (pSpec.Challenge i) where
   Query := Unit
   Response := pSpec.Challenge i
   oracle := fun c _ => c
-  query_decidableEq' := by simp only; infer_instance
+
+def getChallenge (pSpec : ProtocolSpec n) (i : pSpec.ChallengeIndex) :
+    OracleComp [pSpec.Challenge]ₒ (pSpec.Challenge i) :=
+  (query i () : OracleQuery [pSpec.Challenge]ₒ (pSpec.Challenge i))
 
 end ProtocolSpec
 
@@ -364,12 +366,13 @@ def Prover.runAux [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wi
       let ⟨transcript, state, queryLog⟩ ← ih
       match hDir : pSpec.getDir j with
       | .V_to_P => do
-        let challenge ← query (Sum.inr ⟨j, hDir⟩) ()
+        let challenge ← pSpec.getChallenge ⟨j, hDir⟩
         letI challenge : pSpec.Challenge ⟨j, hDir⟩ := by simpa only
         let newState := prover.receiveChallenge ⟨j, hDir⟩ state challenge
         return ⟨transcript.snoc challenge, newState, queryLog⟩
       | .P_to_V => do
-        let ⟨⟨msg, newState⟩, newQueryLog⟩ ← liftComp
+        -- Devon: need `liftM` because it eagerly tries to lift *before* simulation
+        let ⟨⟨msg, newState⟩, newQueryLog⟩ ← liftM
           (simulate loggingOracle queryLog (prover.sendMessage ⟨j, hDir⟩ state))
         return ⟨transcript.snoc msg, newState, newQueryLog⟩)
     i
@@ -421,7 +424,7 @@ theorem OracleVerifier.run_eq_run_verifier [∀ i, ToOracle (pSpec.Message i)] {
       Prod.fst <$> verifier.run stmt oStmt transcript =
         Prod.fst <$> Prod.fst <$> verifier.toVerifier.run ⟨stmt, oStmt⟩ transcript := by
   simp [OracleVerifier.run, Verifier.run, map_bind, map_pure, bind_pure,
-    OracleVerifier.toVerifier, simulate_eq_map_simulate', routeOracles2]
+    OracleVerifier.toVerifier]
   sorry
 
 /--
@@ -436,7 +439,7 @@ def Reduction.run [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wi
       OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
         (StmtOut × WitOut × FullTranscript pSpec × QueryLog oSpec × QueryLog oSpec) := do
   let (_, witOut, transcript, proveQueryLog) ← reduction.prover.run stmt wit
-  let ⟨stmtOut, verifyQueryLog⟩ ← liftComp (reduction.verifier.run stmt transcript)
+  let ⟨stmtOut, verifyQueryLog⟩ ← liftM (reduction.verifier.run stmt transcript)
   return (stmtOut, witOut, transcript, proveQueryLog, verifyQueryLog)
 
 /-- Run an interactive oracle reduction. Returns the full transcript, the output statement and
@@ -451,7 +454,7 @@ def OracleReduction.run [∀ i, VCVCompatible (pSpec.Challenge i)] [∀ i, ToOra
         (StmtOut × WitOut × FullTranscript pSpec ×
           QueryLog oSpec × QueryLog (oSpec ++ₒ ([OStmtIn]ₒ ++ₒ [pSpec.Message]ₒ))) := do
   let ⟨_, witOut, transcript, proveQueryLog⟩ ← reduction.prover.run ⟨stmt, oStmt⟩ wit
-  let ⟨stmtOut, verifyQueryLog⟩ ← liftComp (reduction.verifier.run stmt oStmt transcript)
+  let ⟨stmtOut, verifyQueryLog⟩ ← liftM (reduction.verifier.run stmt oStmt transcript)
   return (stmtOut, witOut, transcript, proveQueryLog, verifyQueryLog)
 
 -- /-- Running an oracle verifier then discarding the query list is equivalent to

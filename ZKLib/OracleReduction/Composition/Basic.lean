@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
+import ZKLib.Data.Math.Fin -- Something weird in this file
 import Batteries.Data.Fin.Fold
 import ZKLib.OracleReduction.Security.Basic
 
@@ -59,11 +60,11 @@ import ZKLib.OracleReduction.Security.Basic
 
 section find_home
 
-@[simp]
-theorem Finset.Iic_top {m : ℕ} : Finset.Iic (Fin.last m) = Finset.univ := by
-  have h0 : Fin.last m = ⊤ := rfl
-  have h1 : Finset.Iic (α := Fin (m + 1)) ⊤ = Finset.Icc ⊥ ⊤ := by ext; simp
-  simp [h0, h1]
+-- @[simp]
+-- theorem Finset.Iic_top {m : ℕ} : Finset.Iic (Fin.last m) = Finset.univ := by
+--   have h0 : Fin.last m = ⊤ := rfl
+--   have h1 : Finset.Iic (α := Fin (m + 1)) ⊤ = Finset.Icc ⊥ ⊤ := by ext; simp
+--   simp [h0, h1]
 
 theorem cast_eq_cast_iff {α β γ : Sort _} {h : α = γ} {h' : β = γ} {a : α} {b : β} :
     cast h a = cast h' b ↔ a = cast (h'.trans h.symm) b := by subst h'; subst h; simp
@@ -107,11 +108,11 @@ variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β 
 
 open OracleComp
 
-@[simp]
-lemma evalDist_cast (h : α = β) :
-    evalDist (cast (congrArg (OracleComp spec) h) oa) =
-      cast (congrArg (PMF ∘ Option) h) (evalDist oa) := by
-  induction h; rfl
+-- @[simp]
+-- lemma evalDist_cast (h : α = β) :
+--     evalDist (cast (congrArg (OracleComp spec) h) oa) =
+--       cast (congrArg (PMF ∘ Option) h) (evalDist oa) := by
+--   induction h; rfl
 
 universe u v
 
