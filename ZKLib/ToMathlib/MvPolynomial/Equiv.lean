@@ -2,9 +2,15 @@
 import Mathlib.Algebra.MvPolynomial.Equiv
 import ZKLib.ToMathlib.Finsupp.Fin
 
+namespace MvPolynomial
+
+open Function Finsupp Polynomial
+
+noncomputable section
+
 section FinSuccEquivNth
 
-variable {n : ℕ} (p : Fin (n + 1))
+variable {n : ℕ} {σ : Type*} (R : Type*) [CommSemiring R] (p : Fin (n + 1))
 
 /-- The algebra isomorphism between multivariable polynomials in `Fin (n + 1)` and polynomials over
   multivariable polynomials in `Fin n`, where the `p`-th (pivot) variable is the indeterminate `X`.
@@ -228,3 +234,7 @@ theorem finSuccEquivNth_rename_finSuccEquivNth (e : σ ≃ Fin n) (φ : MvPolyno
   · rintro (i|i) <;> simp [finSuccEquivNth_apply]
 
 end FinSuccEquivNth
+
+end
+
+end MvPolynomial

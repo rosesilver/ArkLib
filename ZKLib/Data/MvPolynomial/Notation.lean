@@ -6,6 +6,7 @@ Authors: Quang Dao
 
 import Mathlib.RingTheory.Polynomial.Basic
 import Mathlib.RingTheory.MvPolynomial.Basic
+import ZKLib.ToMathlib.MvPolynomial.Equiv
 
 /-!
   # Useful Notation
