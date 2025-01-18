@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
--- import ZKLib.ToVCVio.Oracle
 import VCVio
 import ZKLib.Data.Math.Operations
 import ZKLib.CommitmentScheme.Basic
@@ -28,18 +27,18 @@ open List OracleSpec OracleComp
 
 #check Tree
 
-variable (α : Type) [DecidableEq α] [Inhabited α] [Fintype α]
+variable (α : Type)
 
 /-- Define the domain & range of the (single) oracle needed for constructing a Merkle tree with
   elements from some type `α`. We may instantiate `α` with `BitVec n` or `Fin (2 ^ n)` to construct
   a Merkle tree for boolean vectors of length `n`. -/
-def oracleSpec : OracleSpec Unit where
-  domain _ := α × α
-  range _ := α
-  domain_decidableEq' := inferInstance
-  range_decidableEq' := inferInstance
-  range_inhabited' := inferInstance
-  range_fintype' := inferInstance
+def oracleSpec : OracleSpec Unit := fun _ => (α × α, α)
+  -- domain _ := α × α
+  -- range _ := α
+  -- domain_decidableEq' := inferInstance
+  -- range_decidableEq' := inferInstance
+  -- range_inhabited' := inferInstance
+  -- range_fintype' := inferInstance
 
 @[simp]
 lemma domain_def : (oracleSpec α).domain () = (α × α) := rfl
@@ -47,9 +46,11 @@ lemma domain_def : (oracleSpec α).domain () = (α × α) := rfl
 @[simp]
 lemma range_def : (oracleSpec α).range () = α := rfl
 
+variable [DecidableEq α] [Inhabited α] [Fintype α]
+
 /-- Example: a single hash computation -/
 def singleHash (left : α) (right : α) : OracleComp (oracleSpec α) α := do
-  let out ← query () ⟨left, right⟩
+  let out ← query (spec := oracleSpec α) () ⟨left, right⟩
   return out
 
 /-- Cache for Merkle tree. Indexed by `j : Fin (n + 1)`, i.e. `j = 0, 1, ..., n`. -/
@@ -71,7 +72,7 @@ def buildLayer (n : ℕ) {m : ℕ} (h : m = n + 1) (leaves : List.Vector α (2 ^
       (leaves.get ⟨2 * i, by omega⟩, leaves.get ⟨2 * i + 1, by omega⟩))
   -- Hash each pair to get the next layer
   let hashes : List.Vector α (2 ^ n) ←
-    List.Vector.mmap (fun ⟨left, right⟩ => query () ⟨left, right⟩) pairs
+    List.Vector.mmap (fun ⟨left, right⟩ => query (spec := oracleSpec α) () ⟨left, right⟩) pairs
   return hashes
 
 /-- Build the full Merkle tree, returning the cache -/
@@ -132,11 +133,11 @@ def verifyProof {n : ℕ} (i : Fin (2 ^ n)) (leaf : α) (root : α) (proof : Lis
     let i' : Fin (2 ^ (n - 1)) := i.val / 2
     if signBit = 0 then
       -- `i` is a left child
-      let newLeaf ← query () ⟨leaf, proof.get ⟨n - 1, by omega⟩⟩
+      let newLeaf ← query (spec := oracleSpec α) () ⟨leaf, proof.get ⟨n - 1, by omega⟩⟩
       verifyProof i' newLeaf root (proof.drop 1)
     else
       -- `i` is a right child
-      let newLeaf ← query () ⟨proof.get ⟨n - 1, by omega⟩, leaf⟩
+      let newLeaf ← query (spec := oracleSpec α) () ⟨proof.get ⟨n - 1, by omega⟩, leaf⟩
       verifyProof i' newLeaf root (proof.drop 1)
 
 -- theorem completeness (leaves : Vector α (2 ^ n)) (i : Fin (2 ^ n)) :

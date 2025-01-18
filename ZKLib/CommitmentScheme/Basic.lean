@@ -56,7 +56,7 @@ open scoped NNReal
 
 variable {pSpec : ProtocolSpec n} [∀ i, VCVCompatible (pSpec.Challenge i)] [DecidableEq ι]
   {oSpec : OracleSpec ι} {Data : Type} [O : ToOracle Data] {Randomness : Type} [Fintype Randomness]
-  {Commitment : Type}
+  {Commitment : Type} [oSpec.FiniteRange]
 
 /-- A commitment scheme satisfies **correctness** with error `correctnessError` if for all
   `data : Data`, `randomness : Randomness`, and `query : O.Query`, the probability of accepting upon
@@ -99,13 +99,15 @@ def binding (scheme : Scheme pSpec oSpec Data Randomness Commitment)
   ∀ AuxState : Type,
   ∀ adversary : BindingAdversary oSpec Data Commitment AuxState,
   ∀ prover : Prover pSpec oSpec (Commitment × O.Query × O.Response) AuxState Bool Unit,
-    [ fun ⟨x, x', b₁, b₂⟩ => x ≠ x' ∧ b₁ ∧ b₂ | do
-        let ⟨cm, query, resp₁, resp₂, st⟩ ← liftComp adversary
-        let proof : Proof pSpec oSpec (Commitment × O.Query × O.Response) AuxState :=
-          ⟨prover, scheme.opening.verifier⟩
-        let ⟨accept₁, _⟩ ← proof.run ⟨cm, query, resp₁⟩ st
-        let ⟨accept₂, _⟩ ← proof.run ⟨cm, query, resp₂⟩ st
-        return (resp₁, resp₂, accept₁, accept₂)] ≤ bindingError
+    False
+    -- [ fun ⟨x, x', b₁, b₂⟩ => x ≠ x' ∧ b₁ ∧ b₂ | do
+    --     let result ← liftM adversary
+    --     let ⟨cm, query, resp₁, resp₂, st⟩ := result
+    --     let proof : Proof pSpec oSpec (Commitment × O.Query × O.Response) AuxState :=
+    --       ⟨prover, scheme.opening.verifier⟩
+    --     let ⟨accept₁, _⟩ ← proof.run ⟨cm, query, resp₁⟩ st
+    --     let ⟨accept₂, _⟩ ← proof.run ⟨cm, query, resp₂⟩ st
+    --     return (resp₁, resp₂, accept₁, accept₂)] ≤ bindingError
 
 /-- A **straightline extractor** for a commitment scheme takes in the commitment, the log of queries
     made during the commitment phase, and returns the underlying data for the commitment. -/
@@ -137,13 +139,15 @@ def extractability (scheme : Scheme pSpec oSpec Data Randomness Commitment)
   ∀ AuxState : Type,
   ∀ adversary : ExtractabilityAdversary oSpec Data Commitment AuxState,
   ∀ prover : Prover pSpec oSpec (Commitment × O.Query × O.Response) AuxState Bool Unit,
-    [ fun ⟨b, d, q, r⟩ => b ∧ O.oracle d q = r | do
-        let ⟨⟨cm, query, response, st⟩, queryLog⟩ ← liftComp (simulate loggingOracle ∅ adversary)
-        let proof : Proof pSpec oSpec (Commitment × O.Query × O.Response) AuxState :=
-          ⟨prover, scheme.opening.verifier⟩
-        let ⟨accept, _⟩ ← proof.run ⟨cm, query, response⟩ st
-        letI data := extractor cm queryLog
-        return (accept, data, query, response)] ≤ extractabilityError
+    False
+    -- [ fun ⟨b, d, q, r⟩ => b ∧ O.oracle d q = r | do
+    --     let result ← liftM (simulate loggingOracle ∅ adversary)
+    --     let ⟨⟨cm, query, response, st⟩, queryLog⟩ := result
+    --     let proof : Proof pSpec oSpec (Commitment × O.Query × O.Response) AuxState :=
+    --       ⟨prover, scheme.opening.verifier⟩
+    --     let ⟨accept, _⟩ ← proof.run ⟨cm, query, response⟩ st
+    --     letI data := extractor cm queryLog
+    --     return (accept, data, query, response)] ≤ extractabilityError
 
 -- TODO: version where the query is chosen according to some public coin?
 

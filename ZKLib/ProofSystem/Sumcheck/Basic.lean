@@ -229,9 +229,14 @@ def oracleVerifier (i : Fin (n + 1)) : OracleVerifier (pSpec R deg) oSpec
   -- (the new target is the evaluation of the polynomial at the challenge `r_i`)
   verify := fun ⟨target, challenges⟩ chal => do
     let evals : List R ← (List.finRange m).mapM
-      (fun i => do return ← query (Sum.inr <| Sum.inr default) (D i))
+      (fun i => do
+        return ← query
+          (spec := (oSpec ++ₒ ([OracleStatement R n deg]ₒ ++ₒ [(pSpec R deg).Message]ₒ)))
+            (Sum.inr <| Sum.inr default) (D i))
     guard (evals.sum = target)
-    let newTarget ← query (Sum.inr <| Sum.inr default) (by simpa only using chal default)
+    let newTarget ← query
+      (spec := (oSpec ++ₒ ([OracleStatement R n deg]ₒ ++ₒ [(pSpec R deg).Message]ₒ)))
+        (Sum.inr <| Sum.inr default) (by simpa only using chal default)
     letI newTarget : R := by simpa only
     pure ⟨newTarget, Fin.snoc challenges (chal default)⟩
 

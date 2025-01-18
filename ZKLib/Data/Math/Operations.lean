@@ -7,6 +7,7 @@ import Mathlib.Data.Nat.Log
 import Batteries.Data.List.Lemmas
 import Batteries.Data.Array.Lemmas
 import Batteries.Data.Nat.Lemmas
+import Mathlib.Data.List.GetD
 import Mathlib.Data.ZMod.Basic
 
 /-!
@@ -166,13 +167,13 @@ theorem rightpad_eq_if_rightpad_eq_of_ge (l l' : List α) (m n n' : Nat) (h : n 
     simp at h
     by_cases h' : m ≤ l.length <;> omega
 
-lemma getD_eq_getElem {l : List α} {i : Nat} {unit : α} (hi : i < l.length) :
-    l.getD i unit = l[i] := by
-  rw [getD_eq_getElem?_getD, getElem?_eq_getElem hi, Option.getD_some]
+-- lemma getD_eq_getElem {l : List α} {i : Nat} {unit : α} (hi : i < l.length) :
+--     l.getD i unit = l[i] := by
+--   rw [getD_eq_getElem?_getD, getElem?_eq_getElem hi, Option.getD_some]
 
-lemma getD_eq_default {l : List α} {i : Nat} {unit : α} (hi : i ≥ l.length) :
-    l.getD i unit = unit := by
-  rw [getD_eq_getElem?_getD, getElem?_eq_none hi, Option.getD_none]
+-- lemma getD_eq_default {l : List α} {i : Nat} {unit : α} (hi : i ≥ l.length) :
+--     l.getD i unit = unit := by
+--   rw [getD_eq_getElem?_getD, getElem?_eq_none hi, Option.getD_none]
 
 @[simp] theorem rightpad_getD_eq_getD (l : List α) (n : Nat) (unit : α) (i : Nat) :
     (rightpad n unit l).getD i unit = l.getD i unit := by
@@ -180,18 +181,18 @@ lemma getD_eq_default {l : List α} {i : Nat} {unit : α} (hi : i ≥ l.length) 
   · have h_lt': i < (rightpad n unit l).length := by rw [rightpad_length]; omega
     simp only [h_lt, h_lt', getD_eq_getElem] -- eliminate `getD`
     simp [h_lt, getElem_append]
-  rw [getD_eq_default h_ge] -- eliminate second `getD` for `unit`
+  rw [getD_eq_default _ _ h_ge] -- eliminate second `getD` for `unit`
   rcases (Nat.lt_or_ge i n) with h_lt₂ | h_ge₂
   · have h_lt' : i < (rightpad n unit l).length := by rw [rightpad_length]; omega
-    rw [getD_eq_getElem h_lt'] -- eliminate first `getD`
+    rw [getD_eq_getElem _ _ h_lt'] -- eliminate first `getD`
     simp [h_ge, getElem_append]
   · have h_ge' : i ≥ (rightpad n unit l).length := by rw [rightpad_length]; omega
-    rw [getD_eq_default h_ge'] -- eliminate first `getD`
+    rw [getD_eq_default _ _ h_ge'] -- eliminate first `getD`
 
 theorem rightpad_getElem_eq_getD {a b : List α} {unit : α} {i : Nat}
   (h: i < (a.rightpad b.length unit).length) :
     (a.rightpad b.length unit)[i] = a.getD i unit := by
-  rw [← rightpad_getD_eq_getD a b.length, getD_eq_getElem h]
+  rw [← rightpad_getD_eq_getD a b.length, getD_eq_getElem _ _ h]
 
 /-- Given two lists of potentially different lengths, right-pads the shorter list with `unit`
   elements until they are the same length. -/
@@ -260,10 +261,6 @@ def matchSize (a : Array α) (b : Array α) (unit : α) : Array α × Array α :
 theorem getElem?_eq_toList {a : Array α} {i : ℕ} : a.toList[i]? = a[i]? := by
   rw (occs := .pos [2]) [← List.toArray_toList a]
   rw [List.getElem?_toArray]
-
--- simplify `a[i]?` to `some a[i]` or `none` given hypotheses about `i` vs `a.size`
-@[simp] theorem getElem?_eq_none {a: Array α} {i: Nat} : (a.size ≤ i) → a[i]? = none :=
-  Array.getElem?_eq_none_iff.mpr
 
 attribute [simp] Array.getElem?_eq_getElem
 
@@ -383,8 +380,6 @@ def getLastD (a : Array α) (v₀ : α) : α := a.getD (a.size - 1) v₀
 
 @[simp] theorem popWhile_nil_or_last_false (p : α → Bool) (as : Array α)
     (h : (as.popWhile p).size > 0) : ¬ (p <| (as.popWhile p).getLast h) := sorry
-
-@[simp] theorem finRange_toList (n : Nat) : (Array.finRange n).toList = List.finRange n := by sorry
 
 end Array
 
