@@ -185,6 +185,8 @@ theorem size_le_size (p : UniPoly R) : p.trim.size ≤ p.size := by
   | none => simp
   | some i => simp [Array.size_extract]
 
+attribute [simp] Array.getElem?_eq_none
+
 theorem getD_eq_getElem_of_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
   p.trim.getD i 0 = p[i] := by
   induction p using induct with
