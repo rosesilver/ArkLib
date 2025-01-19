@@ -155,8 +155,8 @@ theorem append_right' {m n : ℕ} {α : Sort*} {u : Fin m → α} {v : Fin n →
 
 /-- Version of `Fin.heq_fun_iff` for dependent functions `f : (i : Fin k) → α i`. -/
 protected theorem heq_fun_iff' {k l : ℕ} {α : Fin k → Sort u} {β : Fin l → Sort u} (h : k = l)
-    (h' : ∀ i : Fin k, (α i) = (β (cast h i))) {f : (i : Fin k) → α i} {g : (j : Fin l) → β j} :
-    HEq f g ↔ ∀ i : Fin k, HEq (f i) (g (cast h i)) := by
+    (h' : ∀ i : Fin k, (α i) = (β (Fin.cast h i))) {f : (i : Fin k) → α i} {g : (j : Fin l) → β j} :
+    HEq f g ↔ ∀ i : Fin k, HEq (f i) (g (Fin.cast h i)) := by
   subst h
   simp only [cast_eq_self]
   exact funext_iff' h'
@@ -213,12 +213,12 @@ theorem take_addCases'_left {n' : ℕ} {β : Fin n' → Sort u} (m : ℕ) (h : m
 
 /-- Take the last `m` elements of a finite vector -/
 def rtake (m : ℕ) (h : m ≤ n) (v : (i : Fin n) → α i) :
-    (i : Fin m) → α (cast (Nat.sub_add_cancel h) (natAdd (n - m) i)) :=
-  fun i => v (cast (Nat.sub_add_cancel h) (natAdd (n - m) i))
+    (i : Fin m) → α (Fin.cast (Nat.sub_add_cancel h) (natAdd (n - m) i)) :=
+  fun i => v (Fin.cast (Nat.sub_add_cancel h) (natAdd (n - m) i))
 
 @[simp]
 theorem rtake_apply (v : (i : Fin n) → α i) (m : ℕ) (h : m ≤ n)
-    (i : Fin m) : rtake m h v i = v (cast (Nat.sub_add_cancel h) (natAdd (n - m) i)) := rfl
+    (i : Fin m) : rtake m h v i = v (Fin.cast (Nat.sub_add_cancel h) (natAdd (n - m) i)) := rfl
 
 @[simp]
 theorem rtake_zero {n : ℕ} {α : Sort u} (v : Fin n → α) :
@@ -257,12 +257,12 @@ section Drop
 
 /-- Drop the first `m` elements of an `n`-tuple where `m ≤ n`, returning an `(n - m)`-tuple. -/
 def drop (m : ℕ) (h : m ≤ n) (v : (i : Fin n) → α i) :
-    (i : Fin (n - m)) → α (cast (Nat.sub_add_cancel h) (addNat i m)) :=
-  fun i ↦ v (cast (Nat.sub_add_cancel h) (addNat i m))
+    (i : Fin (n - m)) → α (Fin.cast (Nat.sub_add_cancel h) (addNat i m)) :=
+  fun i ↦ v (Fin.cast (Nat.sub_add_cancel h) (addNat i m))
 
 @[simp]
 theorem drop_apply (m : ℕ) (h : m ≤ n) (v : (i : Fin n) → α i) (i : Fin (n - m)) :
-    (drop m h v) i = v (cast (Nat.sub_add_cancel h) (addNat i m)) := rfl
+    (drop m h v) i = v (Fin.cast (Nat.sub_add_cancel h) (addNat i m)) := rfl
 
 @[simp]
 theorem drop_zero (v : (i : Fin n) → α i) : drop 0 n.zero_le v = v := by
@@ -278,14 +278,14 @@ theorem drop_one {α : Fin (n + 1) → Sort*} (v : (i : Fin (n + 1)) → α i) :
 
 @[simp]
 theorem drop_of_succ {α : Fin (n + 1) → Sort*} (v : (i : Fin (n + 1)) → α i) :
-    drop n n.le_succ v = fun i => v (cast (Nat.sub_add_cancel n.le_succ) (addNat i n)) := by
+    drop n n.le_succ v = fun i => v (Fin.cast (Nat.sub_add_cancel n.le_succ) (addNat i n)) := by
   ext i
   simp only [drop]
 
 -- @[simp]
 -- theorem drop_all (v : (i : Fin n) → α i) :
 --     HEq (drop n (le_refl n) v)
---       (fun (i : Fin 0) ↦ @elim0 (α (cast (Nat.sub_add_cancel (le_refl n)) (i.addNat n))) i) := by
+--       (fun (i : Fin 0) ↦ @elim0 (α (Fin.cast (Nat.sub_add_cancel (le_refl n)) (i.addNat n))) i) := by
 --   refine (Fin.heq_fun_iff ?_).mpr ?_
 --   · simp
 --   · intro i
@@ -313,7 +313,7 @@ def castSum (l : List ℕ) {n : ℕ} (h : n ∈ l) : Fin n → Fin l.sum := fun 
   | n' :: l' => by
     simp only [List.sum_cons]
     by_cases hi : n = n'
-    · exact castAdd l'.sum (cast hi i)
+    · exact castAdd l'.sum (Fin.cast hi i)
     · exact natAdd n' (castSum l' (List.mem_of_ne_of_mem hi h) i)
 
 theorem castSum_castLT {l' : List ℕ} {i : ℕ} (j : Fin i) :

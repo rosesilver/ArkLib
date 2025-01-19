@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
+import ZKLib.Data.Math.Fin -- Something weird in this file
 import Batteries.Data.Fin.Fold
 import ZKLib.OracleReduction.Security.Basic
 
@@ -59,12 +60,6 @@ import ZKLib.OracleReduction.Security.Basic
 
 section find_home
 
-@[simp]
-theorem Finset.Iic_top {m : ℕ} : Finset.Iic (Fin.last m) = Finset.univ := by
-  have h0 : Fin.last m = ⊤ := rfl
-  have h1 : Finset.Iic (α := Fin (m + 1)) ⊤ = Finset.Icc ⊥ ⊤ := by ext; simp
-  simp [h0, h1]
-
 theorem cast_eq_cast_iff {α β γ : Sort _} {h : α = γ} {h' : β = γ} {a : α} {b : β} :
     cast h a = cast h' b ↔ a = cast (h'.trans h.symm) b := by subst h'; subst h; simp
 
@@ -108,7 +103,7 @@ variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β 
 open OracleComp
 
 @[simp]
-lemma evalDist_cast (h : α = β) :
+lemma evalDist_cast (h : α = β) [spec.FiniteRange] :
     evalDist (cast (congrArg (OracleComp spec) h) oa) =
       cast (congrArg (PMF ∘ Option) h) (evalDist oa) := by
   induction h; rfl
@@ -393,51 +388,52 @@ open OracleComp OracleSpec SubSpec
 
 variable [∀ i, Sampleable (pSpec₁.Challenge i)] [∀ i, Sampleable (pSpec₂.Challenge i)]
 
-instance : SubSpec ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ)
-    ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) where
-  toFun := fun i _ => by
-    cases i with
-    | inl j =>
-      simpa [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle] using
-        query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inl ()
-    | inr j =>
-      simpa [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle] using
-        query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inr ()
-  evalDist_toFun' := fun i q => by
-    cases i with
-    | inl j =>
-      simp only [eq_mp_eq_cast, id_eq]
-      have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inl =
-        ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inl j) := by
-        simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
-      rw [evalDist_cast _ this, evalDist_query, evalDist_query]
-      simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
-      refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
-      intro x
-      simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_left]
-      refine tsum_cast (by simp) (fun a => ?_)
-      congr <;> try { simp only [Fin.append_left] } <;> symm <;> simp only [cast_heq]
-    | inr j =>
-      simp only [eq_mp_eq_cast, id_eq]
-      have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inr =
-        ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inr j) := by
-        simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
-      rw [evalDist_cast _ this, evalDist_query, evalDist_query]
-      simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
-      refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
-      intro x
-      simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_right]
-      refine tsum_cast (by simp) (fun a => ?_)
-      congr <;> try { simp only [Fin.append_right] } <;> symm <;> simp only [cast_heq]
+instance instSubSpecOfProtocolSpecAppendChallenge :
+    SubSpec ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ) ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) where
+  monadLift | query i t => match i with
+    | Sum.inl j => by
+      simpa [OracleSpec.append, OracleSpec.range, ToOracle.toOracleSpec, ChallengeIndex.inl,
+        instChallengeToOracle] using query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inl ()
+    | Sum.inr j => by
+      simpa [OracleSpec.append, OracleSpec.range, ToOracle.toOracleSpec, ChallengeIndex.inr,
+        instChallengeToOracle] using query (spec := [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) j.inr ()
+  -- evalDist_toFun' := fun i q => by
+  --   cases i with
+  --   | inl j =>
+  --     simp only [eq_mp_eq_cast, id_eq]
+  --     have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inl =
+  --       ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inl j) := by
+  --       simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
+  --     rw [evalDist_cast _ this, evalDist_query, evalDist_query]
+  --     simp [OracleSpec.append, ChallengeIndex.inl, instChallengeToOracle]
+  --     refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
+  --     intro x
+  --     simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_left]
+  --     refine tsum_cast (by simp) (fun a => ?_)
+  --     congr <;> try { simp only [Fin.append_left] } <;> symm <;> simp only [cast_heq]
+  --   | inr j =>
+  --     simp only [eq_mp_eq_cast, id_eq]
+  --     have : [(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ.range j.inr =
+  --       ([pSpec₁.Challenge]ₒ ++ₒ [pSpec₂.Challenge]ₒ).range (Sum.inr j) := by
+  --       simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
+  --     rw [evalDist_cast _ this, evalDist_query, evalDist_query]
+  --     simp [OracleSpec.append, ChallengeIndex.inr, instChallengeToOracle]
+  --     refine cast_eq_iff_heq.mpr ((PMF.heq_iff (by simp [this])).mpr ?_)
+  --     intro x
+  --     simp only [PMF.map_apply, PMF.uniformOfFintype_apply, Fin.append_right]
+  --     refine tsum_cast (by simp) (fun a => ?_)
+  --     congr <;> try { simp only [Fin.append_right] } <;> symm <;> simp only [cast_heq]
 
 -- instance {ι₁ ι₂ ι₃ : Type} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 -- {spec₃ : OracleSpec ι₃}
 --     [@SubSpec ι₁ ι₂ spec₁ spec₂] [@SubSpec ι₂ ι₃ spec₂ spec₃] :
 -- @SubSpec ι₁ ι₃ spec₁ spec₃ := sorry
 
-instance : SubSpec [pSpec₁.Challenge]ₒ ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) := sorry
+instance : SubSpec [pSpec₁.Challenge]ₒ ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) where
+  monadLift | query i t => instSubSpecOfProtocolSpecAppendChallenge.monadLift (query (Sum.inl i) t)
 
-instance : SubSpec [pSpec₂.Challenge]ₒ ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) := sorry
+instance : SubSpec [pSpec₂.Challenge]ₒ ([(pSpec₁ ++ₚ pSpec₂).Challenge]ₒ) where
+  monadLift | query i t => instSubSpecOfProtocolSpecAppendChallenge.monadLift (query (Sum.inr i) t)
 
 end Instances
 
@@ -582,15 +578,15 @@ namespace ProtocolSpec
 
 /-- Composition of a family of `ProtocolSpec`s, indexed by `i : Fin (m + 1)`. -/
 def compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, ProtocolSpec (n i)) :
-    ProtocolSpec (∑ i, n i) :=
-  cast (by rw [Finset.Iic_top])
-    (Fin.dfoldl m (fun i => ProtocolSpec (∑ j ≤ i, n j))
-      (fun i acc => cast (Fin.sum_Iic_succ i).symm (acc ++ₚ pSpec i.succ))
-        (cast (Fin.sum_Iic_zero).symm (pSpec 0)))
+    ProtocolSpec (∑ i, n i) := sorry
+  -- cast (by rw [Finset.Iic_top])
+  --   (Fin.dfoldl m (fun i => ProtocolSpec (∑ j ≤ i, n j))
+  --     (fun i acc => cast (Fin.sum_Iic_succ i).symm (acc ++ₚ pSpec i.succ))
+  --       (cast (Fin.sum_Iic_zero).symm (pSpec 0)))
 
 @[simp]
 theorem compose_zero {n : ℕ} {pSpec : ProtocolSpec n} :
-    compose 0 (fun _ => n) (fun _ => pSpec) = pSpec := rfl
+    compose 0 (fun _ => n) (fun _ => pSpec) = pSpec := sorry
 
 set_option maxHeartbeats 1000000
 theorem compose_append {m : ℕ} {n : Fin (m + 1) → ℕ} {pSpec : ∀ i, ProtocolSpec (n i)} (i : Fin m) :
@@ -598,14 +594,14 @@ theorem compose_append {m : ℕ} {n : Fin (m + 1) → ℕ} {pSpec : ∀ i, Proto
       cast (by simp [Fin.sum_univ_castSucc]; congr)
         (compose i (Fin.take (i + 1) (by omega) n) (Fin.take (i + 1) (by omega) pSpec)
           ++ₚ pSpec i.succ) := by
-  simp only [id_eq, Fin.take_apply, compose, cast_eq_self, Fin.dfoldl_succ_last, Fin.succ_last,
-    Nat.succ_eq_add_one, Function.comp_apply, cast_trans, append_cast_left, cast_eq_cast_iff]
-  unfold Function.comp Fin.castSucc Fin.castAdd Fin.castLE Fin.last Fin.succ
-  simp only [Fin.val_zero, Fin.zero_eta]
-  simp only [append_cast_left', append_left_cancel_iff]
-  funext x
-  unfold cast Fin.cast Function.comp ProtocolSpec
-  simp only
+  -- simp only [id_eq, Fin.take_apply, compose, cast_eq_self, Fin.dfoldl_succ_last, Fin.succ_last,
+  --   Nat.succ_eq_add_one, Function.comp_apply, cast_trans, append_cast_left, cast_eq_cast_iff]
+  -- unfold Function.comp Fin.castSucc Fin.castAdd Fin.castLE Fin.last Fin.succ
+  -- simp only [Fin.val_zero, Fin.zero_eta]
+  -- simp only [append_cast_left', append_left_cancel_iff]
+  -- funext x
+  -- unfold cast Fin.cast Function.comp ProtocolSpec
+  -- simp only
   sorry
   -- unfold compose
   -- induction m with
@@ -633,7 +629,7 @@ def FullTranscript.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, P
         simp [compose_append]
         -- refine FullTranscript.cast ?_ this
         sorry)
-    (by exact T 0)
+    (by stop exact T 0)
 
 section Instances
 
@@ -685,7 +681,7 @@ def Prover.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, ProtocolS
       convert Prover.append acc (P i.succ)
       · simp [Fin.sum_univ_castSucc, Fin.last, Fin.succ]
       · simp [ProtocolSpec.compose_append, ProtocolSpec.cast_eq_root_cast])
-    (by simpa using P 0)
+    (by stop simpa using P 0)
 
 def Verifier.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, ProtocolSpec (n i))
     (Stmt : Fin (m + 2) → Type)
@@ -699,7 +695,7 @@ def Verifier.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, Protoco
       convert Verifier.append acc (V i.succ)
       · simp [Fin.sum_univ_castSucc, Fin.last, Fin.succ]
       · simp [ProtocolSpec.compose_append, ProtocolSpec.cast_eq_root_cast])
-    (by simpa using V 0)
+    (by stop simpa using V 0)
 
 def Reduction.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, ProtocolSpec (n i))
     (Stmt : Fin (m + 2) → Type) (Wit : Fin (m + 2) → Type)
@@ -715,7 +711,7 @@ def Reduction.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, Protoc
       convert Reduction.append acc (R i.succ)
       · simp [Fin.sum_univ_castSucc, Fin.last, Fin.succ]
       · simp [ProtocolSpec.compose_append, ProtocolSpec.cast_eq_root_cast])
-    (by simpa using R 0)
+    (by stop simpa using R 0)
 
 end GeneralComposition
 
@@ -724,16 +720,18 @@ section Execution
 open OracleComp OracleSpec SubSpec
 
 /-- Concatenate two query logs, removing duplicates. -/
-def QueryLog.append {ι : Type} {spec : OracleSpec ι} (log₁ log₂ : QueryLog spec) :
-    QueryLog spec := fun i ↦ List.dedup (log₁ i ++ log₂ i)
+def QueryLog.append {ι : Type} {spec : OracleSpec ι} (log₁ log₂ : QueryLog spec)
+    [spec.DecidableEq] : QueryLog spec :=
+  fun i ↦ List.dedup (log₁ i ++ log₂ i)
 
 variable [∀ i, Sampleable (pSpec₁.Challenge i)] [∀ i, Sampleable (pSpec₂.Challenge i)]
+  [oSpec.DecidableEq]
 
 theorem Prover.append_run (P₁ : Prover pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂)
     (P₂ : Prover pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃) (stmt : Stmt₁) (wit : Wit₁) :
       (P₁.append P₂).run stmt wit = (do
-        let ⟨stmt₂, wit₂, transcript₁, queryLog₁⟩ ← liftComp (P₁.run stmt wit)
-        let ⟨stmt₃, wit₃, transcript₂, queryLog₂⟩ ← liftComp (P₂.run stmt₂ wit₂)
+        let ⟨stmt₂, wit₂, transcript₁, queryLog₁⟩ ← liftM (P₁.run stmt wit)
+        let ⟨stmt₃, wit₃, transcript₂, queryLog₂⟩ ← liftM (P₂.run stmt₂ wit₂)
         -- TODO: should we refactor the prover to take in a running query log?
         return ⟨stmt₃, wit₃, transcript₁ ++ₜ transcript₂, QueryLog.append queryLog₁ queryLog₂⟩) :=
   sorry
@@ -753,6 +751,7 @@ section Append
 variable {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n} [∀ i, Sampleable (pSpec₁.Challenge i)]
     [∀ i, Sampleable (pSpec₂.Challenge i)] {Stmt₁ Wit₁ Stmt₂ Wit₂ Stmt₃ Wit₃ : Type}
     {rel₁ : Stmt₁ → Wit₁ → Prop} {rel₂ : Stmt₂ → Wit₂ → Prop} {rel₃ : Stmt₃ → Wit₃ → Prop}
+    [oSpec.DecidableEq] [oSpec.FiniteRange]
 
 /-- If two reductions satisfy completeness with compatible relations, then their concatenation also
   satisfies completeness with the sum of the completeness errors. -/
@@ -780,6 +779,7 @@ section GeneralComposition
 variable {m : ℕ} {n : Fin (m + 1) → ℕ} {pSpec : ∀ i, ProtocolSpec (n i)}
     [∀ i, ∀ j, Sampleable ((pSpec i).Challenge j)]
     {Stmt : Fin (m + 2) → Type} {Wit : Fin (m + 2) → Type} {rel : ∀ i, Stmt i → Wit i → Prop}
+    [oSpec.DecidableEq] [oSpec.FiniteRange]
 
 theorem completeness_compose
     (R : ∀ i, Reduction (pSpec i) oSpec (Stmt i.castSucc) (Wit i.castSucc)

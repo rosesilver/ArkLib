@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Ivan Sadofschi Costa, Quang Dao
 -/
 import Mathlib.Data.Finsupp.Fin
+import Mathlib.Algebra.BigOperators.Finsupp
 
 /-!
 # Tuple operations on maps `Fin n →₀ M`
@@ -20,6 +21,63 @@ operations:
 In this context, we prove some usual properties of these operations, analogous to those of
 `Data.Fin.Tuple.Basic`.
 -/
+
+-- Auxiliary `Fin` lemmas
+
+namespace Fin
+
+variable {n : ℕ} {α : Fin (n + 1) → Sort*}
+
+/-- As a binary function, `Fin.snoc` is injective. -/
+theorem snoc_injective2 : Function.Injective2 (@snoc n α) := fun x y xₙ yₙ h ↦
+  ⟨funext fun i ↦ by simpa using congr_fun h (castSucc i), by simpa using congr_fun h (last n)⟩
+
+@[simp]
+theorem snoc_inj {x y : ∀ i : Fin n, α i.castSucc} {xₙ yₙ : α (last n)} :
+    snoc x xₙ = snoc y yₙ ↔ x = y ∧ xₙ = yₙ :=
+  snoc_injective2.eq_iff
+
+theorem snoc_right_injective (x : ∀ i : Fin n, α i.castSucc) :
+    Function.Injective (snoc x) :=
+  snoc_injective2.right _
+
+theorem snoc_left_injective (xₙ : α (last n)) : Function.Injective (snoc · xₙ) :=
+  snoc_injective2.left _
+
+/-- Analogue of `Fin.eq_zero_or_eq_succ` for `succAbove`. -/
+theorem eq_self_or_eq_succAbove (p i : Fin (n + 1)) : i = p ∨ ∃ j, i = p.succAbove j :=
+  succAboveCases p (.inl rfl) (fun j => .inr ⟨j, rfl⟩) i
+
+/-- As a binary function, `Fin.insertNth` is injective. -/
+theorem insertNth_injective2 {p : Fin (n + 1)} :
+    Function.Injective2 (@insertNth n α p) := fun xₚ yₚ x y h ↦
+  ⟨by simpa using congr_fun h p, funext fun i ↦ by simpa using congr_fun h (succAbove p i)⟩
+
+@[simp]
+theorem insertNth_inj {p : Fin (n + 1)} {x y : ∀ i, α (succAbove p i)} {xₚ yₚ : α p} :
+    insertNth p xₚ x = insertNth p yₚ y ↔ xₚ = yₚ ∧ x = y :=
+  insertNth_injective2.eq_iff
+
+theorem insertNth_left_injective {p : Fin (n + 1)} (x : ∀ i, α (succAbove p i)) :
+    Function.Injective (insertNth p · x) :=
+  insertNth_injective2.left _
+
+theorem insertNth_right_injective {p : Fin (n + 1)} (x : α p) :
+    Function.Injective (insertNth p x) :=
+  insertNth_injective2.right _
+
+section BigOperators
+
+variable {α : Type*} {β : Type*}
+
+@[to_additive (attr := simp)]
+theorem prod_insertNth [CommMonoid β] {n : ℕ} (x : β) (f : Fin n → β) (p : Fin (n + 1)) :
+    ∏ i, insertNth p x f i = x * ∏ i, f i := by
+  simp [prod_univ_succAbove (insertNth p x f) p]
+
+end BigOperators
+
+end Fin
 
 open Function
 
@@ -70,14 +128,14 @@ theorem removeNth_last : removeNth (Fin.last n) s = init s := by simp [removeNth
 @[simp]
 theorem removeNth_update : removeNth p (update s p y) = removeNth p s := by simp [removeNth]
 
-@[simp]
-theorem tail_apply : tail s i = s i.succ := rfl
+-- @[simp]
+-- theorem tail_apply : tail s i = s i.succ := rfl
 
-@[simp]
-theorem tail_update_zero : tail (update s 0 y) = tail s := by simp [tail]
+-- @[simp]
+-- theorem tail_update_zero : tail (update s 0 y) = tail s := by simp [tail]
 
-@[simp]
-theorem tail_update_succ : tail (update s i.succ y) = update (tail s) i y := by ext; simp [tail]
+-- @[simp]
+-- theorem tail_update_succ : tail (update s i.succ y) = update (tail s) i y := by ext; simp [tail]
 
 @[simp]
 theorem init_apply : init s i = s i.castSucc := rfl
@@ -98,11 +156,11 @@ section Add
 
 variable (p : Fin (n + 1)) (y : M) (t : Fin (n + 1) →₀ M) (s : Fin n →₀ M) (i : Fin n)
 
-@[simp]
-theorem cons_zero : cons y s 0 = y := rfl
+-- @[simp]
+-- theorem cons_zero : cons y s 0 = y := rfl
 
-@[simp]
-theorem cons_succ : cons y s i.succ = s i := rfl
+-- @[simp]
+-- theorem cons_succ : cons y s i.succ = s i := rfl
 
 @[simp]
 theorem snoc_last : snoc s y (Fin.last n) = y := by simp [snoc]
@@ -122,16 +180,16 @@ theorem insertNth_apply_same : insertNth p y s p = y := by simp [insertNth]
 @[simp]
 theorem insertNth_apply_succAbove : insertNth p y s (p.succAbove i) = s i := by simp [insertNth]
 
-@[simp]
-theorem tail_cons : tail (cons y s) = s :=
-  ext fun k => by simp only [tail_apply, cons_succ]
+-- @[simp]
+-- theorem tail_cons : tail (cons y s) = s :=
+--   ext fun k => by simp only [tail_apply, cons_succ]
 
-@[simp]
-theorem cons_tail : cons (t 0) (tail t) = t := by
-  ext a
-  by_cases c_a : a = 0
-  · rw [c_a, cons_zero]
-  · rw [← Fin.succ_pred a c_a, cons_succ, ← tail_apply]
+-- @[simp]
+-- theorem cons_tail : cons (t 0) (tail t) = t := by
+--   ext a
+--   by_cases c_a : a = 0
+--   · rw [c_a, cons_zero]
+--   · rw [← Fin.succ_pred a c_a, cons_succ, ← tail_apply]
 
 @[simp]
 theorem init_snoc : init (snoc s y) = s := by
@@ -151,13 +209,13 @@ theorem insertNth_removeNth : insertNth p y (removeNth p t) = update t p y := by
 theorem insertNth_self_removeNth : insertNth p (t p) (removeNth p t) = t := by
   simp [insertNth, removeNth]
 
-@[simp]
-theorem cons_zero_zero : cons 0 (0 : Fin n →₀ M) = 0 := by
-  ext a
-  by_cases c : a = 0
-  · simp only [c, cons_zero, coe_zero, Pi.zero_apply]
-  · rw [← Fin.succ_pred a c, cons_succ]
-    simp only [coe_zero, Pi.zero_apply, Fin.succ_pred]
+-- @[simp]
+-- theorem cons_zero_zero : cons 0 (0 : Fin n →₀ M) = 0 := by
+--   ext a
+--   by_cases c : a = 0
+--   · simp only [c, cons_zero, coe_zero, Pi.zero_apply]
+--   · rw [← Fin.succ_pred a c, cons_succ]
+--     simp only [coe_zero, Pi.zero_apply, Fin.succ_pred]
 
 @[simp]
 theorem snoc_zero_zero : snoc (0 : Fin n →₀ M) 0 = 0 := by
@@ -173,19 +231,19 @@ theorem insertNth_zero_zero : insertNth p 0 (0 : Fin n →₀ M) = 0 := by
 
 variable {y} {s}
 
-theorem cons_ne_zero_of_left (h : y ≠ 0) : cons y s ≠ 0 := by
-  contrapose! h with c
-  rw [← cons_zero y s, c, Finsupp.coe_zero, Pi.zero_apply]
+-- theorem cons_ne_zero_of_left (h : y ≠ 0) : cons y s ≠ 0 := by
+--   contrapose! h with c
+--   rw [← cons_zero y s, c, Finsupp.coe_zero, Pi.zero_apply]
 
-theorem cons_ne_zero_of_right (h : s ≠ 0) : cons y s ≠ 0 := by
-  contrapose! h with c
-  ext a
-  simp only [← cons_succ y s a, c, coe_zero, Pi.zero_apply]
+-- theorem cons_ne_zero_of_right (h : s ≠ 0) : cons y s ≠ 0 := by
+--   contrapose! h with c
+--   ext a
+--   simp only [← cons_succ y s a, c, coe_zero, Pi.zero_apply]
 
-theorem cons_ne_zero_iff : cons y s ≠ 0 ↔ y ≠ 0 ∨ s ≠ 0 := by
-  refine ⟨fun h => ?_, fun h => h.casesOn cons_ne_zero_of_left cons_ne_zero_of_right⟩
-  refine imp_iff_not_or.1 fun h' c => h ?_
-  rw [h', c, Finsupp.cons_zero_zero]
+-- theorem cons_ne_zero_iff : cons y s ≠ 0 ↔ y ≠ 0 ∨ s ≠ 0 := by
+--   refine ⟨fun h => ?_, fun h => h.casesOn cons_ne_zero_of_left cons_ne_zero_of_right⟩
+--   refine imp_iff_not_or.1 fun h' c => h ?_
+--   rw [h', c, Finsupp.cons_zero_zero]
 
 theorem snoc_ne_zero_of_left (h : s ≠ 0) : snoc s y ≠ 0 := by
   contrapose! h with c
@@ -216,15 +274,15 @@ theorem insertNth_ne_zero_iff : insertNth p y s ≠ 0 ↔ y ≠ 0 ∨ s ≠ 0 :=
   refine imp_iff_not_or.1 fun h' c => h ?_
   rw [h', c, Finsupp.insertNth_zero_zero]
 
-theorem cons_support : (s.cons y).support ⊆ insert 0 (s.support.map (Fin.succEmb n)) := by
-  intro i hi
-  suffices i = 0 ∨ ∃ a, ¬s a = 0 ∧ a.succ = i by simpa
-  apply (Fin.eq_zero_or_eq_succ i).imp id (Exists.imp _)
-  rintro i rfl
-  simpa [Finsupp.mem_support_iff] using hi
+-- theorem cons_support : (s.cons y).support ⊆ insert 0 (s.support.map (Fin.succEmb n)) := by
+--   intro i hi
+--   suffices i = 0 ∨ ∃ a, ¬s a = 0 ∧ a.succ = i by simpa
+--   apply (Fin.eq_zero_or_eq_succ i).imp id (Exists.imp _)
+--   rintro i rfl
+--   simpa [Finsupp.mem_support_iff] using hi
 
-theorem cons_right_injective : Injective (Finsupp.cons y : (Fin n →₀ M) → Fin (n + 1) →₀ M) :=
-  equivFunOnFinite.symm.injective.comp ((Fin.cons_right_injective _).comp DFunLike.coe_injective)
+-- theorem cons_right_injective : Injective (Finsupp.cons y : (Fin n →₀ M) → Fin (n + 1) →₀ M) :=
+--   equivFunOnFinite.symm.injective.comp ((Fin.cons_right_injective _).comp DFunLike.coe_injective)
 
 theorem snoc_support :
     (s.snoc y).support ⊆ insert (Fin.last n) (s.support.map Fin.castSuccEmb) := by
@@ -252,5 +310,23 @@ theorem insertNth_right_injective :
     ((Fin.insertNth_right_injective _).comp DFunLike.coe_injective)
 
 end Add
+
+section BigOperators
+
+variable {M N : Type*}
+
+lemma sum_insertNth [AddCommMonoid M] {n : ℕ} (σ : Fin n →₀ M) (i : M) (p : Fin (n + 1)) :
+    (insertNth p i σ).sum (fun _ e ↦ e) = i + σ.sum (fun _ e ↦ e) := by
+  rw [sum_fintype _ _ (fun _ => rfl), sum_fintype _ _ (fun _ => rfl)]
+  exact Fin.sum_insertNth i σ p
+
+lemma sum_insertNth' [AddCommMonoid M] [AddCommMonoid N] {n : ℕ} (σ : Fin n →₀ M) (i : M)
+    (p : Fin (n + 1)) (f : Fin (n+1) → M → N) (h : ∀ x, f x 0 = 0) :
+    sum (insertNth p i σ) f = f p i + sum σ (Fin.removeNth p f) := by
+  rw [sum_fintype _ _ (fun _ => by apply h), sum_fintype _ _ (fun _ => by apply h)]
+  simp_rw [Fin.sum_univ_succAbove _ p, insertNth_apply_same, insertNth_apply_succAbove]
+  congr
+
+end BigOperators
 
 end Finsupp

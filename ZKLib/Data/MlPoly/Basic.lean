@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-
 import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.Data.ZMod.Defs
 import Mathlib.Data.Nat.Log
@@ -120,7 +119,7 @@ def new (evals : Array R) : MlPoly R (Nat.clog 2 evals.size) :=
   let n : ℕ := Nat.clog 2 evals.size -- upper log base 2
   let padEvals : Array R := (Array.range (2 ^ n)).map
     (fun i => if i < evals.size then evals.get! i else 0)
-  { evals := padEvals, hSize := by simp [padEvals] }
+  { evals := padEvals, hSize := by simp [padEvals, n] }
 
 -- Create a zero polynomial over n variables
 def newZero (n : ℕ) : MlPoly R n :=
