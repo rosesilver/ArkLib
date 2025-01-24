@@ -26,6 +26,10 @@ the same polynomial via zero-padding, for example `#[1,2,3] = #[1,2,3,0,0,0,...]
 @[reducible, inline, specialize]
 def UniPoly (R : Type*) := Array R
 
+/-- Convert a `Polynomial` to a `UniPoly`. -/
+def Polynomial.toImpl {R : Type*} [Semiring R] (p : Polynomial R) : UniPoly R :=
+  .ofFn (fun i : Fin p.natDegree => p.coeff i)
+
 namespace UniPoly
 
 @[reducible]
@@ -446,6 +450,21 @@ instance : IntCast (UniPoly R) := ⟨fun n => UniPoly.C (n : R)⟩
 /-- Convert a `UniPoly` to a `Polynomial`. -/
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
   p.eval₂ Polynomial.C Polynomial.X
+
+alias ofPoly := Polynomial.toImpl
+
+-- theorem toPoly_add {p q : UniPoly R} : (p + q).toPoly = p.toPoly + q.toPoly := by
+--   simp [toPoly, eval₂]
+--   sorry
+
+-- theorem ofPoly_toPoly (p : Polynomial R) : p = p.toImpl.toPoly := by
+--   induction p using Polynomial.induction_on' with
+--   | h_add p q hp hq =>
+--     rw [hp, hq]
+--     simp [toPoly, toImpl, eval₂]
+--     sorry
+--   | h_monomial n a =>
+--     sorry
 
 /-- Return a bound on the degree of a `UniPoly` as the size of the underlying array
 (and `⊥` if the array is empty). -/
