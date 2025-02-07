@@ -14,7 +14,7 @@ require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "master"
 
 require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
 
-meta if get_config? env = some "dev" then
+-- meta if get_config? env = some "dev" then
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
 
 /-- These options are used
