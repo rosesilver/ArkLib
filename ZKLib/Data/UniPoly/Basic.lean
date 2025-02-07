@@ -313,7 +313,7 @@ theorem canonical_nonempty_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
     · intro h
       have : k + 1 = p.size := by rw [h]; exact Nat.succ_pred_eq_of_pos hp
       rw [this]
-      exact Array.extract_all p
+      exact Array.extract_size p
 
 theorem last_nonzero_last_iff [LawfulBEq R] {p : UniPoly R} (hp: p.size > 0) :
   p.last_nonzero = some ⟨ p.size - 1, Nat.pred_lt_self hp ⟩ ↔ p.getLast hp ≠ 0
@@ -386,7 +386,7 @@ variable {S : Type*}
 
 /-- Evaluates a `UniPoly` at a given value, using a ring homomorphism `f: R →+* S`. -/
 def eval₂ [Semiring S] (f : R →+* S) (x : S) (p : UniPoly R) : S :=
-  p.zipWithIndex.foldl (fun acc ⟨a, i⟩ => acc + f a * x ^ i) 0
+  p.zipIdx.foldl (fun acc ⟨a, i⟩ => acc + f a * x ^ i) 0
 
 /-- Evaluates a `UniPoly` at a given value. -/
 def eval (x : R) (p : UniPoly R) : R :=
@@ -396,7 +396,7 @@ def eval (x : R) (p : UniPoly R) : R :=
   (properly padded with zeroes). -/
 def add_raw (p q : UniPoly R) : UniPoly R :=
   let ⟨p', q'⟩ := Array.matchSize p q 0
-  .mk (Array.zipWith p' q' (· + ·) )
+  .mk (Array.zipWith (· + ·) p' q' )
 
 /-- Addition of two `UniPoly`s. -/
 def add (p q : UniPoly R) : UniPoly R :=
@@ -428,7 +428,7 @@ def mulPowX (i : Nat) (p : UniPoly R) : UniPoly R := .mk (Array.replicate i 0 ++
 
 /-- Multiplication of two `UniPoly`s, using the naive `O(n^2)` algorithm. -/
 def mul (p q : UniPoly R) : UniPoly R :=
-  p.zipWithIndex.foldl (fun acc ⟨a, i⟩ => acc.add <| (smul a q).mulPowX i) (C 0)
+  p.zipIdx.foldl (fun acc ⟨a, i⟩ => acc.add <| (smul a q).mulPowX i) (C 0)
 
 /-- Exponentiation of a `UniPoly` by a natural number `n` via repeated multiplication. -/
 def pow (p : UniPoly R) (n : Nat) : UniPoly R := (mul p)^[n] (C 1)
@@ -542,7 +542,7 @@ lemma matchSize_size {p q : UniPoly Q} :
   omega
 
 lemma zipWith_size {R} {f : R → R → R} {a b : Array R} :
-  a.size = b.size → (Array.zipWith a b f).size = a.size := by
+  a.size = b.size → (Array.zipWith f a b).size = a.size := by
   simp; omega
 
 -- TODO we could generalize the next few lemmas to matchSize + zipWith f for any f
