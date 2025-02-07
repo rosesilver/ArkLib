@@ -697,10 +697,10 @@ variable [∀ i, Sampleable (pSpec₁.Challenge i)] [∀ i, Sampleable (pSpec₂
 theorem Prover.append_run (P₁ : Prover pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂)
     (P₂ : Prover pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃) (stmt : Stmt₁) (wit : Wit₁) :
       (P₁.append P₂).run stmt wit = (do
-        let ⟨stmt₂, wit₂, transcript₁, queryLog₁⟩ ← liftM (P₁.run stmt wit)
-        let ⟨stmt₃, wit₃, transcript₂, queryLog₂⟩ ← liftM (P₂.run stmt₂ wit₂)
+        let ⟨stmt₂, wit₂, transcript₁⟩ ← liftM (P₁.run stmt wit)
+        let ⟨stmt₃, wit₃, transcript₂⟩ ← liftM (P₂.run stmt₂ wit₂)
         -- TODO: should we refactor the prover to take in a running query log?
-        return ⟨stmt₃, wit₃, transcript₁ ++ₜ transcript₂, QueryLog.append queryLog₁ queryLog₂⟩) :=
+        return ⟨stmt₃, wit₃, transcript₁ ++ₜ transcript₂⟩) :=
   sorry
 
 -- TODO: Need to define a function that "extracts" a second prover from the combined prover

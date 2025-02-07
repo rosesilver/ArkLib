@@ -492,15 +492,15 @@ def stateFunction (i : Fin (n + 1)) : StateFunction (pSpec := pSpec R deg) (oSpe
     | 1 => nomatch hDir
   fn_full := fun stmt tr hFalse => by
     simp_all [Function.language]
-    intro stmt' oStmt log h ()
-    simp [Verifier.run] at h
-    have h' : ⟨stmt', oStmt⟩ ∈ Prod.fst ''
-      (simulate loggingOracle ∅ ((verifier R n deg D oSpec i).verify stmt tr)).support := by
-      simp [h]; exact ⟨log, h⟩
-    contrapose! h'
-    rw [← OracleComp.support_map]
-    simp [verifier]
-    let x := tr ⟨0, by simp⟩
+    -- intro stmt' oStmt log h ()
+    -- simp [Verifier.run] at h
+    -- have h' : ⟨stmt', oStmt⟩ ∈ Prod.fst ''
+    --   (simulate loggingOracle ∅ ((verifier R n deg D oSpec i).verify stmt tr)).support := by
+    --   simp [h]; exact ⟨log, h⟩
+    -- contrapose! h'
+    -- rw [← OracleComp.support_map]
+    -- simp [verifier]
+    -- let x := tr ⟨0, by simp⟩
     sorry
 
 /-- Trivial extractor since witness is `Unit` -/

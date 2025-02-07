@@ -153,14 +153,14 @@ section SingleMessage
 
 variable {pSpec : ProtocolSpec 1}
 
-theorem Prover.run_of_prover_first [ProverFirst pSpec] (stmt : StmtIn) (wit : WitIn)
-    (prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut) :
-      prover.run stmt wit = do
-        let state ← liftComp (prover.load stmt wit)
-        let ⟨⟨msg, state⟩, queryLog⟩ ← liftComp
-          (simulate loggingOracle ∅ (prover.sendMessage default state emptyTranscript))
-        let challenge ← query (Sum.inr default) ()
-        let state ← liftComp (prover.receiveChallenge default state transcript challenge)
+-- theorem Prover.run_of_prover_first [ProverFirst pSpec] (stmt : StmtIn) (wit : WitIn)
+--     (prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut) :
+--       prover.run stmt wit = do
+--         let state ← liftM (prover.input stmt wit)
+--         let ⟨⟨msg, state⟩, queryLog⟩ ← liftM
+--           (simulate loggingOracle ∅ (prover.sendMessage default state emptyTranscript))
+--         let challenge ← query (Sum.inr default) ()
+--         let state ← liftM (prover.receiveChallenge default state transcript challenge)
 
 end SingleMessage
 

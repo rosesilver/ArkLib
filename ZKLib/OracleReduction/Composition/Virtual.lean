@@ -190,10 +190,10 @@ theorem Prover.run_transport
     {stmtIn : StmtIn} {witIn : WitIn}
     (P : Prover pSpec oSpec StmtIn' WitIn' StmtOut' WitOut') :
       (P.transport data).run stmtIn witIn = do
-        let ⟨stmtOut, witOut, fullTranscript, queryLog⟩ ←
+        let ⟨stmtOut, witOut, fullTranscript⟩ ←
           P.run (data.fStmtIn stmtIn) (data.fWitIn witIn)
         return ⟨data.fStmtOut (stmtIn, stmtOut), data.fWitOut (witIn, witOut),
-          fullTranscript, queryLog⟩ := by
+          fullTranscript⟩ := by
   unfold Prover.run Prover.runAux
   simp [Prover.transport]
   sorry
@@ -309,6 +309,7 @@ def dataComplete : TransportDataComplete StmtIn Unit StmtOut Unit StmtIn' Unit S
     simp [relIn] at hRelIn
     simp [relOut'] at hRelOut'
     simp [relOut, data, hRelIn, hRelOut']
+    sorry
 
 end
 

@@ -208,7 +208,7 @@ structure StateFunction (langIn : Set StmtIn) (langOut : Set StmtOut)
   /-- If the state function is false for a full transcript, the verifier will not output a statement
     in the output language -/
   fn_full : ∀ stmt tr, fn (.last n) stmt tr = False →
-    [(· ∈ langOut) | Prod.fst <$> verifier.run stmt tr] = 0
+    [(· ∈ langOut) | verifier.run stmt tr] = 0
 
 /--
   A protocol with `verifier` satisfies round-by-round soundness with error `rbrSoundnessError` and
@@ -227,7 +227,7 @@ def rbrSoundness (langIn : Set StmtIn) (langOut : Set StmtOut)
   ∀ witIn : WitIn,
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
   ∀ i : pSpec.ChallengeIndex,
-    [fun ⟨⟨transcript, _, _⟩, challenge⟩ =>
+    [fun ⟨⟨transcript, _⟩, challenge⟩ =>
       ¬ stateFunction.fn i.1.castSucc stmtIn transcript ∧
         stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge)
     | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← pSpec.getChallenge i)] ≤
@@ -257,12 +257,15 @@ def rbrKnowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut 
   ∀ witIn : WitIn,
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
   ∀ i : pSpec.ChallengeIndex,
-    [fun ⟨⟨transcript, _, proveQueryLog⟩, challenge⟩ =>
-      letI extractedWitIn := extractor i.1.castSucc stmtIn transcript proveQueryLog
+    [fun ⟨⟨⟨transcript, _⟩, proveQueryLog⟩, challenge⟩ =>
+      letI extractedWitIn := extractor i.1.castSucc stmtIn transcript proveQueryLog.fst
       ¬ relIn stmtIn extractedWitIn ∧
         ¬ stateFunction.fn i.1.castSucc stmtIn transcript ∧
           stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge)
-    | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← pSpec.getChallenge i)] ≤
+    | do
+      let result ← simulate loggingOracle ∅ (prover.runAux stmtIn witIn i.1.castSucc);
+      let chal ← pSpec.getChallenge i
+      return (result, chal)] ≤
       rbrKnowledgeError i
 
 end RoundByRound

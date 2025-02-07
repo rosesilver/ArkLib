@@ -305,7 +305,7 @@ def findIdxRev?_maximal {cond} {as: Array α} {k : Fin as.size} :
   | case2 i =>
     simp [*]
     rintro rfl j (_: j > i) (_: j < i + 1) -- contradiction
-    linarith
+    omega
   | case3 i _ not_true ih =>
     simp [*]
     unfold findIdxRev?.find
@@ -356,7 +356,7 @@ where
     next => tauto
     next _ j hj =>
       split -- then/else cases inside .find
-      · use .mk j (by linarith)
+      · use .mk j (by omega)
       · obtain ⟨ k, hk : k < j + 1, hcond ⟩ := h'
         apply aux -- recursively invoke the theorem we are proving!
         have : k.val ≠ j := by rintro rfl; contradiction
