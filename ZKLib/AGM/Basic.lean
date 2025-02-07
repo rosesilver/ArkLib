@@ -6,6 +6,7 @@ Authors: Quang Dao
 
 import VCVio
 import Mathlib.RingTheory.Polynomial.Basic
+import Mathlib.Algebra.Polynomial.FieldDivision
 import Mathlib.LinearAlgebra.BilinearForm.Properties
 
 /-! # The Algebraic Group Model (With Oblivious Sampling)
@@ -41,7 +42,7 @@ section AGM
 
 #check LinearMap.BilinForm.linMulLin
 
-#check isCyclic_of_prime_card
+-- #check isCyclic_of_prime_card
 
 -- These imply a finite cyclic group of prime order `p`
 variable {G : Type*} [Group G] {p : ℕ} [Fact (Nat.Prime p)] (h : Nat.card G = p)

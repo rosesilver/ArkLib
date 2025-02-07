@@ -1,6 +1,6 @@
 -- This file is imported from elsewhere (TODO: track down original location)
 
-import Mathlib.Algebra.Polynomial.Basic
+import Mathlib.Algebra.Polynomial.Degree.Lemmas
 
 open scoped Polynomial
 open Polynomial (C X)
@@ -288,3 +288,8 @@ example :
   rw [← Nat.cast_eq_ofNat (R := ℚ[X]) (n := 2), degree_eq]; rfl
 /- typeclass inference of Polynomial.ComputableRepr took 172ms
    elaboration took 352ms -/
+
+-- (1 - X) * P(X) + X * P(X) = P(X)
+
+-- deg ( ... ) <= deg P + 1
+-- deg ( ... ) <= deg P

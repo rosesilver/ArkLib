@@ -9,9 +9,7 @@ import Batteries.Data.Fin.Fold
 import ZKLib.OracleReduction.Security.Basic
 
 /-!
-  # Compositional Theory for Interactive (Oracle) Reductions
-
-  ## Composition of I(O)Rs with Compatible Relations
+  # Sequential Composition of (Oracle) Reductions
 
   We define the composition of two or more interactive (oracle) reductions, where the output
   statement & witness types for one reduction is the same as the input statement & witness types for
@@ -25,37 +23,6 @@ import ZKLib.OracleReduction.Security.Basic
 
   We also prove that the composition of reductions preserve all completeness & soundness properties
   of the reductions being composed.
-
-  ## Isomorphism
-
-  We will need to convert between specification and executable models.
-
-  In the best case, we have an isomorphism of the datatypes, which also intertwines with the
-  implementation of the prover & verifier.
-
-  However, we may need to deal with more complicated situation. For instance, can we transfer
-  results between minor modifications to the protocol? What about when the isomorphism is not exact?
-
-  For the simplest case, it seems we want the following:
-
-  - Assume we have an I(O)R (i.e. the abstract specification): from `RIn₁ : StmtIn₁ × WitIn₁ → Prop`
-      to `ROut₁ : StmtOut₁ × WitOut₁ → Prop`.
-
-    We have another I(O)R (i.e. the executable implementation): from `RIn₂ : StmtIn₂ × WitIn₂ →
-      Prop` to `ROut₂ : StmtOut₂ × WitOut₂ → Prop`.
-
-    Assume there are mappings in opposite directions:
-    `f{Stmt/Wit}{In/Out}₁ : {Stmt/Wit}{In/Out}₁ → {Stmt/Wit}{In/Out}₂` &
-    `g{Stmt/Wit}{In/Out}₂ : {Stmt/Wit}{In/Out}₂ → {Stmt/Wit}{In/Out}₁`.
-    (for IOR, also mappings between the oracle statements)
-
-  - Then we may transfer security properties from the first to the second I(O)R provided that:
-    - Under these mappings, the relations are equivalent
-    - Under these mappings, the prover & verifier are equivalent
-
-  - Note that we do not need to require `f/g` to form an equivalence, since this may be too
-    restrictive in practice (i.e. concrete polynomial datatypes may contain zero-padding of the
-    highest coefficients).
 -/
 
 section find_home

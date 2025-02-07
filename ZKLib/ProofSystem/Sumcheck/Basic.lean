@@ -6,6 +6,7 @@ Authors: Quang Dao
 
 import ZKLib.OracleReduction.Security.Basic
 import ZKLib.ProofSystem.Relation.Sumcheck
+import ZKLib.Data.Math.Fin
 
 /-!
 # The Sum-check Protocol
@@ -104,10 +105,138 @@ open Polynomial MvPolynomial OracleSpec OracleComp ProtocolSpec Finset
 
 noncomputable section
 
+#check PMF.bind
+
+theorem PMF.bind_eq_zero {α β : Type _} {p : PMF α} {f : α → PMF β} {b : β} :
+    (p >>= f) b = 0 ↔ ∀ a, p a = 0 ∨ f a b = 0 := by simp
+
 namespace Spec
 
+namespace Simpler
+
+-- Let's try to simplify a single round of sum-check, and appeal to compositionality to `lift`
+-- the result to the full protocol.
+
+-- In this simplified setting, the sum-check protocol consists of a _univariate_ polynomial
+-- `p : R⦃≤ d⦄[X]` of degree at most `d`, and the relation is that
+-- `∑ x ∈ univ.map D, p.eval x = target`.
+
+variable (R : Type) [CommSemiring R] (d : ℕ) {m : ℕ} (D : Fin m ↪ R)
+
+-- def InputStatement := R
+
+-- def OutputStatement := R × R
+
+def InputOracleStatement : Unit → Type := fun _ => R⦃≤ d⦄[X]
+
+def OutputOracleStatement : Unit ⊕ Unit → Type := fun _ => R⦃≤ d⦄[X]
+
+def inputRelation : R × (∀ i, InputOracleStatement R d i) → Unit → Prop :=
+  fun ⟨target, oStmt⟩ _ => ∑ x ∈ (univ.map D), (oStmt ()).1.eval x = target
+
+def outputRelation : R × (∀ i, OutputOracleStatement R d i) → Unit → Prop :=
+  fun ⟨chal, oStmt⟩ _ => (oStmt (.inl ())).1.eval chal = (oStmt (.inr ())).1.eval chal
+
+@[reducible]
+def pSpec : ProtocolSpec 2 := ![(.P_to_V, R⦃≤ d⦄[X]), (.V_to_P, R)]
+
+instance : IsSingleRound (pSpec R d) where
+  prover_first' := by simp [pSpec, getDir]
+  verifier_last' := by simp [pSpec, getDir, Neg.neg]
+
+instance instToOracleMessagePSpec : ToOracle ((pSpec R d).Message default) := by
+  simp only [pSpec, default, getDir_apply, getType_apply, Matrix.cons_val_zero]
+  exact instToOraclePolynomialDegreeLE
+
+instance instVCVCompatibleChallengePSpec [VCVCompatible R] :
+    VCVCompatible ((pSpec R d).Challenge default) := by
+  simp only [pSpec, default, getDir_apply, getType_apply, Matrix.cons_val_one, Matrix.head_cons]
+  infer_instance
+
+def prover : OracleProver (pSpec R d) []ₒ R Unit R Unit
+    (InputOracleStatement R d) (OutputOracleStatement R d) where
+  PrvState
+    | 0 => R⦃≤ d⦄[X]
+    | 1 => R⦃≤ d⦄[X]
+    | 2 => R⦃≤ d⦄[X] × R
+
+  input := fun ⟨_, oStmt⟩ () => oStmt ()
+
+  sendMessage
+  | ⟨0, _⟩ => fun poly => pure ⟨poly, poly⟩
+  | ⟨1, h⟩ => nomatch h
+
+  receiveChallenge
+  | ⟨0, h⟩ => nomatch h
+  | ⟨1, _⟩ => fun poly chal => ⟨poly, chal⟩
+
+  output := fun ⟨poly, chal⟩ => ((chal, fun _ => poly), ())
+
+variable [VCVCompatible R]
+
+def verifier : Verifier (pSpec R d) []ₒ (R × (∀ i, InputOracleStatement R d i))
+    (R × (∀ i, OutputOracleStatement R d i)) where
+  verify := fun ⟨target, oStmt⟩ transcript => do
+    guard (∑ x ∈ (univ.map D), (transcript 0).1.eval x = target)
+    pure ⟨transcript 1, fun _ => oStmt ()⟩
+
+def reduction : Reduction (pSpec R d) []ₒ (R × (∀ i, InputOracleStatement R d i)) Unit
+    (R × (∀ i, OutputOracleStatement R d i)) Unit where
+  prover := prover R d
+  verifier := verifier R d D
+
+open Reduction
+open scoped NNReal
+
+instance : ∀ i, Fintype (ToOracle.Response (Challenge (pSpec R d) i)) := by
+  sorry
+instance : ∀ i, Inhabited (ToOracle.Response (Challenge (pSpec R d) i)) := sorry
+instance : [Challenge (pSpec R d)]ₒ.FiniteRange :=
+  ToOracle.instFiniteRangeToOracleSpecOfFintypeOfInhabitedResponse _
+
+instance : Nonempty []ₒ.QueryLog := by simp [QueryLog]; infer_instance
+instance : Nonempty ((pSpec R d).FullTranscript) := by
+  refine ⟨fun i => ?_⟩
+  rcases i with _ | _
+  · simp; exact default
+  · simp; exact default
+
+-- set_option maxHeartbeats 1000000 in
+theorem perfect_completeness : (reduction R d D).perfectCompleteness
+    (inputRelation R d D) (outputRelation R d) := by
+  rw [perfectCompleteness_eq]
+  intro ⟨target, oStmt⟩ () hValid
+  generalize h : oStmt () = p
+  obtain ⟨poly, hp⟩ := p
+  simp [inputRelation, h] at hValid
+  -- simp only [probEvent_eq_one_iff, Prod.forall]
+  unfold Reduction.run outputRelation reduction Prover.run Prover.runAux Verifier.run
+    prover verifier pSpec
+  simp only [Fin.induction_two, getDir_apply, getType_apply, Matrix.cons_val_zero,
+    Matrix.cons_val_one, Matrix.head_cons, getChallenge]
+  simp only [probEvent_eq_one_iff, Prod.forall, simulate, simulateT, StateT.run]
+  constructor
+  · simp
+    simp [probFailure, OptionT.run]
+    sorry
+  · intro chal newOStmt () tr log _ hSupport
+    simp only [Fin.reduceLast, Nat.reduceAdd, Fin.isValue, Fin.castSucc_one, Fin.succ_one_eq_two,
+      Fin.castSucc_zero, Fin.succ_zero_eq_one, mapM_pure, bind_pure_comp, pure_bind, bind_map_left,
+      map_bind, Functor.map_map, sum_map, guard_eq, bind_assoc, support_bind, support_map,
+      Set.mem_iUnion, Set.mem_image, Prod.mk.injEq, true_and, Prod.exists, exists_prop,
+      Subtype.exists] at hSupport
+    simp only [liftM_eq_liftComp] at hSupport
+    simp [support_liftComp, support_pure] at hSupport
+    obtain ⟨a, ha, a1, a2, ha2, b, supp, i, rest⟩ := hSupport
+    -- rw [support_pure _] at supp
+    -- simp only [] at hSupport
+    sorry
+
+end Simpler
+
+
 -- The variables for sum-check
-variable (R : Type) [CommSemiring R] [VCVCompatible R] (n : ℕ) (deg : ℕ) {m : ℕ} (D : Fin m ↪ R)
+variable (R : Type) [CommSemiring R] (n : ℕ) (deg : ℕ) {m : ℕ} (D : Fin m ↪ R)
 
 /-- Statement for sum-check, parameterized by the ring `R`, the number of variables `n`,
 and the round index `i : Fin (n + 2)`
@@ -152,7 +281,8 @@ instance instToOracleMessagePSpec : ToOracle ((pSpec R deg).Message default) := 
 
 /-- Recognize that the challenge from the verifier to the prover has type `R`, and hence can be
   sampled uniformly at random -/
-instance instVCVCompatibleChallengePSpec : VCVCompatible ((pSpec R deg).Challenge default) := by
+instance instVCVCompatibleChallengePSpec [VCVCompatible R] :
+    VCVCompatible ((pSpec R deg).Challenge default) := by
   simp only [pSpec, default, getDir_apply, getType_apply, Matrix.cons_val_one, Matrix.head_cons]
   infer_instance
 
@@ -169,6 +299,18 @@ def proverIn (i : Fin (n + 1)) : ProverIn
     Unit ((proverState R n deg i).PrvState 0) where
   input := fun x _ => x
 
+/-- Auxiliary lemma for proving that the polynomial sent by the honest prover is of degree at most
+  `deg` -/
+theorem sumcheck_roundPoly_degreeLE (i : Fin (n + 1)) {challenges : Fin i.castSucc → R}
+    {poly : R[X Fin (n + 1)]} (hp : poly ∈ R⦃≤ deg⦄[X Fin (n + 1)]) :
+      ∑ x ∈ (univ.map D) ^ᶠ (n - i), poly ⸨X ⦃i⦄, challenges, x⸩'(by simp; omega) ∈ R⦃≤ deg⦄[X] := by
+  refine mem_degreeLE.mpr (le_trans (degree_sum_le ((univ.map D) ^ᶠ (n - i)) _) ?_)
+  simp only [Finset.sup_le_iff, Fintype.mem_piFinset, mem_map, mem_univ, true_and]
+  intro x hx
+  refine le_trans (degree_map_le) (natDegree_le_iff_degree_le.mp ?_)
+  rw [natDegree_finSuccEquivNth]
+  exact degreeOf_le_iff.mpr fun m a ↦ hp a i
+
 variable {ι : Type} (oSpec : OracleSpec ι)
 
 /-- Prover interaction for the `i`-th round of the sum-check protocol, where `i < n`. -/
@@ -179,14 +321,9 @@ def proverRound (i : Fin (n + 1)) : ProverRound (pSpec R deg) oSpec where
   | ⟨0, _⟩ => fun state =>
     let ⟨⟨_, challenges⟩, oStmt⟩ := state
     let ⟨poly, hp⟩ := oStmt 0
-    pure ⟨ ⟨∑ x ∈ (univ.map D) ^ᶠ (n - i), poly ⸨X ⦃i⦄, challenges, x⸩'(by simp; omega), by
-      -- TODO: separate out this degree proof
-      refine mem_degreeLE.mpr (le_trans (degree_sum_le ((univ.map D) ^ᶠ (n - i)) _) ?_)
-      simp only [Finset.sup_le_iff, Fintype.mem_piFinset, mem_map, mem_univ, true_and]
-      intro x hx
-      refine le_trans (degree_map_le) (natDegree_le_iff_degree_le.mp ?_)
-      rw [natDegree_finSuccEquivNth]
-      exact degreeOf_le_iff.mpr fun m a ↦ hp a i⟩, state⟩
+    pure ⟨ ⟨∑ x ∈ (univ.map D) ^ᶠ (n - i), poly ⸨X ⦃i⦄, challenges, x⸩'(by simp; omega),
+      sumcheck_roundPoly_degreeLE R n deg D i hp⟩,
+        state⟩
   | ⟨1, h⟩ => nomatch h
 
   receiveChallenge
@@ -196,8 +333,6 @@ def proverRound (i : Fin (n + 1)) : ProverRound (pSpec R deg) oSpec where
     letI newChallenges : Fin i.succ → R := Fin.snoc challenges chal
     letI newTarget := ∑ x ∈ (univ.map D) ^ᶠ (n - i), poly ⸨newChallenges, x⸩'(by simp; omega)
     ⟨⟨newTarget, newChallenges⟩, fun _ => ⟨poly, hp⟩⟩
-
-#print proverRound
 
 /-- Since there is no witness, the prover's output for each round `i < n` of the sum-check protocol
   is trivial -/
@@ -216,6 +351,8 @@ def prover (i : Fin (n + 1)) : OracleProver (pSpec R deg) oSpec
   sendMessage := (proverRound R n deg D oSpec i).sendMessage
   receiveChallenge := (proverRound R n deg D oSpec i).receiveChallenge
   toProverOut := proverOut R n deg i
+
+variable [VCVCompatible R]
 
 /-- The (non-oracle) verifier of the sum-check protocol for the `i`-th round, where `i < n + 1` -/
 def verifier (i : Fin (n + 1)) : Verifier (pSpec R deg) oSpec
@@ -306,7 +443,6 @@ theorem perfect_completeness : OracleReduction.perfectCompleteness
   simp at hValid
   constructor
   · simp [Reduction.run, Prover.run, Prover.runAux]; sorry
-  -- simp [Reduction.run, Prover.run]
   simp only [pSpec, getType_apply, getDir_apply, evalDist, eq_mp_eq_cast, reduction, prover,
     proverIn, proverRound, eq_mpr_eq_cast, proverOut, verifier, Matrix.cons_val_zero,
     sum_map, decide_eq_true_eq, Bool.decide_or, Bool.decide_eq_true, decide_not,
@@ -315,6 +451,7 @@ theorem perfect_completeness : OracleReduction.perfectCompleteness
   simp only [map_eq_bind_pure_comp, bind, pure, PMF.bind_bind, PMF.pure_bind,
   Function.comp_apply, Function.uncurry_apply_pair, PMF.bind_apply, PMF.uniformOfFintype_apply,
   PMF.pure_apply, eq_iff_iff, eq_mp_eq_cast, mul_ite, mul_one, mul_zero, iff_true]
+  -- simp [Reduction.run, Prover.run, Prover.runAux]
   sorry
   -- by_cases hp : p = True
   -- · simp [hp, hReject]
@@ -330,24 +467,45 @@ theorem perfect_completeness : OracleReduction.perfectCompleteness
   --     sorry
   --   -- at this point we have reduced to a purely polynomial problem
 
--- /-- State function for round-by-round soundness -/
--- def stateFunction (i : Fin (n + 1)) : StateFunction (pSpec := pSpec R deg) (oSpec := oSpec)
---     (relation R n deg D i.succ).language (verifier R n deg D oSpec i) where
---   fn := fun m stmt partialTranscript => match m with
---    -- If `m = 0` (e.g. the transcript is empty), returns whether
---     -- the statement satisfies the relation
---     | 0 => relation R n deg D i.castSucc stmt () = true
---     -- If `m = 1`, so the transcript contains the new polynomial `p_i`, returns the above check,
---     -- and also whether `p_i` is as expected
---     | 1 => sorry
---     -- If `m = 2`, so we get the full transcript, returns the above checks, and also whether the
---     -- updated statement satisfies the new relation
---     | 2 => sorry
---   fn_empty := sorry
---   fn_next := sorry
---   fn_full := sorry
+/-- State function for round-by-round soundness -/
+def stateFunction (i : Fin (n + 1)) : StateFunction (pSpec := pSpec R deg) (oSpec := oSpec)
+    (relation R n deg D i.castSucc).language (relation R n deg D i.succ).language
+    (verifier R n deg D oSpec i) where
+  fn := fun m ⟨stmt, oStmt⟩ partialTranscript => match m with
+   -- If `m = 0` (e.g. the transcript is empty), returns whether
+    -- the statement satisfies the relation
+    | 0 => relation R n deg D i.castSucc ⟨stmt, oStmt⟩ ()
+    -- If `m = 1`, so the transcript contains the new polynomial `p_i`, returns the above check,
+    -- and also whether `p_i` is as expected
+    | 1 => relation R n deg D i.castSucc ⟨stmt, oStmt⟩ ()
+      ∧ (by simpa using partialTranscript ⟨0, by simp⟩ : R⦃≤ deg⦄[X]) =
+        ⟨∑ x ∈ (univ.map D) ^ᶠ (n - i), (oStmt 0).1 ⸨X ⦃i⦄, stmt.challenges, x⸩'(by simp; omega),
+          sumcheck_roundPoly_degreeLE R n deg D i (oStmt 0).2⟩
+    -- If `m = 2`, so we get the full transcript, returns the above checks, and also whether the
+    -- updated statement satisfies the new relation
+    | 2 => relation R n deg D i.succ ⟨⟨stmt.target,
+      by simpa using Fin.snoc stmt.challenges (by simpa using partialTranscript ⟨1, by simp⟩ : R)⟩,
+       oStmt⟩ ()
+  fn_empty := fun stmt hStmt => by simp_all [Function.language]
+  fn_next := fun m hDir => match m with
+    | 0 => fun stmt tr hFalse => by simp_all
+    | 1 => nomatch hDir
+  fn_full := fun stmt tr hFalse => by
+    simp_all [Function.language]
+    intro stmt' oStmt log h ()
+    simp [Verifier.run] at h
+    have h' : ⟨stmt', oStmt⟩ ∈ Prod.fst ''
+      (simulate loggingOracle ∅ ((verifier R n deg D oSpec i).verify stmt tr)).support := by
+      simp [h]; exact ⟨log, h⟩
+    contrapose! h'
+    rw [← OracleComp.support_map]
+    simp [verifier]
+    let x := tr ⟨0, by simp⟩
+    sorry
 
--- def rbrExtractor := sorry
+/-- Trivial extractor since witness is `Unit` -/
+def rbrExtractor (i : Fin (n + 1)) :
+    @RBRExtractor _ _ (pSpec R deg) oSpec (Statement R n i.castSucc) Unit i := fun _ _ _ => ()
 
 -- /-- Round-by-round knowledge soundness theorem for sumcheck -/
 -- theorem rbr_knowledge_soundness : OracleReduction.rbrKnowledgeSoundness

@@ -22,49 +22,7 @@ In this context, we prove some usual properties of these operations, analogous t
 `Data.Fin.Tuple.Basic`.
 -/
 
--- Auxiliary `Fin` lemmas
-
 namespace Fin
-
-variable {n : ℕ} {α : Fin (n + 1) → Sort*}
-
-/-- As a binary function, `Fin.snoc` is injective. -/
-theorem snoc_injective2 : Function.Injective2 (@snoc n α) := fun x y xₙ yₙ h ↦
-  ⟨funext fun i ↦ by simpa using congr_fun h (castSucc i), by simpa using congr_fun h (last n)⟩
-
-@[simp]
-theorem snoc_inj {x y : ∀ i : Fin n, α i.castSucc} {xₙ yₙ : α (last n)} :
-    snoc x xₙ = snoc y yₙ ↔ x = y ∧ xₙ = yₙ :=
-  snoc_injective2.eq_iff
-
-theorem snoc_right_injective (x : ∀ i : Fin n, α i.castSucc) :
-    Function.Injective (snoc x) :=
-  snoc_injective2.right _
-
-theorem snoc_left_injective (xₙ : α (last n)) : Function.Injective (snoc · xₙ) :=
-  snoc_injective2.left _
-
-/-- Analogue of `Fin.eq_zero_or_eq_succ` for `succAbove`. -/
-theorem eq_self_or_eq_succAbove (p i : Fin (n + 1)) : i = p ∨ ∃ j, i = p.succAbove j :=
-  succAboveCases p (.inl rfl) (fun j => .inr ⟨j, rfl⟩) i
-
-/-- As a binary function, `Fin.insertNth` is injective. -/
-theorem insertNth_injective2 {p : Fin (n + 1)} :
-    Function.Injective2 (@insertNth n α p) := fun xₚ yₚ x y h ↦
-  ⟨by simpa using congr_fun h p, funext fun i ↦ by simpa using congr_fun h (succAbove p i)⟩
-
-@[simp]
-theorem insertNth_inj {p : Fin (n + 1)} {x y : ∀ i, α (succAbove p i)} {xₚ yₚ : α p} :
-    insertNth p xₚ x = insertNth p yₚ y ↔ xₚ = yₚ ∧ x = y :=
-  insertNth_injective2.eq_iff
-
-theorem insertNth_left_injective {p : Fin (n + 1)} (x : ∀ i, α (succAbove p i)) :
-    Function.Injective (insertNth p · x) :=
-  insertNth_injective2.left _
-
-theorem insertNth_right_injective {p : Fin (n + 1)} (x : α p) :
-    Function.Injective (insertNth p x) :=
-  insertNth_injective2.right _
 
 section BigOperators
 

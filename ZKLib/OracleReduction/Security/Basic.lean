@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-import ZKLib.OracleReduction.Basic
+import ZKLib.OracleReduction.Execution
 
 /-!
   # Security Definitions for IOR
@@ -50,7 +50,7 @@ def completeness (relIn : StmtIn → WitIn → Prop)
     (completenessError : ℝ≥0) : Prop :=
   ∀ stmtIn : StmtIn,
   ∀ witIn : WitIn,
-  relIn stmtIn witIn = True →
+  relIn stmtIn witIn →
     [fun ⟨stmtOut, witOut, _, _, _⟩ => relOut stmtOut witOut
     | reduction.run stmtIn witIn] ≥ 1 - completenessError
 
@@ -65,7 +65,7 @@ def perfectCompleteness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut �
 theorem perfectCompleteness_eq {relIn : StmtIn → WitIn → Prop} {relOut : StmtOut → WitOut → Prop}
     {reduction : Reduction pSpec oSpec StmtIn WitIn StmtOut WitOut} :
       reduction.perfectCompleteness relIn relOut ↔
-        ∀ stmtIn witIn, relIn stmtIn witIn = True →
+        ∀ stmtIn witIn, relIn stmtIn witIn →
           [fun ⟨stmtOut, witOut, _, _, _⟩ => relOut stmtOut witOut
           | reduction.run stmtIn witIn] = 1 := by
   refine forall_congr' fun stmtIn => forall_congr' fun stmtOut => forall_congr' fun _ => ?_
@@ -106,10 +106,10 @@ structure AdaptiveProver extends Prover pSpec oSpec StmtIn WitIn StmtOut WitOut 
 def soundness (langIn : Set StmtIn) (langOut : Set StmtOut)
     (verifier : Verifier pSpec oSpec StmtIn StmtOut)
     (soundnessError : ℝ≥0) : Prop :=
-  ∀ stmtIn ∉ langIn,
   ∀ WitIn WitOut : Type,
   ∀ witIn : WitIn,
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
+  ∀ stmtIn ∉ langIn,
     letI reduction := Reduction.mk prover verifier
     [fun ⟨stmtOut, _, _, _, _⟩ => stmtOut ∉ langOut
     | reduction.run stmtIn witIn] ≤ soundnessError
@@ -145,7 +145,7 @@ def knowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut →
     letI reduction := Reduction.mk prover verifier
     [fun ⟨stmtOut, witOut, transcript, proveQueryLog, _⟩ =>
       letI extractedWitIn := extractor stmtIn stmtOut witOut transcript proveQueryLog
-      relIn stmtIn extractedWitIn = False ∧ relOut stmtOut witOut = True
+      ¬ relIn stmtIn extractedWitIn ∧ relOut stmtOut witOut
     | reduction.run stmtIn witIn] ≤ knowledgeError
 
 section StateRestoration
@@ -193,21 +193,22 @@ section RoundByRound
 
 instance : Fintype (pSpec.ChallengeIndex) := Subtype.fintype (fun i => pSpec.getDir i = .V_to_P)
 
-structure StateFunction (language : Set StmtOut) (verifier : Verifier pSpec oSpec StmtIn StmtOut)
+structure StateFunction (langIn : Set StmtIn) (langOut : Set StmtOut)
+    (verifier : Verifier pSpec oSpec StmtIn StmtOut)
     where
   fn : (m : Fin (n + 1)) → StmtIn → Transcript m pSpec → Prop
-  -- Just for `stmt` not in language?
-  fn_empty : ∀ stmt, fn 0 stmt default = False
+  /-- For all input statement not in the language, the state function is false for the empty
+    transcript -/
+  fn_empty : ∀ stmt ∉ langIn, fn 0 stmt default = False
   /-- If the state function is false for a partial transcript, and the next message is from the
     prover to the verifier, then the state function is also false for the new partial transcript
     regardless of the message -/
-  fn_next : ∀ m stmt tr,
-      fn m.castSucc stmt tr = False ∧ pSpec.getDir m = .P_to_V →
-        ∀ msg, fn m.succ stmt (tr.snoc msg) = False
-  /-- If the state function is false for a full transcript, the verifier will output false / a new
-    statement not in the language (for all choice of randomness) -/
-  fn_full : ∀ stmt tr, fn (Fin.last n) stmt tr = False →
-    [(· ∈ language) | Prod.fst <$> verifier.run stmt tr] = 0
+  fn_next : ∀ m, pSpec.getDir m = .P_to_V → ∀ stmt tr, fn m.castSucc stmt tr = False →
+    ∀ msg, fn m.succ stmt (tr.snoc msg) = False
+  /-- If the state function is false for a full transcript, the verifier will not output a statement
+    in the output language -/
+  fn_full : ∀ stmt tr, fn (.last n) stmt tr = False →
+    [(· ∈ langOut) | Prod.fst <$> verifier.run stmt tr] = 0
 
 /--
   A protocol with `verifier` satisfies round-by-round soundness with error `rbrSoundnessError` and
@@ -219,7 +220,7 @@ structure StateFunction (language : Set StmtOut) (verifier : Verifier pSpec oSpe
 -/
 def rbrSoundness (langIn : Set StmtIn) (langOut : Set StmtOut)
     (verifier : Verifier pSpec oSpec StmtIn StmtOut)
-    (stateFunction : StateFunction langOut verifier)
+    (stateFunction : StateFunction langIn langOut verifier)
     (rbrSoundnessError : pSpec.ChallengeIndex → ℝ≥0) : Prop :=
   ∀ stmtIn ∉ langIn,
   ∀ WitIn WitOut : Type,
@@ -227,8 +228,8 @@ def rbrSoundness (langIn : Set StmtIn) (langOut : Set StmtOut)
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
   ∀ i : pSpec.ChallengeIndex,
     [fun ⟨⟨transcript, _, _⟩, challenge⟩ =>
-      stateFunction.fn i.1.castSucc stmtIn transcript = False ∧
-        stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge) = True
+      ¬ stateFunction.fn i.1.castSucc stmtIn transcript ∧
+        stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge)
     | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← pSpec.getChallenge i)] ≤
       rbrSoundnessError i
 
@@ -249,7 +250,7 @@ def RBRExtractor (m : Fin (n + 1)) := StmtIn → Transcript m pSpec → QueryLog
 -/
 def rbrKnowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut → WitOut → Prop)
     (verifier : Verifier pSpec oSpec StmtIn StmtOut)
-    (stateFunction : StateFunction relOut.language verifier)
+    (stateFunction : StateFunction relIn.language relOut.language verifier)
     (rbrKnowledgeError : pSpec.ChallengeIndex → ℝ≥0) : Prop :=
   ∃ extractor : (m : Fin (n + 1)) → RBRExtractor m,
   ∀ stmtIn : StmtIn,
@@ -258,9 +259,9 @@ def rbrKnowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut 
   ∀ i : pSpec.ChallengeIndex,
     [fun ⟨⟨transcript, _, proveQueryLog⟩, challenge⟩ =>
       letI extractedWitIn := extractor i.1.castSucc stmtIn transcript proveQueryLog
-      relIn stmtIn extractedWitIn = False ∧
-        stateFunction.fn i.1.castSucc stmtIn transcript = False ∧
-          stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge) = True
+      ¬ relIn stmtIn extractedWitIn ∧
+        ¬ stateFunction.fn i.1.castSucc stmtIn transcript ∧
+          stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge)
     | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← pSpec.getChallenge i)] ≤
       rbrKnowledgeError i
 
@@ -285,12 +286,11 @@ theorem knowledgeSoundness_implies_soundness (relIn : StmtIn → WitIn → Prop)
     (verifier : Verifier pSpec oSpec StmtIn StmtOut)
     (knowledgeError : ℝ≥0) (hLt : knowledgeError < 1) :
       knowledgeSoundness relIn relOut verifier knowledgeError →
-        soundness relIn.language relOut.language verifier knowledgeError := by sorry
-  -- simp only [knowledgeSoundness, soundness, Functor.map_map, gt_iff_lt, ge_iff_le,
-  --   tsub_le_iff_right, if_true_right, evalDist_map, forall_exists_index, Function.language,
-  --   Function.uncurry]
-  -- intro extractor hKS stmtIn hStmtIn witIn PrvState prover
-  -- have hKS' := hKS stmtIn witIn PrvState prover
+        soundness relIn.language relOut.language verifier knowledgeError := by
+  simp [knowledgeSoundness, soundness, Function.language, Function.uncurry]
+  intro extractor hKS WitIn' WitOut' witIn' prover stmtIn hStmtIn
+  sorry
+  -- have hKS' := hKS stmtIn witIn' prover
   -- clear hKS
   -- contrapose! hKS'
   -- constructor
@@ -307,7 +307,7 @@ theorem knowledgeSoundness_implies_soundness (relIn : StmtIn → WitIn → Prop)
 `∑ i, rbrSoundnessError i`, where the sum is over all rounds `i`. -/
 theorem rbrSoundness_implies_soundness (langIn : Set StmtIn) (langOut : Set StmtOut)
     (verifier : Verifier pSpec oSpec StmtIn StmtOut)
-    (stateFunction : StateFunction langOut verifier)
+    (stateFunction : StateFunction langIn langOut verifier)
     (rbrSoundnessError : pSpec.ChallengeIndex → ℝ≥0) :
       rbrSoundness langIn langOut verifier stateFunction rbrSoundnessError →
         soundness langIn langOut verifier (∑ i, rbrSoundnessError i) := by sorry
@@ -317,7 +317,7 @@ soundness with the same error `rbrKnowledgeError`. -/
 theorem rbrKnowledgeSoundness_implies_rbrSoundness (relIn : StmtIn → WitIn → Prop)
     (relOut : StmtOut → WitOut → Prop)
     (verifier : Verifier pSpec oSpec StmtIn StmtOut)
-    (stateFunction : StateFunction relOut.language verifier)
+    (stateFunction : StateFunction relIn.language relOut.language verifier)
     (rbrKnowledgeError : pSpec.ChallengeIndex → ℝ≥0) :
       rbrKnowledgeSoundness relIn relOut verifier stateFunction rbrKnowledgeError →
         rbrSoundness relIn.language relOut.language verifier stateFunction rbrKnowledgeError := by
@@ -328,7 +328,7 @@ with error `∑ i, rbrKnowledgeError i`, where the sum is over all rounds `i`. -
 theorem rbrKnowledgeSoundness_implies_knowledgeSoundness
     (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut → WitOut → Prop)
     (verifier : Verifier pSpec oSpec StmtIn StmtOut)
-    (stateFunction : StateFunction relOut.language verifier)
+    (stateFunction : StateFunction relIn.language relOut.language verifier)
     (rbrKnowledgeError : pSpec.ChallengeIndex → ℝ≥0) :
       rbrKnowledgeSoundness relIn relOut verifier stateFunction rbrKnowledgeError →
         knowledgeSoundness relIn relOut verifier (∑ i, rbrKnowledgeError i) := by sorry
@@ -357,7 +357,7 @@ structure Simulator (SimState : Type) where
 --   ∀ stmtIn : Statement,
 --   ∀ witIn : Witness,
 --   relIn.isValid stmtIn witIn = true →
---     let result := runReductionAux (Reduction.mk prover verifier) stmtIn witIn
+--     let result := (Reduction.mk prover verifier).run stmtIn witIn
 --     let transcript := Prod.fst <$> Prod.snd <$> result
 --     let simTranscript := simulator
 --     -- let prob := spec.relOut.isValid' <$> output
@@ -412,7 +412,7 @@ def rbrSoundness
     (langIn : Set (StmtIn × ∀ i, OStmtIn i))
     (langOut : Set (StmtOut × (∀ i, OStmtOut i)))
     (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
-    (stateFunction : StateFunction langOut verifier.toVerifier)
+    (stateFunction : StateFunction langIn langOut verifier.toVerifier)
     (rbrSoundnessError : pSpec.ChallengeIndex → ℝ≥0) : Prop :=
   Reduction.rbrSoundness langIn langOut verifier.toVerifier stateFunction rbrSoundnessError
 
@@ -420,7 +420,7 @@ def rbrKnowledgeSoundness
     (relIn : (StmtIn × ∀ i, OStmtIn i) → WitIn → Prop)
     (relOut : (StmtOut × (∀ i, OStmtOut i)) → WitOut → Prop)
     (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
-    (stateFunction : StateFunction relOut.language verifier.toVerifier)
+    (stateFunction : StateFunction relIn.language relOut.language verifier.toVerifier)
     (rbrKnowledgeError : pSpec.ChallengeIndex → ℝ≥0) : Prop :=
   Reduction.rbrKnowledgeSoundness relIn relOut verifier.toVerifier stateFunction rbrKnowledgeError
 

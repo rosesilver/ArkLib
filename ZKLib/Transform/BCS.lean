@@ -5,7 +5,7 @@ Authors: Quang Dao
 -/
 
 import ZKLib.CommitmentScheme.Basic
-import ZKLib.OracleReduction.Composition.Basic
+import ZKLib.OracleReduction.Composition.Sequential
 
 /-!
   # The BCS Transformation

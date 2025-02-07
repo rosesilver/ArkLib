@@ -8,13 +8,13 @@ Many of these configs are taken from mathlib
 
 /-! ## Dependencies on upstream projects -/
 
-require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.16.0-rc2"
+require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.17.0-rc1"
 
-require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "finish-unbreaking-things"
+require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "master"
 
 require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
 
--- meta if get_config? env = some "dev" then
+meta if get_config? env = some "dev" then
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
 
 /-- These options are used

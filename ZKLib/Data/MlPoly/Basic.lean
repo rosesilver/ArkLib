@@ -27,7 +27,7 @@ variable {R : Type*} [Mul R] [AddCommMonoid R] {n : ℕ}
 /-- Inner product between two vectors of the same size. Should be faster than `_root_.dotProduct`
     due to efficient operations on `Array`s. -/
 def dotProduct (a b : Vector R n) : R :=
-  a.zipWith b (· * ·) |>.foldl (· + ·) 0
+  a.zipWith (· * ·) b |>.foldl (· + ·) 0
 
 scoped notation:80 a " *ᵥ " b => dotProduct a b
 
@@ -37,8 +37,16 @@ scoped notation:80 a " *ᵥ " b => dotProduct a b
 
 theorem dotProduct_eq_matrix_dotProduct (a b : Vector R n) :
     dotProduct a b = _root_.dotProduct a.get b.get := by
+  match a, b with
+  | ⟨a, ha⟩, ⟨⟨[]⟩, hb⟩ => sorry
+    -- simp at hb
+    -- subst hb
+    -- have : a = ⟨[]⟩ := by simp [ha]
+    -- simp [dotProduct, _root_.dotProduct, zipWith]
+    -- have : n = 0 := by simp at hb
+  | ⟨a, ha⟩, ⟨⟨b::bs⟩, hb⟩ => sorry
   -- prove this by induction on `a` and `b`
-  sorry
+  -- sorry
 
 end Vector
 
@@ -71,7 +79,7 @@ def ofArray [Zero R] (coeffs : Array R) (n : ℕ): MlPoly R n :=
 def zero [Zero R] : MlPoly R n := ofArray (Array.mkArray (2 ^ n) 0) n
 
 /-- Add two `MlPoly`s -/
-def add [Add R] (p q : MlPoly R n) : MlPoly R n := p.zipWith q (· + ·)
+def add [Add R] (p q : MlPoly R n) : MlPoly R n := Vector.zipWith (· + ·) p q
 
 /-- Negation of a `MlPoly` -/
 def neg [Neg R] (p : MlPoly R n) : MlPoly R n := p.map (fun a => -a)
