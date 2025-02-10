@@ -1,4 +1,4 @@
-\section{The Sum-Check Protocol}
+\section{The Sum-Check Protocol}\label{sec:sumcheck}
 
 In this section, we describe the sum-check protocol in a modular manner, as a running example for our approach to specifying and proving properties of oracle reductions (based on a program logic approach).
 
@@ -14,6 +14,10 @@ round $i$ the prover sends a univariate polynomial $s_i$ of bounded degree and t
 challenge $r_i \gets \mathbb{F}$. The honest prover would compute \[ s_i(X) = \sum_{x \in \{0,
 1\}^{n - i - 1}} P(r_1, \ldots, r_{i - 1}, X, x), \] and the honest verifier would check that
 $s_i(0) + s_i(1) = s_{i - 1}(r_{i - 1})$, with the convention that $s_0(r_0) = c$.
+
+\begin{theorem}
+    The sum-check protocol is complete.
+\end{theorem}
 
 We now proceed to break down this protocol into individual message, and then specify the predicates that should hold before and after each message is exchanged.
 

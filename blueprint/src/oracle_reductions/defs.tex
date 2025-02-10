@@ -148,6 +148,16 @@ about the execution, such as the log of oracle queries for the shared oracles, f
     \lean{OracleReduction.run}
 \end{definition}
 
+\begin{remark}[More efficient representation of oracle reductions]
+    The presentation of oracle reductions as protocols on an append-only context is useful for
+    reasoning, but it does not lead to the most efficient implementation for the prover and
+    verifier. In particular, the prover cannot keep intermediate state, and thus needs to recompute
+    everything from scratch for each new message.
+
+    To fix this mismatch, we will also define a stateful variant of the prover, and define a notion
+    of observational equivalence between the stateless and stateful reductions.
+\end{remark}
+
 \subsection{Security properties}
 
 We can now define properties of interactive reductions. The two main properties we consider in this

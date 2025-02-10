@@ -19,6 +19,32 @@ This section is devoted to the composition of interactive (oracle) reductions, a
 
 \subsection{Virtualization}
 
+See the section on sum-check~\ref{sec:sumcheck} for an example.
+
+\begin{definition}[Mapping into Virtual Context]
+    \label{def:virtual_context_mapping}
+    In order to apply an oracle reduction on virtual data, we will need to provide a mapping from the current context to the virtual context. This includes:
+    \begin{itemize}
+        \item A mapping from the current public inputs to the virtual public inputs.
+        \item A simulation of the oracle inputs for the virtual context using the public and oracle
+        inputs for the current context.
+        \item A mapping from the current private inputs to the virtual private inputs.
+        \item A simulation of the shared oracle for the virtual context using the shared oracle for
+        the current context.
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[Virtual Oracle Reduction]
+    \label{def:virtual_oracle_reduction}
+    Given a suitable mapping into a virtual context, we may define an oracle reduction via the following construction:
+    \begin{itemize}
+        \item The prover first applies the mappings to obtain the virtual context. The verifier does the same, but only for the non-private inputs.
+        \item The prover and verifier then run the virtual oracle reduction on the virtual context.
+    \end{itemize}
+\end{definition}
+
+We will show security properties for this virtualization process. One can see that completeness and soundness are inherited from the completeness and soundness of the virtual oracle reduction. However, knowledge soundness is more tricky; this is because we must go back 
+
 \subsection{Substitution}
 
 % \begin{definition}[Composition of Two Protocol Type Signatures]
