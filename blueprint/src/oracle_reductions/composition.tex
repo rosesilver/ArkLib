@@ -1,0 +1,47 @@
+
+\section{A Program Logic for Oracle Reductions}
+
+In this section, we describe a program logic for reasoning about oracle reductions. In other words, we define a number of rules or theorems that govern how oracle reductions can be composed to form larger reductions, and how the larger reductions inherit the security properties of the smaller reductions.
+
+The first of these rules is \emph{sequential composition}.
+
+The second is \emph{virtualization}, which allow for reductions on \emph{virtual} or \emph{ghost} values derivable from the actual values in the context.
+
+The third is \emph{substitution (?)}, which allows for substituting a value in the context with another value, followed by a reduction establishing the relationship between the new and old values.
+
+We will also consider weakening / strengthening / framing of predicates on contexts.
+
+\subsection{Sequential Composition}
+
+The reason why we consider interactive (oracle) reductions at the core of our formalism is that we can \emph{compose} these reductions to form larger reductions. Equivalently, we can take a complex \emph{interactive (oracle) proof} (which differs only in that it reduces a relation to the \emph{trivial} relation that always outputs true) and break it down into a series of smaller reductions. The advantage of this approach is that we can prove security properties (completeness and soundness) for each of the smaller reductions, and these properties will automatically transfer to the larger reductions.
+
+This section is devoted to the composition of interactive (oracle) reductions, and proofs that the resulting reductions inherit the security properties of the two (or more) constituent reductions.
+
+\subsection{Virtualization}
+
+\subsection{Substitution}
+
+% \begin{definition}[Composition of Two Protocol Type Signatures]
+%     \label{def:protocol_spec_composition}
+%     \lean{ProtocolSpec.append}
+% \end{definition}
+
+% \begin{definition}[Composition of Two Provers]
+%     \label{def:prover_composition}
+%     \lean{Prover.append}
+% \end{definition}
+
+% \begin{definition}[Composition of Two Verifiers]
+%     \label{def:verifier_composition}
+%     \lean{Verifier.append}
+% \end{definition}
+
+% \begin{definition}[Composition of Two Oracle Verifiers]
+%     \label{def:oracle_verifier_composition}
+%     \lean{OracleVerifier.append}
+% \end{definition}
+
+% \begin{definition}[Composition of Two Interactive Protocols]
+%     \label{def:interactive_protocol_composition}
+%     \lean{Reduction.append}
+% \end{definition}

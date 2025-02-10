@@ -12,139 +12,24 @@ The goal of this project is to formalize Succinct Non-Interactive Arguments of K
 
 \chapter{Oracle Reductions}
 
-\section{Definitions}
+\input{oracle_reductions/defs}
 
-\begin{definition}[Type Signature of an Interactive Protocol]
-    \label{def:interactive_protocol_type_signature}
-    An \emph{$n$-message interactive protocol} between two parties $P$ and $V$ consists of a sequence of messages $m_0, \dots, m_n$, where each message $m_i$ is associated with a \emph{direction} (to $P$ or to $V$), and a \emph{type}. The specification of such a protocol is given by an object of type \verb|ProtocolSpec (n : Nat) := Fin n → (Direction × Type)|.
+\input{oracle_reductions/composition}
 
-    This definition generalizes similar ones in the literature in that we do not fix a particular protocol flow (e.g. alternating between prover's and verifier's messages). This is meant to capture all protocols in the most generality, and have some benefits in composition.
-    \lean{ProtocolSpec}
-\end{definition}
+\chapter{Proof Systems}
 
-In the interactive protocols we consider, both parties $P$ and $V$ may have access to a shared oracle $O$. An interactive protocol becomes an \emph{interactive (oracle) reduction} if its execution reduces an input relation $R_{\mathsf{in}}$ to an output relation $R_{\mathsf{out}}$. Here a relation is just a function $\mathsf{IsValid}: \mathsf{Statement} \times \mathsf{Witness} \to \mathsf{Bool}$, for some types \verb|Statement| and \verb|Witness|. We do not concern ourselves with the running time of $\mathsf{IsValid}$ in this project (though future extensions may prove that relations can be decided in polynomial time, for a suitable model of computation).
+% Import write-up on the sum-check protocol
+\input{proof_systems/sumcheck}
 
-\begin{remark}[Design Decision]
-    We do not enforce a particular interaction flow in the definition of an interactive (oracle) reduction. This is done so that we can capture all protocols in the most generality. Also, we want to allow the prover to send multiple messages in a row, since each message may have a different oracle representation (for instance, in the Plonk protocol, the prover's first message is a 3-tuple of polynomial commitments.)
-\end{remark}
+\section{The Spartan Protocol}
 
-\begin{definition}[Type Signature of a Prover]
-    \label{def:prover_type_signature}
-    A prover $P$ in an interactive protocol, with access to a shared oracle $O$ with the verifier, is a stateful oracle computation that at each step of the protocol, either takes in a new message from the verifier, or sends a new message to the verifier.
-    \lean{Prover}
-\end{definition}
-
-Our modeling of interactive protocols only consider \emph{public-coin} verifiers; that is, verifiers who only outputs uniformly random challenges drawn from the (finite) types, and uses no other randomness. Because of this fixed functionality, we can bake the verifier's behavior in the interaction phase directly into the protocol execution semantics. For the rest of the documentation, we will omit the term public-coin.
-
-After the interaction phase, the verifier may then run some verification procedure to check the validity of the prover's responses. This procedure differs depending on whether the verifier has full access, or only oracle access, to the prover's messages. Note that there is no difference on the prover side whether the protocol is an \emph{interactive oracle reduction (IOR)} or simply an \emph{interactive reduction (IR)}.
-
-\begin{definition}[Type Signature of a Verifier]
-    \label{def:verifier_type_signature}
-    
-    \lean{Verifier}
-\end{definition}
-
-\begin{definition}[Type Signature of an Oracle Verifier]
-    \label{def:oracle_verifier_type_signature}
-    \lean{OracleVerifier}
-\end{definition}
-
-Finally, we come to the definition of an interactive (oracle) protocol, which is a combination of its type signature, a prover for that type signature, and an (oracle) verifier for that type signature.
-
-\begin{definition}[Interactive Reduction]
-    \label{def:interactive_reduction}
-    \lean{Reduction}
-    An interactive reduction is a combination of a type signature \verb|ProtocolSpec|, a prover for \verb|ProtocolSpec|, and a verifier for \verb|ProtocolSpec|.
-\end{definition}
-
-\begin{definition}[Interactive Oracle Reduction]
-    \label{def:interactive_oracle_reduction}
-    \lean{OracleReduction}
-    An interactive oracle reduction is a combination of a type signature \verb|ProtocolSpec|, a prover for \verb|ProtocolSpec|, and an oracle verifier for \verb|ProtocolSpec|.
-\end{definition}
-
-We can now define properties of interactive reductions. The two main properties we consider in this project are completeness and various notions of soundness. We will cover zero-knowledge at a later stage.
-
-\begin{definition}[Completeness]
-    \label{def:completeness}
-    \lean{Reduction.completeness}
-\end{definition}
-
-For soundness, we need to consider different notions, such as (plain) soundness, knowledge soundness, \emph{round-by-round} soundness, and round-by-round knowledge soundness. The last notion is the strongest and is necessary for security of the SNARK obtained from the interactive protocol after composing with a commitment scheme and applying the Fiat-Shamir transform.
-
-\begin{definition}[Soundness]
-    \label{def:soundness}
-    \lean{Reduction.soundness}
-\end{definition}
-
-\begin{definition}[Knowledge Soundness]
-    \label{def:knowledge_soundness}
-    \lean{Reduction.knowledgeSoundness}
-\end{definition}
-
-To define round-by-round (knowledge) soundness, we need to define the notion of a \emph{state function}. This is a (possibly inefficient) function $\mathsf{StateF}$ that, for every challenge sent by the verifier, takes in the transcript of the protocol so far and outputs whether the state is doomed or not. Roughly speaking, the requirement of round-by-round soundness is that, for any (possibly malicious) prover $P$, if the state function outputs that the state is doomed on some partial transcript of the protocol, then the verifier will reject with high probability.
-
-\begin{definition}[State Function]
-    \label{def:state_function}
-    \lean{Reduction.StateFunction}
-\end{definition}
-
-\begin{definition}[Round-by-Round Soundness]
-    \label{def:round_by_round_soundness}
-    \lean{Reduction.rbrSoundness}
-\end{definition}
-
-\begin{definition}[Round-by-Round Knowledge Soundness]
-    \label{def:round_by_round_knowledge_soundness}
-    \lean{Reduction.rbrKnowledgeSoundness}
-\end{definition}
-
-\section{Composition}
-
-The reason why we consider interactive (oracle) reductions at the core of our formalism is that we can \emph{compose} these reductions to form larger reductions. Equivalently, we can take a complex \emph{interactive (oracle) proof} (which differs only in that it reduces a relation to the \emph{trivial} relation that always outputs true) and break it down into a series of smaller reductions. The advantage of this approach is that we can prove security properties (completeness and soundness) for each of the smaller reductions, and these properties will automatically transfer to the larger reductions.
-
-This section is devoted to the composition of interactive (oracle) reductions, and proofs that the resulting reductions inherit the security properties of the two (or more) constituent reductions.
-
-% \begin{definition}[Composition of Two Protocol Type Signatures]
-%     \label{def:protocol_spec_composition}
-%     \lean{ProtocolSpec.append}
-% \end{definition}
-
-% \begin{definition}[Composition of Two Provers]
-%     \label{def:prover_composition}
-%     \lean{Prover.append}
-% \end{definition}
-
-% \begin{definition}[Composition of Two Verifiers]
-%     \label{def:verifier_composition}
-%     \lean{Verifier.append}
-% \end{definition}
-
-% \begin{definition}[Composition of Two Oracle Verifiers]
-%     \label{def:oracle_verifier_composition}
-%     \lean{OracleVerifier.append}
-% \end{definition}
-
-% \begin{definition}[Composition of Two Interactive Protocols]
-%     \label{def:interactive_protocol_composition}
-%     \lean{Reduction.append}
-% \end{definition}
+\section{The Ligero Polynomial Commitment Scheme}
 
 \chapter{Commitment Schemes}
 
 \section{Definitions}
 
-\section{Composition}
-
-
-
-\chapter{Proof Systems}
-
-\section{The Sum-Check Protocol}
-
-\section{The Spartan Protocol}
-
-\section{The Ligero Polynomial Commitment Scheme}
+\section{The Merkle Commitment Scheme}
 
 
 \chapter{Supporting Results}
