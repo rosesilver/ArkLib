@@ -22,6 +22,46 @@ import Mathlib.RingTheory.MvPolynomial.Basic
 
 namespace Vector
 
+def nil {α} : Vector α 0 := ⟨#[], rfl⟩
+
+def cons {α} {n : ℕ} (hd : α) (tl : Vector α n) : Vector α (n + 1) :=
+  ⟨⟨hd :: tl.toArray.toList⟩, by simp⟩
+
+def cases {α} {motive : {n : ℕ} → Vector α n → Sort*} (vNil : motive nil)
+  (vCons : {n : ℕ} → (hd : α) → (tl : Vector α n) → motive (cons hd tl)) {m : ℕ} :
+    (v : Vector α m) → motive v := match hm : m with
+  | 0 => fun v => match v with | ⟨⟨[]⟩, rfl⟩ => vNil
+  | n + 1 => fun v => match hv : v with
+    | ⟨⟨hd :: tl⟩, hSize⟩ => @vCons n hd ⟨⟨tl⟩, by simpa using hSize⟩
+
+def induction {α} {motive : {n : ℕ} → Vector α n → Sort*} (vNil : motive nil)
+  (vCons : {n : ℕ} → (hd : α) → (tl : Vector α n) → motive tl → motive (cons hd tl)) {m : ℕ} :
+    (v : Vector α m) → motive v := by induction m with
+  | zero => exact fun v => match v with | ⟨⟨[]⟩, rfl⟩ => vNil
+  | succ n ih => exact fun v => match v with
+    | ⟨⟨hd :: tl⟩, hSize⟩ =>
+      @vCons n hd ⟨⟨tl⟩, by simpa using hSize⟩ (ih ⟨⟨tl⟩, by simpa using hSize⟩)
+
+def cases₂ {α β} {motive : {n : ℕ} → Vector α n → Vector β n → Sort*} (vNil : motive nil nil)
+  (vCons : {n : ℕ} → (hd : α) → (tl : Vector α n) → (hd' : β) → (tl' : Vector β n) →
+    motive (cons hd tl) (cons hd' tl')) {m : ℕ} :
+    (v : Vector α m) → (v' : Vector β m) → motive v v' := match hm : m with
+  | 0 => fun v v' => match v, v' with | ⟨⟨[]⟩, rfl⟩, ⟨⟨[]⟩, rfl⟩ => vNil
+  | n + 1 => fun v v' => match hv : v, hv' : v' with
+    | ⟨⟨hd :: tl⟩, hSize⟩, ⟨⟨hd' :: tl'⟩, hSize'⟩ =>
+      @vCons n hd ⟨⟨tl⟩, by simpa using hSize⟩ hd' ⟨⟨tl'⟩, by simpa using hSize'⟩
+
+@[elab_as_elim]
+def induction₂ {α β} {motive : {n : ℕ} → Vector α n → Vector β n → Sort*} (vNil : motive nil nil)
+  (vCons : {n : ℕ} → (hd : α) → (tl : Vector α n) → (hd' : β) → (tl' : Vector β n) →
+    motive tl tl' → motive (cons hd tl) (cons hd' tl')) {m : ℕ} :
+    (v : Vector α m) → (v' : Vector β m) → motive v v' := by induction m with
+  | zero => exact fun v v' => match v, v' with | ⟨⟨[]⟩, rfl⟩, ⟨⟨[]⟩, rfl⟩ => vNil
+  | succ n ih => exact fun v v' => match hv : v, hv' : v' with
+    | ⟨⟨hd :: tl⟩, hSize⟩, ⟨⟨hd' :: tl'⟩, hSize'⟩ =>
+      @vCons n hd ⟨⟨tl⟩, by simpa using hSize⟩ hd' ⟨⟨tl'⟩, by simpa using hSize'⟩
+      (ih ⟨⟨tl⟩, by simpa using hSize⟩ ⟨⟨tl'⟩, by simpa using hSize'⟩)
+
 variable {R : Type*} [Mul R] [AddCommMonoid R] {n : ℕ}
 
 /-- Inner product between two vectors of the same size. Should be faster than `_root_.dotProduct`
@@ -31,22 +71,20 @@ def dotProduct (a b : Vector R n) : R :=
 
 scoped notation:80 a " *ᵥ " b => dotProduct a b
 
-#check List.Vector.casesOn
+def dotProduct_cons (a : R) (b : Vector R n) (c : R) (d : Vector R n) :
+  dotProduct (cons a b) (cons c d) = a * c + dotProduct b d := by
+  simp [dotProduct, cons, get, foldl]
+  sorry
 
-/-! ### TODO: define induction principles for `Vector` similar to `List.Vector` -/
+def dotProduct_root_cons (a : R) (b : Vector R n) (c : R) (d : Vector R n) :
+    _root_.dotProduct (cons a b).get (cons c d).get = a * c + _root_.dotProduct b.get d.get := by
+  sorry
 
 theorem dotProduct_eq_matrix_dotProduct (a b : Vector R n) :
     dotProduct a b = _root_.dotProduct a.get b.get := by
-  match a, b with
-  | ⟨a, ha⟩, ⟨⟨[]⟩, hb⟩ => sorry
-    -- simp at hb
-    -- subst hb
-    -- have : a = ⟨[]⟩ := by simp [ha]
-    -- simp [dotProduct, _root_.dotProduct, zipWith]
-    -- have : n = 0 := by simp at hb
-  | ⟨a, ha⟩, ⟨⟨b::bs⟩, hb⟩ => sorry
-  -- prove this by induction on `a` and `b`
-  -- sorry
+  refine induction₂ ?_ (fun hd tl hd' tl' ih => ?_) a b
+  · simp [nil, dotProduct, _root_.dotProduct]
+  · rw [dotProduct_cons, dotProduct_root_cons, ih]
 
 end Vector
 
