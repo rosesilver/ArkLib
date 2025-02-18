@@ -1,4 +1,3 @@
-
 \section{A Program Logic for Oracle Reductions}
 
 In this section, we describe a program logic for reasoning about oracle reductions. In other words, we define a number of rules or theorems that govern how oracle reductions can be composed to form larger reductions, and how the larger reductions inherit the security properties of the smaller reductions.
@@ -10,6 +9,52 @@ The second is \emph{virtualization}, which allow for reductions on \emph{virtual
 The third is \emph{substitution (?)}, which allows for substituting a value in the context with another value, followed by a reduction establishing the relationship between the new and old values.
 
 We will also consider weakening / strengthening / framing of predicates on contexts.
+
+\subsection{Changing Relations and Oracles}
+
+% Consequence rule for relations: If we have an oracle reduction for R1 \implies R2, and R1' \implies R1, R2 \implies R2', then we have an oracle reduction for R1' \implies R2' (note: these have to be for the same context)
+
+% Frame rule for relations: R \times R1 \implies R \times R2, given oracle reduction R1 \implies R2
+
+% Lifting shared oracles: if $\mathcal{O}_1 \subset \mathcal{O}_2$, then reductions with $\mathcal{O}_1$ lift to reductions with $\mathcal{O}_2$ with the same security properties
+
+% Consequence rule
+\begin{mathpar}
+    \inferrule*[lab=Conseq]
+    {
+        \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\} \\
+        \mathcal{R}_1' \implies \mathcal{R}_1 \\
+        \mathcal{R}_2 \implies \mathcal{R}_2'
+    }
+    {
+        \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1'\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2'; \mathsf{St}; \epsilon\}\!\}
+    }
+    \end{mathpar}
+    
+    % Frame rule
+    \begin{mathpar}
+    \inferrule*[lab=Frame]
+    {
+        \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+    }
+    {
+        \Psi; \Theta; \Sigma \vdash \{\mathcal{R} \times \mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R} \times \mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+    }
+    \end{mathpar}
+    
+    % Oracle lifting rule
+    \begin{mathpar}
+    \inferrule*[lab=Oracle-Lift]
+    {
+        \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}_1} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\} \\
+        \mathcal{O}_1 \subset \mathcal{O}_2
+    }
+    {
+        \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}_2} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+    }
+    \end{mathpar}
+
+TODO: figure out how the state function needs to change for these rules (they are basically the same, but not exactly)
 
 \subsection{Sequential Composition}
 
@@ -23,6 +68,19 @@ to the larger reductions.
 
 This section is devoted to the composition of interactive (oracle) reductions, and proofs that the
 resulting reductions inherit the security properties of the two (or more) constituent reductions.
+
+Sequential composition can be expressed as the folowing rule:
+
+\begin{mathpar}
+\inferrule*[lab=Seq-Comp]
+{
+    \Psi; \Theta; \varSigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}_1, \mathcal{V}_1, \mathcal{E}_1\rangle^{\mathcal{O}} : \tau_1 \; \{\!\{\mathcal{R}_2; \mathsf{St}_1; \epsilon_1\}\!\} \\
+    \Psi; (\Theta :: \tau_1) ; \varSigma \vdash \{\mathcal{R}_2\} \; \langle\mathcal{P}_2, \mathcal{V}_2, \mathcal{E}_2\rangle^{\mathcal{O}} : \tau_2 \; \{\!\{\mathcal{R}_3; \mathsf{St}_2; \epsilon_2\}\!\}
+}
+{
+    \Psi; (\Theta :: \tau_1 :: \tau_2) \ ; \varSigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}_1 \circ \mathcal{P}_2, \mathcal{V}_1 \circ \mathcal{V}_2, \mathcal{E}_1 \circ_{\mathcal{V}_2} \mathcal{E}_2\rangle^{\mathcal{O}} : \tau_1 \oplus \tau_2 \; \{\!\{\mathcal{R}_3; \mathsf{St}_1 \oplus \mathsf{St}_2; \epsilon_1 \oplus \epsilon_2\}\!\}
+}
+\end{mathpar}
 
 
 % \begin{definition}[Sequential Composition of Protocol Type Signatures]
@@ -46,6 +104,8 @@ resulting reductions inherit the security properties of the two (or more) consti
 % \end{definition}
 
 \subsection{Virtualization}
+
+Another tool we will repeatedly use is the ability to change the context of an oracle reduction. This is often needed when we want to adapt an oracle reduction in a simple context into one for a more complex context.
 
 See the section on sum-check~\ref{sec:sumcheck} for an example.
 
@@ -71,12 +131,29 @@ See the section on sum-check~\ref{sec:sumcheck} for an example.
     \end{itemize}
 \end{definition}
 
-We will show security properties for this virtualization process. One can see that completeness and soundness are inherited from the completeness and soundness of the virtual oracle reduction. However, knowledge soundness is more tricky; this is because we must go back 
+We will show security properties for this virtualization process. One can see that completeness and soundness are inherited from the completeness and soundness of the virtual oracle reduction. However, (round-by-round) knowledge soundness is more tricky; this is because we must extract back to the witness of the original context from the virtual context.
+
+% virtual-ctx rule of the form: if we have an oracle reduction from R1 to R2 for context prime, a mapping `f` from ctx to ctx prime, and an inverse mapping `g` from witness of ctx prime to witness of ctx, then we have an oracle reduction from (R1 \circ f) to (R2 \circ g) for ctx. The prover & verifier & the state function are composed with `f`, and the extractor needs to be composed with both `f` and `g`.
+
+% Virtualization rule
+\begin{mathpar}
+\inferrule*[lab=Virtual-Ctx]
+{
+    \Psi'; \Theta'; \Sigma' \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\} \\
+    f : (\Psi, \Theta, \Sigma) \to (\Psi', \Theta', \Sigma') \\
+    g : \Psi' \to \Psi \\
+    f.\mathsf{fst} \circ g = \mathsf{id} \\
+}
+{
+    \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1 \circ f\} \; \langle\mathcal{P} \circ f, \mathcal{V} \circ f, \mathcal{E} \circ (f, g)\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2 \circ f; \mathsf{St} \circ f; \epsilon\}\!\}
+}
+\end{mathpar}
 
 \subsection{Substitution}
 
-This transformation happens when we substitute a value in the context with another value, followed
-by a reduction establishing the relationship between the new and old values.
+Finally, we need a transformation / inference rule that allows us to change the message type in a given round of an oracle reduction. In other words, we substitute a value in the round with another value, followed by a reduction establishing the relationship between the new and old values.
+
+% May need multiple rules for different types of substitutions (i.e. whether in context or in protocol type, where replacing oracle / public message with oracle / public / private message, etc.)
 
 Examples include:
 \begin{enumerate}
@@ -93,7 +170,7 @@ Examples include:
     \item Substituting an oracle input by another oracle input, followed by a reduction for each
     oracle query the verifier makes to the old oracle:
     \begin{itemize}
-        \item This is also a variant of the previous case, where we do not fully substitue with a
+        \item This is also a variant of the previous case, where we do not fully substitute with a
         public input, but do a ``half-substitution'' by substituting with another oracle input. This
         happens e.g. when using a polynomial commitment scheme that is itself based on a vector
         commitment scheme. One can cast protocols like Ligero / Brakedown / FRI / STIR in this

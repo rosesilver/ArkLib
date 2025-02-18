@@ -18,7 +18,8 @@ The goal of this project is to formalize Succinct Non-Interactive Arguments of K
 
 \chapter{Proof Systems}\label{chap:proof_systems}
 
-% Import write-up on the sum-check protocol
+\input{proof_systems/simple_protocols}
+
 \input{proof_systems/sumcheck}
 
 \section{The Spartan Protocol}
@@ -87,6 +88,10 @@ The goal of this project is to formalize Succinct Non-Interactive Arguments of K
     \label{def:proximity_gap}
     \lean{proximityGap}
 \end{definition}
+
+\section{The VCVio Library}\label{sec:vcvio}
+
+TODO: explain the library (oracle computations, effect observations such as mapping to SPMFs, logging oracle queries, simulating one oracle spec with another, etc.) and how it is used in the project
 
 \chapter{References}\label{chap:references}
 

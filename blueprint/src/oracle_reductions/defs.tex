@@ -61,6 +61,46 @@ We collect all the public inputs, private inputs, and oracles into a \emph{conte
 
 We imagine the context as \emph{append-only}, as we add new messages from the protocol execution.
 
+\begin{figure}[t]
+    \begin{align*}
+        % Basic types
+        \Gamma &::= \mathsf{Unit} \mid \mathsf{Bool} \mid \mathbb{N} \mid \mathsf{Fin}\; n \mid \mathbb{F}_q \mid \mathsf{List}\;\Gamma \mid (i : \Gamma) \to \alpha\; i \mid (i : \Gamma) \times \alpha\; i \mid \dots \\[1em]
+        % Protocol message types
+        \mathsf{Dir} &::= \mathsf{P2V} \mid \mathsf{V2P} \\ 
+        \mathsf{OI} (\mathrm{M} : \Gamma) &::= \langle \mathrm{Q}, \mathrm{R}, \mathrm{M} \to \mathrm{Q} \to \mathrm{R} \rangle \\
+        % Protocol type signature
+        \mathsf{PSpec}\; (n : \mathbb{N}) &::= \mathsf{Fin}\; n \to \mathsf{Dir} \times (\mathrm{M} : \Gamma) \times \mathsf{OI}(\mathrm{M}) \\[1em]
+        % Contexts
+        \varSigma &::= \mathsf{Unit} \mid \varSigma \times (\tau : \Gamma) \\
+        \Omega &::= \mathsf{Unit} \mid \Omega \times \langle \mathrm{M} : \Gamma, \mathsf{OI}(\mathrm{M}) \rangle \\
+        \Psi &::= \mathsf{Unit} \mid \Psi \times \Gamma\\
+        \mathcal{O} &::= (i : \iota) \to \mathsf{dom}\; i \to \mathsf{range}\; i
+    \end{align*}
+    \begin{align*}
+        \mathsf{OComp}^{\mathcal{O}} (i : \iota) &::= \big| \mathsf{pure} (\tau : \Gamma) (a : \tau) \mid \big| \mathsf{queryBind} \dots \mid \big| \mathsf{fail} \\
+        \\
+        \mathcal{P}^{\mathcal{O}} (n : \mathbb{N}, \tau : \mathsf{PSpec}\; n, s : \varSigma, o : \Omega, p : \Psi) &::= (i : \mathsf{Fin}\; n) \to (h : (\tau i).\mathsf{fst} = \mathsf{P2V}) \\
+        & \quad \to s \to o \to p \to \tau_{[:i - 1]} \to \mathsf{OComp}^{\mathcal{O}} (\tau i).\mathsf{snd} \\
+        \mathcal{V}^{\mathcal{O}} (n : \mathbb{N}, \tau : \mathsf{PSpec}\; n, s : \varSigma, o : \Omega, p : \Psi) &::= (i : \mathsf{Fin}\; n) \to (\tau.\mathsf{Chals}) \to \mathsf{OComp}^{\mathcal{O} :: \sum_{M : \Omega} \mathsf{OI}(M)} \mathsf{Unit} \\
+    \end{align*}
+    \caption{Type definitions for interactive oracle reductions}
+    \label{fig:type-defs}
+    \end{figure}
+
+Using programming language notation, we can express an interactive oracle reduction as a typing judgment:
+\begin{align*}
+    \Psi; \Theta; \varSigma \vdash \langle\mathcal{P}, \mathcal{V}\rangle^{\mathcal{O}} : \tau
+\end{align*}
+where:
+\begin{itemize}
+    \item $\Psi$ represents the witness (private) inputs
+    \item $\Theta$ represents the oracle inputs
+    \item $\varSigma$ represents the public inputs (i.e. statements)
+    \item $\mathcal{O}$ represents the shared oracle
+    \item $\tau$ represents the protocol type signature
+    \item $\mathcal{P}$ and $\mathcal{V}$ are the prover and verifier, respectively, respecting the context, shared oracle, and protocol type signature $\tau$
+\end{itemize}
+
 \begin{definition}[Type Signature of an Oracle Reduction]
     \label{def:oracle_reduction_type_signature}
     An \emph{$n$-message oracle reduction} between two parties $\mathcal{P}$ and $\mathcal{V}$
@@ -223,3 +263,10 @@ To define round-by-round (knowledge) soundness, we need to define the notion of 
     \label{def:round_by_round_knowledge_soundness}
     \lean{Reduction.rbrKnowledgeSoundness}
 \end{definition}
+
+By default, the properties we consider are perfect completeness and (straightline) round-by-round knowledge soundness. We can encapsulate these properties into the following typing judgement:
+
+\begin{align*}
+    \Psi; \Theta; \varSigma \vdash \{\mathcal{R}_1\} \quad \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \quad \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+\end{align*}
+
