@@ -62,7 +62,7 @@ We collect all the public inputs, private inputs, and oracles into a \emph{conte
 We imagine the context as \emph{append-only}, as we add new messages from the protocol execution.
 
 \begin{figure}[t]
-    \begin{align*}
+    \begin{align}
         % Basic types
         \Gamma &::= \mathsf{Unit} \mid \mathsf{Bool} \mid \mathbb{N} \mid \mathsf{Fin}\; n \mid \mathbb{F}_q \mid \mathsf{List}\;\Gamma \mid (i : \Gamma) \to \alpha\; i \mid (i : \Gamma) \times \alpha\; i \mid \dots \\[1em]
         % Protocol message types
@@ -75,22 +75,22 @@ We imagine the context as \emph{append-only}, as we add new messages from the pr
         \Omega &::= \mathsf{Unit} \mid \Omega \times \langle \mathrm{M} : \Gamma, \mathsf{OI}(\mathrm{M}) \rangle \\
         \Psi &::= \mathsf{Unit} \mid \Psi \times \Gamma\\
         \mathcal{O} &::= (i : \iota) \to \mathsf{dom}\; i \to \mathsf{range}\; i
-    \end{align*}
-    \begin{align*}
+    \end{align}
+    \begin{align}
         \mathsf{OComp}^{\mathcal{O}} (i : \iota) &::= \big| \mathsf{pure} (\tau : \Gamma) (a : \tau) \mid \big| \mathsf{queryBind} \dots \mid \big| \mathsf{fail} \\
         \\
         \mathcal{P}^{\mathcal{O}} (n : \mathbb{N}, \tau : \mathsf{PSpec}\; n, s : \varSigma, o : \Omega, p : \Psi) &::= (i : \mathsf{Fin}\; n) \to (h : (\tau i).\mathsf{fst} = \mathsf{P2V}) \\
         & \quad \to s \to o \to p \to \tau_{[:i - 1]} \to \mathsf{OComp}^{\mathcal{O}} (\tau i).\mathsf{snd} \\
         \mathcal{V}^{\mathcal{O}} (n : \mathbb{N}, \tau : \mathsf{PSpec}\; n, s : \varSigma, o : \Omega, p : \Psi) &::= (i : \mathsf{Fin}\; n) \to (\tau.\mathsf{Chals}) \to \mathsf{OComp}^{\mathcal{O} :: \sum_{M : \Omega} \mathsf{OI}(M)} \mathsf{Unit} \\
-    \end{align*}
+    \end{align}
     \caption{Type definitions for interactive oracle reductions}
     \label{fig:type-defs}
     \end{figure}
 
 Using programming language notation, we can express an interactive oracle reduction as a typing judgment:
-\begin{align*}
+\begin{align}
     \Psi; \Theta; \varSigma \vdash \langle\mathcal{P}, \mathcal{V}\rangle^{\mathcal{O}} : \tau
-\end{align*}
+\end{align}
 where:
 \begin{itemize}
     \item $\Psi$ represents the witness (private) inputs
@@ -266,7 +266,7 @@ To define round-by-round (knowledge) soundness, we need to define the notion of 
 
 By default, the properties we consider are perfect completeness and (straightline) round-by-round knowledge soundness. We can encapsulate these properties into the following typing judgement:
 
-\begin{align*}
+\begin{align}
     \Psi; \Theta; \varSigma \vdash \{\mathcal{R}_1\} \quad \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \quad \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
-\end{align*}
+\end{align}
 

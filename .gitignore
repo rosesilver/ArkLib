@@ -15,5 +15,5 @@
 *.blg
 
 # LaTeX PDF files for blueprint
-*print.pdf
-*web.pdf
+# *print.pdf
+/blueprint/src/web.pdf

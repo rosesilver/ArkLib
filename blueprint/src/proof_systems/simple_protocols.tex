@@ -30,7 +30,7 @@ Round-by-round knowledge soundness: follows from Schwartz-Zippel
 
 To summarize, we have the following judgment:
 
-\begin{align*}
+\begin{align}
     & (); (P, Q); (); (\mathsf{V2P}, \mathbb{F}) \vdash \{P = Q\} \quad \left(
     \begin{array}{l}
         \mathcal{P} := (), \\
@@ -38,7 +38,7 @@ To summarize, we have the following judgment:
         \mathcal{E} := ()
     \end{array}
     \right)^{\emptyset} \quad \{\!\{P(r) = Q(r); \mathsf{St}_{P,Q}; \frac{d}{\abs{\mathbb{F}}}\}\!\}
-\end{align*}
+\end{align}
 where $\mathsf{St}(i) = \begin{cases} P \stackrel{?}{=} Q \text{ if } i = 0 \\ P(r) \stackrel{?}{=} Q(r) \text{ if } i = 1 \end{cases}$
 
 \subsection{Batching Polynomial Evaluation Claims}
@@ -53,6 +53,10 @@ Honest prover: given $r \gets \mathbb{F}^k$ from the verifier's message, compute
 
 Honest verifier: checks that the received value $v'$ is equal to $\langle E(r), v\rangle$
 
-Extractor: not needed since there is no witness
+Extractor: trivial since there is no witness
 
 Security: depends on the degree \& non-degeneracy of the polynomial map $E$
+
+% State function: TODO
+
+% Round-by-round error: TODO
