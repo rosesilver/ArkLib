@@ -30,68 +30,19 @@ The goal of this project is to formalize Succinct Non-Interactive Arguments of K
 
 \section{Definitions}
 
-\section{The Merkle Commitment Scheme}
+\input{commitments/merkle}
 
+% TODO: add KZG
+
+% We probably want to describe any commitment scheme with multi-round opening in the proof systems chapter (including Ligero, FRI, Hyrax, etc.)
 
 \chapter{Supporting Theories}\label{chap:supporting_theories}
 
-\section{Polynomials}\label{sec:polynomials}
+\input{polynomials/defs}
 
-\begin{definition}[Multilinear Extension]
-    \label{def:multilinear_extension}
-    \lean{MvPolynomial.MLE}
-\end{definition}
+\input{coding_theory/defs}
 
-\begin{theorem}[Multilinear Extension is Unique]
-    \label{thm:multilinear_extension_unique}
-    % \lean{MLE-??}
-\end{theorem}
-
-\section{Coding Theory}\label{sec:coding_theory}
-
-\begin{definition}[Code Distance]
-    \label{def:code_distance}
-    \lean{codeDist}
-\end{definition}
-
-\begin{definition}[Distance from a Code]
-    \label{def:distance_from_code}
-    \lean{distFromCode}
-\end{definition}
-
-\begin{definition}[Generator Matrix]
-    \label{def:generator_matrix}
-    \lean{codeByGenMatrix}
-\end{definition}
-
-\begin{definition}[Parity Check Matrix]
-    \label{def:parity_check_matrix}
-    \lean{codeByCheckMatrix}
-\end{definition}
-
-\begin{definition}[Interleaved Code]
-    \label{def:interleaved_code}
-    \lean{interleaveCode}
-\end{definition}
-
-\begin{definition}[Reed-Solomon Code]
-    \label{def:reed_solomon_code}
-    \lean{ReedSolomon.code}
-\end{definition}
-
-\begin{definition}[Proximity Measure]
-    \label{def:proximity_measure}
-    \lean{proximityMeasure}
-\end{definition}
-
-\begin{definition}[Proximity Gap]
-    \label{def:proximity_gap}
-    \lean{proximityGap}
-\end{definition}
-
-\section{The VCVio Library}\label{sec:vcvio}
-
-TODO: explain the library (oracle computations, effect observations such as mapping to SPMFs, logging oracle queries, simulating one oracle spec with another, etc.) and how it is used in the project
+\input{vcv/defs}
 
 \chapter{References}\label{chap:references}
 

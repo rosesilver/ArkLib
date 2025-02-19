@@ -112,7 +112,7 @@
   <a href="chap-commitment_schemes.html#a0000000017"><span class="toc_ref">4.1</span> <span class="toc_entry">Definitions</span></a>
  </li>
 <li class="">
-  <a href="chap-commitment_schemes.html#a0000000018"><span class="toc_ref">4.2</span> <span class="toc_entry">The Merkle Commitment Scheme</span></a>
+  <a href="chap-commitment_schemes.html#sec:merkle_trees"><span class="toc_ref">4.2</span> <span class="toc_entry">Merkle Trees</span></a>
  </li>
 
   </ul>
@@ -152,6 +152,7 @@
 
 <h1 id="sec:polynomials">5.1 Polynomials</h1>
 
+<p>This section contains facts about polynomials that are used in the rest of the library, and also definitions for computable representations of polynomials. </p>
 <div class="definition_thmwrapper theorem-style-definition" id="def:multilinear_extension">
   <div class="definition_thmheading">
     <span class="definition_thmcaption">
@@ -217,14 +218,143 @@
 
   </div>
 </div>
+<p>We note that the Schwartz-Zippel Lemma is already in Mathlib. </p>
+<div class="theorem_thmwrapper theorem-style-plain" id="thm:schwartz_zippel">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">19</span>
+    <span class="theorem_thmtitle">Schwartz-Zippel Lemma</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#thm:schwartz_zippel">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/MvPolynomial.schwartz_zippel_sum_degreeOf" class="lean_decl">MvPolynomial.schwartz_zippel_sum_degreeOf</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="theorem_thmcontent">
+  
+
+  </div>
+</div>
+<p>We also define the type of computable univariate &amp; multilinear polynomials using arrays to represent their coefficients (or dually, their evaluations at given points). </p>
+<div class="definition_thmwrapper theorem-style-definition" id="def:computable_univariate_polynomials">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">20</span>
+    <span class="definition_thmtitle">Computable Univariate Polynomials</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:computable_univariate_polynomials">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/UniPoly" class="lean_decl">UniPoly</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:computable_multilinear_polynomials">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">21</span>
+    <span class="definition_thmtitle">Computable Multilinear Polynomials</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:computable_multilinear_polynomials">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/MlPoly" class="lean_decl">MlPoly</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  
+
+  </div>
+</div>
 <h1 id="sec:coding_theory">5.2 Coding Theory</h1>
 
+<p>This section contains definitions and theorems about coding theory as they are used in the rest of the library. </p>
 <div class="definition_thmwrapper theorem-style-definition" id="def:code_distance">
   <div class="definition_thmheading">
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">19</span>
+    <span class="definition_thmlabel">22</span>
     <span class="definition_thmtitle">Code Distance</span>
     <div class="thm_header_extras">
 
@@ -266,7 +396,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">20</span>
+    <span class="definition_thmlabel">23</span>
     <span class="definition_thmtitle">Distance from a Code</span>
     <div class="thm_header_extras">
 
@@ -308,7 +438,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">21</span>
+    <span class="definition_thmlabel">24</span>
     <span class="definition_thmtitle">Generator Matrix</span>
     <div class="thm_header_extras">
 
@@ -350,7 +480,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">22</span>
+    <span class="definition_thmlabel">25</span>
     <span class="definition_thmtitle">Parity Check Matrix</span>
     <div class="thm_header_extras">
 
@@ -392,7 +522,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">23</span>
+    <span class="definition_thmlabel">26</span>
     <span class="definition_thmtitle">Interleaved Code</span>
     <div class="thm_header_extras">
 
@@ -434,7 +564,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">24</span>
+    <span class="definition_thmlabel">27</span>
     <span class="definition_thmtitle">Reed-Solomon Code</span>
     <div class="thm_header_extras">
 
@@ -476,7 +606,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">25</span>
+    <span class="definition_thmlabel">28</span>
     <span class="definition_thmtitle">Proximity Measure</span>
     <div class="thm_header_extras">
 
@@ -518,7 +648,7 @@
     <span class="definition_thmcaption">
     Definition
     </span>
-    <span class="definition_thmlabel">26</span>
+    <span class="definition_thmlabel">29</span>
     <span class="definition_thmtitle">Proximity Gap</span>
     <div class="thm_header_extras">
 
@@ -557,7 +687,348 @@
 </div>
 <h1 id="sec:vcvio">5.3 The VCVio Library</h1>
 
-<p>TODO: explain the library (oracle computations, effect observations such as mapping to SPMFs, logging oracle queries, simulating one oracle spec with another, etc.) and how it is used in the project </p>
+<p>This library provides a formal framework for reasoning about computations that make <em>oracle queries</em>. Many cryptographic primitives and interactive protocols use oracles to model (or simulate) external functionality such as random responses, coin flips, or more structured queries. The VCVio library "lifts" these ideas into a setting where both the abstract specification and concrete simulation of oracles may be studied, and their probabilistic behavior analyzed. </p>
+<p>The main ingredients of the library are as follows: </p>
+<div class="definition_thmwrapper theorem-style-definition" id="def:oracle_spec">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">30</span>
+    <span class="definition_thmtitle">Specification of Oracles</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:oracle_spec">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/OracleSpec" class="lean_decl">OracleSpec</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  An oracle specification describes a collection of available oracles, each with its own input and output types. Formally, it’s given by an indexed family where each oracle is specified by: </p>
+<ul class="itemize">
+  <li><p>A domain type (what inputs it accepts) </p>
+</li>
+  <li><p>A range type (what outputs it can produce) </p>
+</li>
+</ul>
+<p> The indexing allows for potentially infinite collections of oracles, and the specification itself is agnostic to how the oracles actually behave - it just describes their interfaces.  </p>
+
+  </div>
+</div>
+<p>Some examples of oracle specifications (and their intended behavior) are as follows: </p>
+<ul class="itemize">
+  <li><p><code class="verbatim">emptySpec</code>: Represents an empty set of oracles </p>
+</li>
+  <li><p><code class="verbatim">singletonSpec</code>: Represents a single oracle available on a singleton index </p>
+</li>
+  <li><p><code class="verbatim">coinSpec</code>: A coin flipping oracle that produces a random Boolean value </p>
+</li>
+  <li><p><code class="verbatim">unifSpec</code>: A family of oracles that for every natural number \(n \in \mathbb {N}\) chooses uniformly from the set \(\{ 0, \ldots , n\} \). </p>
+</li>
+</ul>
+
+<p>We often require extra properties on the domains and ranges of oracles. For example, we may require that the domains and ranges come equipped with decidable equality  or finiteness properties . </p>
+<div class="definition_thmwrapper theorem-style-definition" id="def:oracle_computation">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">31</span>
+    <span class="definition_thmtitle">Oracle Computation</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:oracle_computation">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/OracleComp" class="lean_decl">OracleComp</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  An oracle computation represents a program that can make oracle queries. It can: </p>
+<ul class="itemize">
+  <li><p>Return a pure value without making any queries (via <span class="ttfamily">pure</span>) </p>
+</li>
+  <li><p>Make an oracle query and continue with the response (via <span class="ttfamily">queryBind</span>) </p>
+</li>
+  <li><p>Signal failure (via <span class="ttfamily">failure</span>) </p>
+</li>
+</ul>
+<p> The formal implementation uses a free monad on the inductive type of oracle queries  wrapped in an option monad transformer (i.e. <code class="verbatim">OptionT(FreeMonad(OracleQuery spec))</code>).  </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:handling_oracle_queries">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">32</span>
+    <span class="definition_thmtitle">Handling Oracle Queries</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:handling_oracle_queries">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/OracleImpl" class="lean_decl">OracleImpl</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  To actually run oracle computations, we need a way to handle (or implement) the oracle queries. An oracle implementation consists a mapping from oracle queries to values in another monad. Depending on the monad, this may allow for various interpretations of the oracle queries.  </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:probabilistic_semantics_of_oracle_computations">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">33</span>
+    <span class="definition_thmtitle">Probabilistic Semantics of Oracle Computations</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:probabilistic_semantics_of_oracle_computations">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/OracleComp.evalDist" class="lean_decl">OracleComp.evalDist</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  We can view oracle computations as probabilistic programs by considering what happens when oracles respond uniformly at random. This gives rise to a probability distribution over possible outputs (including the possibility of failure). The semantics maps each oracle query to a uniform distribution over its possible responses.  </p>
+
+  </div>
+</div>
+<p>Once we have mapped an oracle computation to a probability distribution, we can define various associated probabilities, such as the probability of failure, or the probability of the output satisfying a given predicate (assuming it does not fail). </p>
+<div class="definition_thmwrapper theorem-style-definition" id="def:sim_oracle">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">34</span>
+    <span class="definition_thmtitle">Simulating Oracle Queries with Other Oracles</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:sim_oracle">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/SimOracle" class="lean_decl">SimOracle</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  We can simulate complex oracles using simpler ones by providing a translation mechanism. A simulation oracle specifies how to implement queries in one specification using computations in another specification, possibly maintaining additional state information during the simulation.  </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:logging_caching_oracle_queries">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">35</span>
+    <span class="definition_thmtitle">Logging &amp; Caching Oracle Queries</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:logging_caching_oracle_queries">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/loggingOracle" class="lean_decl">loggingOracle</a></li>
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/cachingOracle" class="lean_decl">cachingOracle</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  Using the simulation framework, we can add logging and caching behaviors to oracle queries: </p>
+<ul class="itemize">
+  <li><p>Logging records all queries made during a computation </p>
+</li>
+  <li><p>Caching remembers query responses and reuses them for repeated queries </p>
+</li>
+</ul>
+<p> These are implemented as special cases of simulation oracles.  </p>
+
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:random_oracle">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">36</span>
+    <span class="definition_thmtitle">Random Oracle</span>
+    <div class="thm_header_extras">
+
+        </div>
+    <div class="thm_header_hidden_extras">
+
+    <a class="icon proof" href="chap-supporting_theories.html#def:random_oracle">#</a>
+    
+    
+    
+    <button class="modal lean">L∃∀N</button>
+        <div class="modal-container">
+      <div class="modal-content">
+        <header>
+          <h1>Lean declarations</h1>
+          <button class="closebtn"><svg  class="icon icon-cross "><use xlink:href="symbol-defs.svg#icon-cross"></use></svg>
+</button>
+        </header>
+        
+        <ul class="uses">
+          
+          <li><a href="https://verified-zkevm.github.io/ZKLib/docs/find/#doc/randOracle" class="lean_decl">randOracle</a></li>
+          
+        </ul>
+    
+      </div>
+    </div>
+
+    
+        </div>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  A random oracle is implemented as a caching oracle that uses lazy sampling: </p>
+<ul class="itemize">
+  <li><p>On first query: generates a uniform random response and caches it </p>
+</li>
+  <li><p>On repeated queries: returns the cached response </p>
+</li>
+</ul>
+
+
+  </div>
+</div>
 
 </div> <!--main-text -->
 </div> <!-- content-wrapper -->
