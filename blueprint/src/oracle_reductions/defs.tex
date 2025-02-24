@@ -1,121 +1,51 @@
 \section{Definitions}
 
-\iffalse
-
-New notes on what I envision for IORs now:
-
-1. It should follow as closely as possible a program logic. This means that an oracle reduction itself should be thought of as a monad in some way. Perhaps "pure" is a protocol with a single round, and "bind" is concatenating protocols together.
-
-2. Given this approach, we should approach the (oracle) statement & witness as the context. So we will get a list of public inputs, a list of private inputs, and a list of oracles (available as inputs to the prover, but as oracles to the verifier). This context will be append-only as the reduction unfolds (via appending the transcript) so that we can use PL language like
-
-" Ctx |- P, V "
-
-3. Then security properties of this oracle reduction language are seen as just Hoare triples. The input & output relations are just the pre & post conditions of the Hoare triple. The Hoare triple will have different semantics depending on the security property we consider.
-
-In the form of Dijkstra monads, this means that we have different specification monads for different security properties.
-
-4. Another benefit of this approach is that we can freely use augmented spec monads with "ghost" states, to express reductions of the form "apply X protocol to Y values derived from the context".
-
-5. Of course, sequential composition is immediate from the fact that this is a programming language with a small-step semantics (i.e. what each message-passing step does). To show that completeness compose, this seems to follow directly from sequencing / bind rules in Hoare logic.
-
-6. In general, it is still not clear how to state knowledge soundness in this framework. Perhaps think of verifier + extractor as a single entity, then inject in the prover as nothing other than non-deterministic choice of the prover's messages (we work in the unbounded prover model for now).
-
-7. What about Merkle trees & queries to random oracles? My old view is that we can "lay them out" like a partial heap, where the values are defined on the go. So then we just get an augmented context, and the extractor can see this context. The semantics are probabilistic, of course.
-
-8. Another big question is how to model the "substitution" of one oracle for another, followed by a proof / reduction that the new oracle faithfully simulates the old one (up to some error).
-
-\fi
-
 In this section, we give the basic definitions of a public-coin interactive oracle reduction
 (henceforth called an oracle reduction or IOR). In particular, we will define its building blocks,
 and various security properties.
 
 \subsection{Format}
 
-An oracle reduction is an interactive protocol between two parties, a \emph{prover} $\mathcal{P}$
-and a \emph{verifier} $\mathcal{V}$. Its format is as follows:
+An \textbf{(interactive) oracle reduction} is an interactive protocol between two parties, a \emph{prover} $\mathcal{P}$
+and a \emph{verifier} $\mathcal{V}$. It takes place in the following setting:
 \begin{enumerate}
-    \item The protocol structure is fixed and defined by a given \emph{type signature}, which
+    \item We work in an ambient dependent type theory (in our case, Lean).
+    \item The protocol flow is fixed and defined by a given \emph{type signature}, which
     describes in each round which party sends a message to the other, and the type of that message.
-    \item All messages from $\mathcal{V}$ are chosen uniformly at random (more generally, from some
-    fixed probability distribution).
-    \item The messages sent from the prover may either: 1) be seen directly by the verifier, or 2)
-    only available to a verifier through an \emph{oracle interface} (which specifies the type for
-    the query and response, and the oracle's behavior given the underlying message).
-    \item The prover and verifier has access to some inputs at the beginning of the protocol. These inputs are classified as follows:
+    \item The prover and verifier has access to some inputs (called the \emph{context}) at the beginning of the protocol. These inputs are classified as follows:
     \begin{itemize}
         \item \emph{Public inputs}: available to both parties;
         \item \emph{Private inputs} (or \emph{witness}): available only to the prover;
         \item \emph{Oracle inputs}: the underlying data is available to the prover, but it's only
-        exposed as an oracle to the verifier.
-        \item \emph{Shared oracle}: the oracle is available to both parties via an interface, and it
-        may be randomized.
+        exposed as an oracle to the verifier. An oracle interface for such inputs consists of a query type, a response type, and a function that takes in the underlying input, a query, and outputs a response.
+        \item \emph{Shared oracle}: the oracle is available to both parties via an interface; in most cases, it is either empty, a probabilistic sampling oracle, or a random oracle. See~\Cref{sec:vcvio} for more information on oracle computations.
     \end{itemize}
+    \item The messages sent from the prover may either: 1) be seen directly by the verifier, or 2)
+    only available to a verifier through an \emph{oracle interface} (which specifies the type for
+    the query and response, and the oracle's behavior given the underlying message).
+    \item All messages from $\mathcal{V}$ are chosen uniformly at random from the finite type corresponding to that round. This property is called \emph{public-coin} in the literature.
 \end{enumerate}
 
-We collect all the public inputs, private inputs, and oracles into a \emph{context}.
-
-\begin{definition}[Context]\label{def:context}
-    In an oracle reduction, its \emph{context} consists of a list of public inputs, a list of witness inputs, a list of oracle inputs, and a shared oracle (possibly represented as a list of lazily sampled query-response pairs). These inputs have the expected visibility.
-\end{definition}
-
-We imagine the context as \emph{append-only}, as we add new messages from the protocol execution.
-
-\begin{figure}[t]
-    \[\begin{array}{rcl}
-        % Basic types
-        \Gamma &::=& \mathsf{Unit} \mid \mathsf{Bool} \mid \mathbb{N} \mid \mathsf{Fin}\; n \mid \mathbb{F}_q \mid \mathsf{List}\;\Gamma \mid (i : \Gamma) \to \alpha\; i \mid (i : \Gamma) \times \alpha\; i \mid \dots \\[1em]
-        % Protocol message types
-        \mathsf{Dir} &::=& \mathsf{P2V} \mid \mathsf{V2P} \\ 
-        \mathsf{OI} (\mathrm{M} : \Gamma) &::=& \langle \mathrm{Q}, \mathrm{R}, \mathrm{M} \to \mathrm{Q} \to \mathrm{R} \rangle \\
-        % Protocol type signature
-        \mathsf{PSpec}\; (n : \mathbb{N}) &::=& \mathsf{Fin}\; n \to \mathsf{Dir} \times (\mathrm{M} : \Gamma) \times \mathsf{OI}(\mathrm{M}) \\[1em]
-        % Contexts
-        \varSigma &::=& \mathsf{Unit} \mid \varSigma \times (\tau : \Gamma) \\
-        \Omega &::=& \mathsf{Unit} \mid \Omega \times \langle \mathrm{M} : \Gamma, \mathsf{OI}(\mathrm{M}) \rangle \\
-        \Psi &::=& \mathsf{Unit} \mid \Psi \times \Gamma\\
-        \mathcal{O} &::=& (i : \iota) \to \mathsf{dom}\; i \times \mathsf{range}\; i
-    \end{array}\]
-    \[\begin{array}{rcl}
-        \mathsf{OComp}^{\mathcal{O}} (i : \iota) &::=& \mid\; \mathsf{pure}\; (\tau : \Gamma)\; (a : \tau) \\
-        && \mid\; \mathsf{queryBind}\; (q : \mathsf{dom}\; i)\; (k : \mathsf{range}\; i \to \mathsf{OComp}^{\mathcal{O}}\; i) \\
-        && \mid\; \mathsf{fail} \\[1em]
-        \mathcal{P}^{\mathcal{O}}(n : \mathbb{N}, \tau : \mathsf{PSpec}\; n) &:& (i : \mathsf{Fin}\; n) \to (h : (\tau i).\mathsf{fst} = \mathsf{P2V}) \to \\
-        && \varSigma \to \Omega \to \Psi \to \tau_{[:i - 1]} \to \mathsf{OComp}^{\mathcal{O}} (\tau i).\mathsf{snd} \\[1em]
-        \mathcal{V}^{\mathcal{O}}(n : \mathbb{N}, \tau : \mathsf{PSpec}\; n) &:& (i : \mathsf{Fin}\; n) \to (\tau.\mathsf{Chals}) \to \\
-        && \varSigma \to \Omega \to \tau_{[:i - 1]} \to \mathsf{OComp}^{\mathcal{O} :: \sum_{M : \Omega} \mathsf{OI}(M) :: \sum_{M' : \tau.\mathsf{Msg}} \mathsf{OI}(M')} \mathsf{Unit}
-    \end{array}\]
-    \caption{Type definitions for interactive oracle reductions}
-    \label{fig:type-defs}
-\end{figure}
-
-Using programming language notation, we can express an interactive oracle reduction as a typing judgment:
-\[
-    \Psi; \Theta; \varSigma \vdash \langle\mathcal{P}, \mathcal{V}\rangle^{\mathcal{O}} : \tau
-\]
-where:
-\begin{itemize}
-    \item $\Psi$ represents the witness (private) inputs
-    \item $\Theta$ represents the oracle inputs
-    \item $\varSigma$ represents the public inputs (i.e. statements)
-    \item $\mathcal{O}$ represents the shared oracle
-    \item $\tau$ represents the protocol type signature
-    \item $\mathcal{P}$ and $\mathcal{V}$ are the prover and verifier, respectively, respecting the context, shared oracle, and protocol type signature $\tau$
-\end{itemize}
+We now go into more details on these objects.
 
 \begin{definition}[Type Signature of an Oracle Reduction]
     \label{def:oracle_reduction_type_signature}
-    An \emph{$n$-message oracle reduction} between two parties $\mathcal{P}$ and $\mathcal{V}$
-    consists of a sequence of messages $m_0, \dots, m_n$, where each message $m_i$ (of a given
-    type) is associated with a \emph{direction} (to $\mathcal{P}$ or to $\mathcal{V}$), and a
-    message visibility (public or oracle) if coming from $\mathcal{P}$.
-    
-    % The type signature of an oracle reduction is given by an object of type
-    %     \verb|ProtocolSpec (n : Nat) :=
-    % Fin n → (Direction × Visibility × Type)|.
+    A protocol specification $\rho : \mathsf{PSpec}\; n$ of an oracle reduction is parametrized by a fixed number of messages sent in total. For each step of interaction, it specifies a direction for the messsage (prover to verifier, or vice versa), and a type for the message. If a message from the prover to the verifier is further marked as oracle, then we also expect an oracle interface for that message. In Lean, we handle these oracle interfaces via the $\mathsf{ToOracle}$ type class.
+    \lean{ProtocolSpec, ToOracle}
+\end{definition}
 
-    % This definition generalizes similar ones in the literature in that we do not fix a particular protocol flow (e.g. alternating between prover's and verifier's messages). This is meant to capture all protocols in the most generality, and have some benefits in composition.
-    % \lean{ProtocolSpec}
+\begin{definition}[Context]\label{def:context}
+    In an oracle reduction, its \emph{context} (denoted $\Gamma$) consists of a list of public inputs, a list of witness inputs, a list of oracle inputs, and a shared oracle (possibly represented as a list of lazily sampled query-response pairs). These inputs have the expected visibility.
+
+For simplicity, we imagine the context as \emph{append-only}, as we add new messages from the protocol execution.
+\end{definition}
+
+We define some supporting definitions for a protocol specification.
+
+\begin{definition}[Transcript \& Related Definitions]
+    \label{def:transcript_and_related_defs}
+    Given protocol specification $\rho : \mathsf{PSpec}\; n$, its \emph{transcript} up to round $i$ is an element of type $\rho_{[:i]} ::= \prod_{j < i} \rho\; j$. We define the type of all challenges sent by the verifier as $\rho.\mathsf{Chals} ::= \prod_{i \text{ s.t. } (\rho\; i).\mathsf{fst} = \mathsf{V2P}} (\rho\; i).\mathsf{snd}$.
+    \lean{ProtocolSpec.Transcript, ProtocolSpec.Message, ProtocolSpec.Challenge}
 \end{definition}
 
 % In the interactive protocols we consider, both parties $P$ and $V$ may have access to a shared
@@ -126,9 +56,9 @@ where:
 % the running time of $\mathsf{IsValid}$ in this project (though future extensions may prove that
 % relations can be decided in polynomial time, for a suitable model of computation).
 
-% \begin{remark}[Design Decision]
-%     We do not enforce a particular interaction flow in the definition of an interactive (oracle) reduction. This is done so that we can capture all protocols in the most generality. Also, we want to allow the prover to send multiple messages in a row, since each message may have a different oracle representation (for instance, in the Plonk protocol, the prover's first message is a 3-tuple of polynomial commitments.)
-% \end{remark}
+\begin{remark}[Design Decision]
+    We do not enforce a particular interaction flow in the definition of an interactive (oracle) reduction. This is done so that we can capture all protocols in the most generality. Also, we want to allow the prover to send multiple messages in a row, since each message may have a different oracle representation (for instance, in the Plonk protocol, the prover's first message is a 3-tuple of polynomial commitments.)
+\end{remark}
 
 \begin{definition}[Type Signature of a Prover]
     \label{def:prover_type_signature}
@@ -171,12 +101,61 @@ verifier for that type signature.
 %     \lean{Reduction}
 %     An interactive reduction is a combination of a type signature \verb|ProtocolSpec|, a prover for \verb|ProtocolSpec|, and a verifier for \verb|ProtocolSpec|.
 % \end{definition}
-
+l
 \begin{definition}[Interactive Oracle Reduction]
     \label{def:interactive_oracle_reduction}
     \lean{OracleReduction}
-    An interactive oracle reduction is a combination of a type signature \verb|ProtocolSpec|, a prover for \verb|ProtocolSpec|, and an oracle verifier for \verb|ProtocolSpec|.
+    An interactive oracle reduction for a given context $\Gamma$ is a combination a prover and a verifier of the types specified above.
 \end{definition}
+
+\textbf{PL Formalization.} We write our definitions in PL notation in~\Cref{fig:type-defs}. The set of types $\Type$ is the same as Lean's dependent type theory (omitting universe levels); in particular, we care about basic dependent types (Pi and Sigma), finite natural numbers, finite fields, lists, vectors, and polynomials.
+
+\begin{figure}[t]
+    \[\begin{array}{rcl}
+        % Basic types
+        \mathsf{Type} &::=& \mathsf{Unit} \mid \mathsf{Bool} \mid \mathbb{N} \mid \mathsf{Fin}\; n \mid \mathbb{F}_q \mid \mathsf{List}\;(\alpha : \mathsf{Type}) \mid (i : \iota) \to \alpha\; i \mid (i : \iota) \times \alpha\; i \mid \dots \\[1em]
+        % Protocol message types
+        \mathsf{Dir} &::=& \mathsf{P2V.Pub} \mid \mathsf{P2V.Orac} \mid \mathsf{V2P} \\ 
+        \mathsf{OI}\; (\mathrm{M} : \Type) &::=& \langle \mathrm{Q}, \mathrm{R}, \mathrm{M} \to \mathrm{Q} \to \mathrm{R} \rangle \\
+        % Protocol type signature
+        \mathsf{PSpec}\; (n : \mathbb{N}) &::=& \mathsf{Fin}\; n \to (d : \mathsf{Dir}) \times (M : \Type) \times (\mathsf{if}\; d = \mathsf{P2V.Orac} \; \mathsf{then} \; \mathsf{OI}(M) \; \mathsf{else} \; \mathsf{Unit}) \\
+        % Oracle type signature
+        \mathsf{OSpec} \; (\iota : \mathsf{Type}) &::=& (i : \iota) \to \mathsf{dom}\; i \times \mathsf{range}\; i \\[1em]
+        % Contexts
+        \varSigma &::=& \emptyset \mid \varSigma \times \Type \\
+        \Omega &::=& \emptyset \mid \Omega \times \langle \mathrm{M} : \Type, \mathsf{OI}(\mathrm{M}) \rangle \\
+        \Psi &::=& \emptyset \mid \Psi \times \Type\\
+    \end{array}\]
+    \[\begin{array}{rcl}
+        \Gamma &::=& (\Psi; \Omega; \varSigma; \rho; \mathcal{O})\\
+        \mathsf{OComp}^{\mathcal{O}}\; (\alpha : \Type) &::=& \mid\; \mathsf{pure}\; (a : \alpha) \\
+        && \mid\; \mathsf{queryBind}\;(i : \iota)\; (q : \mathsf{dom}\; i)\; (k : \mathsf{range}\; i \to \mathsf{OComp}^{\mathcal{O}}\; \alpha) \\
+        && \mid\; \mathsf{fail} \\[1em]
+        \tau_{\mathsf{P}}(\Gamma) &::=& (i : \mathsf{Fin}\; n) \to (h : (\rho \; i).\mathsf{fst} = \mathsf{P2V}) \to \\
+        && \varSigma \to \Omega \to \Psi \to \rho_{[:i]} \to \mathsf{OComp}^{\mathcal{O}}\;\left( (\rho \; i).\mathsf{snd}\right) \\[1em]
+
+        \tau_{\mathsf{V}}(\Gamma) &::=& \varSigma \to (\rho.\mathsf{Chals}) \to \mathsf{OComp}^{\mathcal{O} :: \OI(\Omega) :: \OI(\rho.\mathsf{Msg.Orac})}\; \mathsf{Unit} \\[1em]
+        \tau_{\mathsf{E}}(\Gamma) &::=& \varSigma \to \Omega \to \rho.\mathsf{Transcript} \to \calO.\mathsf{QueryLog} \to \Psi
+    \end{array}\]
+    \caption{Type definitions for interactive oracle reductions}
+    \label{fig:type-defs}
+\end{figure}
+
+Using programming language notation, we can express an interactive oracle reduction as a typing judgment:
+\[
+    \Gamma := (\Psi; \Theta; \varSigma; \rho; \mathcal{O}) \vdash \mathcal{P} : \tau_{\mathsf{P}}(\Gamma), \; \mathcal{V} : \tau_{\mathsf{V}}(\Gamma)
+\]
+where:
+\begin{itemize}
+    \item $\Psi$ represents the witness (private) inputs
+    \item $\Theta$ represents the oracle inputs
+    \item $\varSigma$ represents the public inputs (i.e. statements)
+    \item $\mathcal{O} : \mathsf{OSpec}\; \iota$ represents the shared oracle
+    \item $\rho : \mathsf{PSpec}\; n$ represents the protocol type signature
+    \item $\mathcal{P}$ and $\mathcal{V}$ are the prover and verifier, respectively, being of the given types $\tau_{\mathsf{P}}(\Gamma)$ and $\tau_{\mathsf{V}}(\Gamma)$.
+\end{itemize}
+
+To exhibit valid elements for the prover and verifier types, we will use existing functions in the ambient programming language (e.g. Lean).
 
 We now define what it means to execute an oracle reduction. This is essentially achieved by first
 executing the prover, interspersed with oracle queries to get the verifier's challenges (these will
@@ -269,6 +248,6 @@ To define round-by-round (knowledge) soundness, we need to define the notion of 
 By default, the properties we consider are perfect completeness and (straightline) round-by-round knowledge soundness. We can encapsulate these properties into the following typing judgement:
 
 \[
-    \Psi; \Theta; \varSigma \vdash \{\mathcal{R}_1\} \quad \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \quad \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+    \Gamma := (\Psi; \Theta; \varSigma; \rho; \mathcal{O}) \vdash \{\mathcal{R}_1\} \quad \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle \quad \{\!\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\!\}
 \]
 

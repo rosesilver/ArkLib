@@ -44,8 +44,6 @@ section Format
 @[reducible]
 def ProtocolSpec (n : ℕ) := Fin n → Direction × Type
 
-#check OracleComp
-
 variable {n : ℕ}
 
 namespace ProtocolSpec
@@ -267,16 +265,11 @@ variable {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     {ιₛₒ : Type} {OStmtOut : ιₛₒ → Type}
     (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut)
 
-#check QueryLog
-
-/-- The list of queries to the oracle statements and the transcript messages made by the verifier -/
-def queries : QueryLog ([OStmtIn]ₒ ++ₒ [pSpec.Message]ₒ) := sorry
-
 /-- An oracle verifier can be seen as a (non-oracle) verifier by providing the oracle interface
   using its knowledge of the oracle statements and the transcript messages in the clear -/
 def toVerifier : Verifier pSpec oSpec (StmtIn × ∀ i, OStmtIn i) (StmtOut × (∀ i, OStmtOut i)) where
   verify := fun ⟨stmt, oStmt⟩ transcript => do
-    let ⟨stmtOut, _⟩ ← simulate (ToOracle.routeOracles2 oSpec oStmt transcript.messages) ()
+    let stmtOut ← simulateQ (ToOracle.simOracle2 oSpec oStmt transcript.messages)
       (verifier.verify stmt transcript.challenges)
     letI oStmtOut := fun i => match h : verifier.embed i with
       | Sum.inl j => by simpa only [verifier.hEq, h] using (oStmt j)
@@ -344,30 +337,46 @@ abbrev NonInteractiveReduction (oSpec : OracleSpec ι)
 
 end Format
 
-section CanonicalForm
+section Stateless
 
 open ProtocolSpec
 
--- Here we define the canonical form of an (oracle) reduction, where the output statement is simply
--- the concatenation of the input statement and the transcript. Similarly, we can define the
--- canonical form of a prover, which has no state and is instead a function taking input statement
--- and witness, plus the partial transcript, and returns the output statement and witness.
+-- Here we define the stateless form of an (oracle) reduction, where both the prover and the
+-- verifier does not maintain any state. This is useful for specification purposes, as it reduces
+-- the protocol to a more pure form. In this stateless form, the context (witness + statement +
+-- oracle statement) is append-only
 
 variable {n : ℕ} {ι : Type}
 
-structure Prover.CanonicalForm (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
+-- TODO: figure out if we should go with a `Context` struct like this
+
+structure ContextType (ιS : Type) (ιO : Type) (ιW : Type) where
+  Statement : ιS → Type
+  OracleStatement : ιO → Type
+  Witness : ιW → Type
+
+def ContextType.toType {ιS ιO ιW : Type} (CtxType : ContextType ιS ιO ιW) : Type :=
+  (∀ i, CtxType.Statement i) × (∀ i, CtxType.OracleStatement i) × (∀ i, CtxType.Witness i)
+
+structure Context {ιS ιO ιW : Type} (CtxType : ContextType ιS ιO ιW) where
+  statement : ∀ i, CtxType.Statement i
+  oracleStatement : ∀ i, CtxType.OracleStatement i
+  witness : ∀ i, CtxType.Witness i
+  [toOracle : ∀ i, ToOracle (CtxType.OracleStatement i)]
+
+structure Prover.Stateless (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     (Statement Witness : Type) where
-  prove (i : pSpec.MessageIndex) : Statement → Witness → Transcript i.1.castSucc pSpec →
-    OracleComp oSpec (pSpec.Message i)
+  prove (i : pSpec.MessageIndex) : Statement → Witness →
+    Transcript i.1.castSucc pSpec → OracleComp oSpec (pSpec.Message i)
 
--- #print Prover.CanonicalForm
+-- #print Prover.Stateless
 
--- In a canonical form prover, the output statement is simply the input statement concatenated with
--- the transcript, the output witness stays the same, and the prover's state is the partial
--- transcript.
-def Prover.ofCanonicalForm {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+/-- In a stateless form prover, the output statement is simply the input statement concatenated with
+    the transcript, the output witness stays the same, and the prover's state is the partial
+    transcript. -/
+def Prover.ofStateless {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     {Statement Witness : Type}
-    (P : Prover.CanonicalForm pSpec oSpec Statement Witness) :
+    (P : Prover.Stateless pSpec oSpec Statement Witness) :
       Prover pSpec oSpec Statement Witness (Statement × FullTranscript pSpec) Witness where
   PrvState := fun i => Statement × Transcript i pSpec × Witness
   input := fun stmt wit => ⟨stmt, default, wit⟩
@@ -377,47 +386,45 @@ def Prover.ofCanonicalForm {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
   receiveChallenge := fun _ ⟨stmt, transcript, wit⟩ chal => ⟨stmt, transcript.snoc chal, wit⟩
   output := fun ⟨stmt, transcript, wit⟩ => ⟨⟨stmt, transcript⟩, wit⟩
 
-#print OracleVerifier
-
 @[reducible]
-def OracleProver.CanonicalForm (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
+def OracleProver.Stateless (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     (Statement : Type) {ιₛᵢ : Type} (OStatement : ιₛᵢ → Type) (Witness : Type) :=
-  Prover.CanonicalForm pSpec oSpec (Statement × (∀ i, OStatement i)) Witness
+  Prover.Stateless pSpec oSpec (Statement × (∀ i, OStatement i)) Witness
 
-def OracleProver.ofCanonicalForm {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+def OracleProver.ofStateless {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     {Statement : Type} {ιₛᵢ : Type} {OStatement : ιₛᵢ → Type} {Witness : Type}
-    (P : OracleProver.CanonicalForm pSpec oSpec Statement OStatement Witness) :
+    (P : OracleProver.Stateless pSpec oSpec Statement OStatement Witness) :
       OracleProver pSpec oSpec Statement Witness (Statement × (∀ i, pSpec.Challenge i)) Witness
         OStatement (Sum.elim OStatement pSpec.Message) :=
-  -- by simpa [OracleProver] using Prover.ofCanonicalForm P
+  -- by simpa [OracleProver] using Prover.ofStateless P
   sorry
 
-/-- A verifier in a canonical form only performs checks (i.e. `guard`s) on the input statement and
+/-- A verifier in a stateless form only performs checks (i.e. `guard`s) on the input statement and
   transcript -/
-structure Verifier.CanonicalForm (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι) (Statement : Type)
+structure Verifier.Stateless (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι) (Statement : Type)
     where
   verify : Statement → FullTranscript pSpec → OracleComp oSpec Unit
 
-def Verifier.ofCanonicalForm {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
-    {Statement : Type} (V : Verifier.CanonicalForm pSpec oSpec Statement) :
+def Verifier.ofStateless {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+    {Statement : Type} (V : Verifier.Stateless pSpec oSpec Statement) :
       Verifier pSpec oSpec Statement (Statement × FullTranscript pSpec) where
   verify := fun stmt transcript => do
     -- First perform the guard check, then return the statement and transcript
     let _ ← V.verify stmt transcript
     return (stmt, transcript)
 
-/-- An oracle verifier in a canonical form only performs checks (i.e. `guard`s) on the input
+/-- An oracle verifier in a stateless form only performs checks (i.e. `guard`s) on the input
     statement and transcript -/
-structure OracleVerifier.CanonicalForm (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
+structure OracleVerifier.Stateless (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     (Statement : Type) {ιₛᵢ : Type} (OStatement : ιₛᵢ → Type)
     [Oₛᵢ : ∀ i, ToOracle (OStatement i)] [Oₘ : ∀ i, ToOracle (pSpec.Message i)] where
   verify : Statement → (∀ i, pSpec.Challenge i) →
     OracleComp (oSpec ++ₒ ([OStatement]ₒ ++ₒ [pSpec.Message]ₒ)) Unit
 
-def OracleVerifier.ofCanonicalForm {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+def OracleVerifier.ofStateless {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     {Statement : Type} {ιₛᵢ : Type} {OStatement : ιₛᵢ → Type}
     [Oₛᵢ : ∀ i, ToOracle (OStatement i)] [Oₘ : ∀ i, ToOracle (pSpec.Message i)]
-    (V : OracleVerifier.CanonicalForm pSpec oSpec Statement OStatement) :
+    (V : OracleVerifier.Stateless pSpec oSpec Statement OStatement) :
       OracleVerifier pSpec oSpec Statement (Statement × ∀ i, pSpec.Challenge i) OStatement
         (ιₛₒ := ιₛᵢ ⊕ pSpec.MessageIndex) (Sum.elim OStatement pSpec.Message) where
   verify := fun stmt challenges => do
@@ -429,24 +436,40 @@ def OracleVerifier.ofCanonicalForm {pSpec : ProtocolSpec n} {oSpec : OracleSpec 
 
   hEq := fun i => by aesop
 
-structure Reduction.CanonicalForm (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
+structure Reduction.Stateless (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     (Statement Witness : Type) where
-  prover : Prover.CanonicalForm pSpec oSpec Statement Witness
-  verifier : Verifier.CanonicalForm pSpec oSpec Statement
+  prover : Prover.Stateless pSpec oSpec Statement Witness
+  verifier : Verifier.Stateless pSpec oSpec Statement
 
-def Reduction.ofCanonicalForm {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
-    {Statement Witness : Type} (R : Reduction.CanonicalForm pSpec oSpec Statement Witness) :
+def Reduction.ofStateless {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+    {Statement Witness : Type} (R : Reduction.Stateless pSpec oSpec Statement Witness) :
       Reduction pSpec oSpec Statement Witness (Statement × FullTranscript pSpec) Witness where
-  prover := Prover.ofCanonicalForm R.prover
-  verifier := Verifier.ofCanonicalForm R.verifier
+  prover := Prover.ofStateless R.prover
+  verifier := Verifier.ofStateless R.verifier
 
-structure OracleReduction.CanonicalForm (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
+structure OracleReduction.Stateless (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
     (Statement : Type) {ιₛᵢ : Type} (OStatement : ιₛᵢ → Type) (Witness : Type)
     [Oₛᵢ : ∀ i, ToOracle (OStatement i)] [Oₘ : ∀ i, ToOracle (pSpec.Message i)] where
-  prover : OracleProver.CanonicalForm pSpec oSpec Statement OStatement Witness
-  verifier : OracleVerifier.CanonicalForm pSpec oSpec Statement OStatement
+  prover : OracleProver.Stateless pSpec oSpec Statement OStatement Witness
+  verifier : OracleVerifier.Stateless pSpec oSpec Statement OStatement
 
-end CanonicalForm
+def Prover.Stateless.runAux {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+    -- {CtxType : ReductionContextType} {Ctx : ReductionContext CtxType}
+    {Statement Witness : Type}
+    (stmt : Statement) (wit : Witness) (i : Fin (n + 1))
+    (P : Prover.Stateless pSpec oSpec Statement Witness) :
+      OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ) (pSpec.Transcript i) :=
+  Fin.inductionOn i (pure default)
+    (fun j ih => match hDir : (pSpec j).1 with
+    | .P_to_V => do
+      let transcript ← ih
+      let msg ← P.prove ⟨j, hDir⟩ stmt wit transcript
+      return (← ih).snoc msg
+    | .V_to_P => do
+      let chal ← query (spec := [pSpec.Challenge]ₒ) ⟨j, hDir⟩ ()
+      return (← ih).snoc chal)
+
+end Stateless
 
 section Classes
 
@@ -522,10 +545,15 @@ instance [h : VerifierFirst pSpec] : IsEmpty (pSpec.MessageIndex) where
 instance [ProverFirst pSpec] : ∀ i, VCVCompatible (pSpec.Challenge i) := isEmptyElim
 instance [VerifierFirst pSpec] : ∀ i, ToOracle (pSpec.Message i) := isEmptyElim
 
-instance [ProverFirst pSpec] [h : ToOracle (pSpec.Message default)] :
+instance [ProverFirst pSpec] [h : ToOracle (pSpec.Message ⟨0, by simp⟩)] :
     ∀ i, ToOracle (pSpec.Message i) | ⟨0, _⟩ => h
-instance [VerifierFirst pSpec] [h : VCVCompatible (pSpec.Challenge default)] :
+instance [VerifierFirst pSpec] [h : VCVCompatible (pSpec.Challenge ⟨0, by simp⟩)] :
     ∀ i, VCVCompatible (pSpec.Challenge i) | ⟨0, _⟩ => h
+
+instance [ProverFirst pSpec] [ToOracle (pSpec 0).2] : ∀ i, ToOracle (pSpec.Message i)
+  | ⟨0, _⟩ => inferInstance
+instance [VerifierFirst pSpec] [VCVCompatible (pSpec 0).2] : ∀ i, VCVCompatible (pSpec.Challenge i)
+  | ⟨0, _⟩ => inferInstance
 
 end SingleMessage
 

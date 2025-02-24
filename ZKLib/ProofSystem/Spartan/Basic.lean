@@ -4,10 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-import ZKLib.OracleReduction.Basic
+import ZKLib.OracleReduction.Security.Basic
 import ZKLib.ProofSystem.Relation.R1CS
+import ZKLib.Data.MvPolynomial.Multilinear
 import ZKLib.ProofSystem.Sumcheck.Basic
-
+-- import ZKLib.ProofSystem.Components
 
 /-!
   # The Spartan PIOP (Polynomial Interactive Oracle Proof)
@@ -87,12 +88,80 @@ import ZKLib.ProofSystem.Sumcheck.Basic
 
 -/
 
-namespace Spartan
+open MvPolynomial
 
+namespace Spartan
 
 noncomputable section
 
 namespace Spec
+
+/-!
+  ## First message
+  Prover sends `MLE 𝕨 : R⦃≤ 1⦄[X Fin ℓ_k]`.
+-/
+
+structure PublicParams where
+  ℓ_n : ℕ
+  ℓ_m : ℕ
+  ℓ_k : ℕ
+
+def sizeR1CS (pp : PublicParams) : R1CS.Size := {
+  m := 2 ^ pp.ℓ_m
+  n_x := 2 ^ pp.ℓ_n - 2 ^ pp.ℓ_k
+  n_w := 2 ^ pp.ℓ_k
+}
+
+variable (R : Type) [CommSemiring R] [IsDomain R] [Fintype R] (pp : PublicParams)
+
+@[reducible]
+def WitnessMLE (pp : PublicParams) : Type := R⦃≤ 1⦄[X Fin pp.ℓ_k]
+
+@[reducible]
+def pSpecFirstMessage : ProtocolSpec 1 := ![(.P_to_V, WitnessMLE R pp)]
+
+open ProtocolSpec in
+instance : ProverOnly (pSpecFirstMessage R pp) where
+  prover_first' := by simp [pSpecFirstMessage]
+
+def relationR1CS := R1CS.relation R (sizeR1CS pp)
+
+def proverFirstMessage : OracleProver (pSpecFirstMessage R pp) []ₒ
+    (R1CS.Statement R (sizeR1CS pp)) (R1CS.Witness R (sizeR1CS pp))
+    (R1CS.Statement R (sizeR1CS pp)) Unit
+    (R1CS.OracleStatement R (sizeR1CS pp))
+    (Sum.elim (R1CS.OracleStatement R (sizeR1CS pp)) (fun _ : Unit => WitnessMLE R pp)) where
+
+  PrvState
+  | ⟨0, _⟩ => R1CS.Statement R (sizeR1CS pp) × R1CS.Witness R (sizeR1CS pp)
+  | ⟨1, _⟩ => Fin pp.ℓ_m → R
+
+  input := fun _ => sorry
+
+  sendMessage := fun _ => sorry
+
+  receiveChallenge := fun _ => sorry
+
+  output := fun _ => sorry
+
+def verifierFirstMessage : OracleVerifier (pSpecFirstMessage R pp) []ₒ
+    (R1CS.Statement R (sizeR1CS pp)) (R1CS.Statement R (sizeR1CS pp))
+    (R1CS.OracleStatement R (sizeR1CS pp))
+    (Sum.elim (R1CS.OracleStatement R (sizeR1CS pp)) (fun _ : Unit => WitnessMLE R pp)) where
+
+  verify := sorry
+
+def pSpecFirstChallenge : ProtocolSpec 1 := ![(.V_to_P, Fin pp.ℓ_m → R)]
+
+-- First sumcheck
+
+-- Send values `v_A, v_B, v_C`
+
+-- Second sumcheck
+
+-- Send values ...
+
+-- Final check
 
 end Spec
 

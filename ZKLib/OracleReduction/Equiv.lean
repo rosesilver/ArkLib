@@ -86,19 +86,16 @@ theorem oa1_distEquiv_oa2 : distEquiv oa1 oa2 := by
 open SimOracle in
 def obsEquiv (oa ob : OracleComp spec α) : Prop :=
   ∀ f : (i : ι) → spec.domain i → spec.range i,
-    simulate.{0,0,0} (fnOracle spec f) () oa = simulate (fnOracle spec f) () ob
+    simulateQ (fnOracle spec f) oa = simulateQ (fnOracle spec f) ob
 
--- This may not be true
-theorem obsEquiv_implies_distEquiv {oa ob : OracleComp spec α} (h : obsEquiv oa ob) :
-    distEquiv oa ob := by
-  simp_all [distEquiv, obsEquiv, evalDist]
-  sorry
+-- Note: observational equivalence does not imply distributional equivalence, since the distribution
+-- of each new query is independently random
 
 theorem oa1_obsEquiv_oa2 : obsEquiv oa1 oa2 := by
   simp only [obsEquiv, unifSpec_range, oa1, Nat.reduceAdd, Fin.val_eq_zero, bind_pure_comp,
     simulate_bind, simulate_query, simulate_map, oa2]
   intro f
-  simp only [SimOracle.fnOracle, unifSpec_range, statelessOracle.apply_eq, liftM, monadLift,
+  simp only [SimOracle.fnOracle, unifSpec_range, SimOracle.statelessOracle, liftM, monadLift,
     MonadLift.monadLift, StateT.lift, Nat.reduceAdd, bind_pure_comp, map_pure, Prod.map_apply,
     id_eq]
   sorry

@@ -24,8 +24,7 @@ variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec 
 @[inline, specialize]
 def Prover.runAux [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
     (i : Fin (n + 1)) (prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut) :
-      OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
-        (pSpec.Transcript i × prover.PrvState i) :=
+      OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ) (pSpec.Transcript i × prover.PrvState i) :=
   Fin.induction
     (pure ⟨default, prover.input stmt wit⟩)
     (fun j ih => do
@@ -33,11 +32,9 @@ def Prover.runAux [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wi
       match hDir : pSpec.getDir j with
       | .V_to_P => do
         let challenge ← pSpec.getChallenge ⟨j, hDir⟩
-        letI challenge : pSpec.Challenge ⟨j, hDir⟩ := by simpa only
-        let newState := prover.receiveChallenge ⟨j, hDir⟩ state challenge
+        letI newState := prover.receiveChallenge ⟨j, hDir⟩ state challenge
         return ⟨transcript.snoc challenge, newState⟩
       | .P_to_V => do
-        -- Devon: need `liftM` because it eagerly tries to lift *before* simulation
         let ⟨msg, newState⟩ ← prover.sendMessage ⟨j, hDir⟩ state
         return ⟨transcript.snoc msg, newState⟩)
     i
@@ -49,8 +46,7 @@ def Prover.runAux [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wi
 @[inline, specialize, reducible]
 def Prover.run [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wit : WitIn)
     (prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut) :
-      OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
-        (StmtOut × WitOut × FullTranscript pSpec) := do
+      OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ) (StmtOut × WitOut × FullTranscript pSpec) := do
   let ⟨transcript, state⟩ ← prover.runAux stmt wit (Fin.last n)
   let ⟨stmtOut, witOut⟩ := prover.output state
   return ⟨stmtOut, witOut, transcript⟩
@@ -73,8 +69,8 @@ def OracleVerifier.run [Oₘ : ∀ i, ToOracle (pSpec.Message i)]
     (stmt : StmtIn) (oStmtIn : ∀ i, OStmtIn i) (transcript : FullTranscript pSpec)
     (verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut) :
       OracleComp oSpec StmtOut := do
-  let f := ToOracle.routeOracles2 oSpec oStmtIn transcript.messages
-  let ⟨stmtOut, _⟩ ← simulate f () (verifier.verify stmt transcript.challenges)
+  let f := ToOracle.simOracle2 oSpec oStmtIn transcript.messages
+  let stmtOut ← simulateQ f (verifier.verify stmt transcript.challenges)
   return stmtOut
 
 /-- Running an oracle verifier then discarding the query list is equivalent to
@@ -85,8 +81,8 @@ theorem OracleVerifier.run_eq_run_verifier [∀ i, ToOracle (pSpec.Message i)] {
     {verifier : OracleVerifier pSpec oSpec StmtIn StmtOut OStmtIn OStmtOut} :
       verifier.run stmt oStmt transcript =
         Prod.fst <$> verifier.toVerifier.run ⟨stmt, oStmt⟩ transcript := by
-  simp only [run, getType_apply, bind_pure_comp, Verifier.run, toVerifier, eq_mpr_eq_cast,
-    Functor.map_map]
+  simp only [run, getType_apply, bind_pure, Verifier.run, toVerifier, eq_mpr_eq_cast,
+    bind_pure_comp, Functor.map_map, id_map']
 
 /--
   An execution of an interactive reduction on a given initial statement and witness.
@@ -101,9 +97,9 @@ def Reduction.run [∀ i, VCVCompatible (pSpec.Challenge i)] (stmt : StmtIn) (wi
         (StmtOut × WitOut × FullTranscript pSpec ×
           QueryLog (oSpec ++ₒ [pSpec.Challenge]ₒ) × QueryLog oSpec) := do
   let ⟨⟨_, witOut, transcript⟩, proveQueryLog⟩ ←
-    simulate loggingOracle ∅ (reduction.prover.run stmt wit)
+    (simulateQ loggingOracle (reduction.prover.run stmt wit)).run
   let ⟨stmtOut, verifyQueryLog⟩ ←
-    liftM (simulate loggingOracle ∅ (reduction.verifier.run stmt transcript))
+    liftM (simulateQ loggingOracle (reduction.verifier.run stmt transcript)).run
   return (stmtOut, witOut, transcript, proveQueryLog, verifyQueryLog)
 
 theorem Reduction.run_discard_transcript_queryLog [∀ i, VCVCompatible (pSpec.Challenge i)]
@@ -127,11 +123,11 @@ def OracleReduction.run [∀ i, VCVCompatible (pSpec.Challenge i)] [∀ i, ToOra
     (reduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmtIn OStmtOut) :
       OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ)
         (StmtOut × WitOut × FullTranscript pSpec ×
-          QueryLog (oSpec ++ₒ [pSpec.Challenge]ₒ) × QueryLog (oSpec ++ₒ ([OStmtIn]ₒ ++ₒ [pSpec.Message]ₒ))) := do
+          QueryLog (oSpec ++ₒ [pSpec.Challenge]ₒ) × QueryLog oSpec) := do
   let ⟨⟨_, witOut, transcript⟩, proveQueryLog⟩ ←
-    simulate loggingOracle ∅ (reduction.prover.run ⟨stmt, oStmt⟩ wit)
+    (simulateQ loggingOracle (reduction.prover.run ⟨stmt, oStmt⟩ wit)).run
   let ⟨stmtOut, verifyQueryLog⟩ ←
-    liftM (simulate loggingOracle ∅ (reduction.verifier.run stmt oStmt transcript))
+    liftM (simulateQ loggingOracle (reduction.verifier.run stmt oStmt transcript)).run
   return (stmtOut, witOut, transcript, proveQueryLog, verifyQueryLog)
 
 -- /-- Running an oracle verifier then discarding the query list is equivalent to

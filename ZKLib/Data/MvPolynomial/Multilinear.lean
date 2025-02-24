@@ -236,6 +236,9 @@ def MLEEquiv : R⦃≤ 1⦄[X σ] ≃ ((σ → Fin 2) → R) where
   left_inv := fun ⟨p, hp⟩ => by simp; exact is_multilinear_iff_eq_evals_zeroOne.mp hp
   right_inv := fun evals => by simp only [MLE_eval_zeroOne]
 
+def MLEEquivFin {n : ℕ} : R⦃≤ 1⦄[X (Fin n)] ≃ (Fin (2 ^ n) → R) :=
+  Equiv.trans MLEEquiv (Equiv.piCongr finFunctionFinEquiv (fun _ => Equiv.refl _))
+
 end MvPolynomial
 
 end

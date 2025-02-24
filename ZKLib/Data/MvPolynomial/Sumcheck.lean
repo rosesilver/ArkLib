@@ -7,6 +7,7 @@ Authors: Quang Dao
 import Mathlib.Algebra.MvPolynomial.Equiv
 import Mathlib.Data.Multiset.Bind
 import ZKLib.Data.MvPolynomial.Degrees
+import Mathlib
 
 /-!
   # Auxiliary functions for sum-check over multivariate polynomials

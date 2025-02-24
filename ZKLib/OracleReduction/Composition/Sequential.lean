@@ -686,11 +686,6 @@ section Execution
 
 open OracleComp OracleSpec SubSpec
 
-/-- Concatenate two query logs, removing duplicates. -/
-def QueryLog.append {ι : Type} {spec : OracleSpec ι} (log₁ log₂ : QueryLog spec)
-    [spec.DecidableEq] : QueryLog spec :=
-  fun i ↦ List.dedup (log₁ i ++ log₂ i)
-
 variable [∀ i, Sampleable (pSpec₁.Challenge i)] [∀ i, Sampleable (pSpec₂.Challenge i)]
   [oSpec.DecidableEq]
 

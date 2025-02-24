@@ -16,32 +16,31 @@ namespace R1CS
 
 open Matrix
 
--- Note: we can define separately instances of `R`
-
 variable (R : Type) [CommSemiring R]
 
-structure Index where
+inductive MatrixIdx where | A | B | C deriving Inhabited, DecidableEq
+
+structure Size where
   m : ℕ -- number of columns
-  inputSize : ℕ
-  witnessSize : ℕ
-  A : Matrix (Fin m) (Fin (inputSize + witnessSize)) R
-  B : Matrix (Fin m) (Fin (inputSize + witnessSize)) R
-  C : Matrix (Fin m) (Fin (inputSize + witnessSize)) R
+  n_x : ℕ -- number of public variables
+  n_w : ℕ -- number of witness variables
 
-abbrev Index.n (index : Index R) : ℕ := index.inputSize + index.witnessSize
+abbrev Size.n (sz : Size) : ℕ := sz.n_x + sz.n_w
 
-structure Statement (index : Index R) where
-  x : Fin index.inputSize → R
+def Statement (sz : Size) : Type := Fin sz.n_x → R
 
-structure Witness (index : Index R) where
-  w : Fin index.witnessSize → R
+def OracleStatement (sz : Size) := fun _ : MatrixIdx => Matrix (Fin sz.m) (Fin sz.n) R
+
+def Witness (sz : Size) : Type := Fin sz.n_w → R
 
 -- The R1CS relation
-def rel (index : Index R) : (Statement R index) → (Witness R index) → Prop :=
-  fun stmt wit =>
-    let z : Fin index.n → R := Fin.append stmt.x wit.w
-    (index.A *ᵥ z) * (index.B *ᵥ z) = (index.C *ᵥ z)
-
-#print rel
+def relation (sz : Size) :
+    (Fin sz.n_x → R) → -- public input `x`
+    (MatrixIdx → Matrix (Fin sz.m) (Fin sz.n) R) → -- matrices `A`, `B`, `C` as oracle inputs
+    (Fin sz.n_w → R) → -- witness input `w`
+    Prop :=
+  fun stmt matrices wit =>
+    let z : Fin (sz.n_x + sz.n_w) → R := Fin.append stmt wit
+    (matrices .A *ᵥ z) * (matrices .B *ᵥ z) = (matrices .C *ᵥ z)
 
 end R1CS

@@ -19,11 +19,26 @@ import ZKLib.Data.MvPolynomial.Notation
   - Vectors. This instance turns vectors into oracles for which one can query specific positions.
 -/
 
+/-- `⊕ᵥ` is notation for `Sum.elim`, e.g. sending `α → γ` and `β → γ` to `α ⊕ β → γ`. -/
+infixr:35 " ⊕ᵥ " => Sum.elim
+
 open OracleComp
+
+open OracleSpec OracleQuery
+
+variable {ι ιₜ : Type}
+
+def SimOracle.Stateful (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) :=
+  QueryImpl spec (StateT σ (OracleComp specₜ))
+
+def SimOracle.Stateless (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) :=
+  QueryImpl spec (OracleComp specₜ)
+
+def SimOracle.Impl (spec : OracleSpec ι) := QueryImpl spec Option
 
 namespace SimOracle
 
-variable {ι₁ ι₂ ι ιₜ ιₜ₁ ιₜ₂ : Type} {spec : OracleSpec ι} {spec₁ : OracleSpec ι₁}
+variable {ι₁ ι₂ ιₜ₁ ιₜ₂ : Type} {spec : OracleSpec ι} {spec₁ : OracleSpec ι₁}
   {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {specₜ₁ : OracleSpec ιₜ₁}
   {specₜ₂ : OracleSpec ιₜ₂} {σ τ α β : Type}
 
@@ -31,49 +46,61 @@ variable [DecidableEq ι]
 
 open OracleSpec
 
-instance : (loggingOracle (spec := spec)).IsTracking where
-  state_indep | query _ _, _ => rfl
+def fnOracle (spec : OracleSpec ι) (f : (i : ι) → spec.domain i → spec.range i) :
+    SimOracle.Impl spec where
+  impl | query i t => f i t
 
-def append' (so₁ : SimOracle spec₁ specₜ₁ σ) (so₂ : SimOracle spec₂ specₜ₂ τ) :
-    SimOracle (spec₁ ++ₒ spec₂) (specₜ₁ ++ₒ specₜ₂) (σ × τ) where impl
+def statelessOracle (baseSpec : OracleSpec ιₜ) (spec : OracleSpec ι)
+    (f : (i : ι) → spec.domain i → spec.range i) :
+    SimOracle.Stateless (baseSpec ++ₒ spec) baseSpec where
+  impl
+  | query (.inl i) t => query i t
+  | query (.inr i) t => pure (f i t)
+
+-- instance : (loggingOracle (spec := spec)).IsTracking where
+--   state_indep | query _ _, _ => rfl
+
+def append' (so₁ : SimOracle.Stateful spec₁ specₜ₁ σ) (so₂ : SimOracle.Stateful spec₂ specₜ₂ τ) :
+    SimOracle.Stateful (spec₁ ++ₒ spec₂) (specₜ₁ ++ₒ specₜ₂) (σ × τ) where
+  impl
   | query (.inl i) t => fun (s₁, s₂) ↦ do
       let (u, s₁') ← so₁.impl (query i t) s₁; return (u, s₁', s₂)
   | query (.inr i) t => fun (s₁, s₂) ↦ do
       let (u, s₂') ← so₂.impl (query i t) s₂; return (u, s₁, s₂')
 
-def dedup {ι : Type} (spec : OracleSpec ι) : SimOracle (spec ++ₒ spec) spec PUnit :=
-  statelessOracle fun q => match q with
-    | query (.inl i) t => query i t
-    | query (.inr i) t => query i t
+def dedup {ι : Type} (spec : OracleSpec ι) : SimOracle.Stateless (spec ++ₒ spec) spec where
+  impl
+  | query (.inl i) t => query i t
+  | query (.inr i) t => query i t
 
-theorem append'_dedup (so₁ : SimOracle spec₁ specₜ σ) (so₂ : SimOracle spec₂ specₜ τ) :
-    append so₁ so₂ = (dedup specₜ ∘ₛ append' so₁ so₂).equivState (.prodPUnit _) := by
-  sorry
+-- theorem append'_dedup (so₁ : SimOracle spec₁ specₜ σ) (so₂ : SimOracle spec₂ specₜ τ) :
+--     append so₁ so₂ = (dedup specₜ ∘ₛ append' so₁ so₂).equivState (.prodPUnit _) := by
+--   sorry
 
-/-- Answer all oracle queries to `oSpec` with a deterministic function `f` having the same domain
-  and range as `oSpec`. -/
-def fnOracle {ι : Type} (spec : OracleSpec ι)
-    (f : (i : ι) → spec.domain i → spec.range i) : SimOracle spec []ₒ PUnit :=
-  statelessOracle fun (query i q) ↦ pure (f i q)
+-- /-- Answer all oracle queries to `oSpec` with a deterministic function `f` having the same domain
+--   and range as `oSpec`. -/
+-- def fnOracle {ι : Type} (spec : OracleSpec ι)
+--     (f : (i : ι) → spec.domain i → spec.range i) : SimOracle spec []ₒ PUnit :=
+--   statelessOracle fun (query i q) ↦ pure (f i q)
 
 def lift {ι₁ ι₂ ι : Type} {σ : Type} (oSpec₁ : OracleSpec ι₁) (oSpec₂ : OracleSpec ι₂)
-    (oSpec : OracleSpec ι) (so : SimOracle oSpec₁ oSpec₂ σ) :
-      SimOracle (oSpec ++ₒ oSpec₁) (oSpec ++ₒ oSpec₂) σ where
+    (oSpec : OracleSpec ι) (so : SimOracle.Stateful oSpec₁ oSpec₂ σ) :
+      SimOracle.Stateful (oSpec ++ₒ oSpec₁) (oSpec ++ₒ oSpec₂) σ where
   impl := fun q s => match q with
     | query (.inl i) q => do return ⟨← query i q, s⟩
     | query (.inr i) q => so.impl (query (spec := oSpec₁) i q) s
 
-def liftLeft' {ι₁ ι₂ ι : Type} {σ : Type} {oSpec₁ : OracleSpec ι₁} {oSpec₂ : OracleSpec ι₂}
-    (oSpec : OracleSpec ι) (so : SimOracle oSpec₁ oSpec₂ σ) :
-      SimOracle (oSpec ++ₒ oSpec₁) (oSpec ++ₒ oSpec₂) σ :=
-  (append' idOracle so).equivState (.punitProd σ)
+-- def liftLeft' {ι₁ ι₂ ι : Type} {σ : Type} {oSpec₁ : OracleSpec ι₁} {oSpec₂ : OracleSpec ι₂}
+--     (oSpec : OracleSpec ι) (so : SimOracle oSpec₁ oSpec₂ σ) :
+--       SimOracle (oSpec ++ₒ oSpec₁) (oSpec ++ₒ oSpec₂) σ :=
+--   (append' idOracle so).equivState (.punitProd σ)
 
 def liftLeftNil {ι : Type} {σ : Type} (oSpec : OracleSpec ι) :
-    SimOracle ([]ₒ ++ₒ oSpec) oSpec σ where impl
+    SimOracle.Stateful ([]ₒ ++ₒ oSpec) oSpec σ where impl
   | query (.inr i) q => fun s ↦ do return ⟨← query i q, s⟩
 
 def liftRightNil {ι : Type} {σ : Type} (oSpec : OracleSpec ι) :
-    SimOracle (oSpec ++ₒ []ₒ) oSpec σ where impl
+    SimOracle.Stateful (oSpec ++ₒ []ₒ) oSpec σ where impl
   | query (.inl i) q => fun s ↦ do return ⟨← query i q, s⟩
 
 end SimOracle
@@ -127,15 +154,9 @@ def append {ι₁ : Type} {T₁ : ι₁ → Type} [∀ i, ToOracle (T₁ i)]
     - An indexed type family `T` with `ToOracle` instances
     - Values of that type family
   Returns a stateless oracle that routes queries to the appropriate underlying oracle. -/
--- def routeOracles1 {ι : Type} (oSpec : OracleSpec ι) {ι' : Type} {T : ι' → Type}
---     [∀ i, ToOracle (T i)] (t : ∀ i, T i) : SimOracle (oSpec ++ₒ [T]ₒ) oSpec Unit :=
---   statelessOracle fun q => match q with
---     | query (.inl i) q => query i q
---     | query (.inr i) q => pure (oracle (t i) q)
-def routeOracles {ι : Type} (oSpec : OracleSpec ι) {ι' : Type} {T : ι' → Type}
-    [∀ i, ToOracle (T i)] (t : (i : ι') → T i) : SimOracle (oSpec ++ₒ [T]ₒ) oSpec PUnit :=
-  (liftRightNil oSpec ∘ₛ liftLeft' oSpec (fnOracle [T]ₒ (fun i => oracle (t i))))
-    |>.equivState (.punitProd _)
+def simOracle {ι : Type} (oSpec : OracleSpec ι) {ι' : Type} {T : ι' → Type}
+    [∀ i, ToOracle (T i)] (t : (i : ι') → T i) : SimOracle.Stateless (oSpec ++ₒ [T]ₒ) oSpec :=
+  SimOracle.statelessOracle _ _ (fun i q => oracle (t i) q)
 
 /-- Combines multiple oracle specifications into a single oracle by routing queries to the
       appropriate underlying oracle. Takes:
@@ -143,13 +164,13 @@ def routeOracles {ι : Type} (oSpec : OracleSpec ι) {ι' : Type} {T : ι' → T
     - Two indexed type families `T₁` and `T₂` with `ToOracle` instances
     - Values of those type families
   Returns a stateless oracle that routes queries to the appropriate underlying oracle. -/
-def routeOracles2 {ι : Type} (oSpec : OracleSpec ι)
+def simOracle2 {ι : Type} (oSpec : OracleSpec ι)
     {ι₁ : Type} {T₁ : ι₁ → Type} [∀ i, ToOracle (T₁ i)]
     {ι₂ : Type} {T₂ : ι₂ → Type} [∀ i, ToOracle (T₂ i)]
-    (t₁ : ∀ i, T₁ i) (t₂ : ∀ i, T₂ i) : SimOracle (oSpec ++ₒ ([T₁]ₒ ++ₒ [T₂]ₒ)) oSpec Unit :=
-  (liftRightNil oSpec ∘ₛ liftLeft' oSpec (fnOracle ([T₁]ₒ ++ₒ [T₂]ₒ) (fun i => match i with
-    | .inl i => oracle (t₁ i)
-    | .inr i => oracle (t₂ i)))) |>.equivState (.punitProd _)
+    (t₁ : ∀ i, T₁ i) (t₂ : ∀ i, T₂ i) : SimOracle.Stateless (oSpec ++ₒ ([T₁]ₒ ++ₒ [T₂]ₒ)) oSpec :=
+  SimOracle.statelessOracle _ _ (fun i q => match i with
+    | .inl i => oracle (t₁ i) q
+    | .inr i => oracle (t₂ i) q)
 
 end ToOracle
 
@@ -228,11 +249,11 @@ variable {ι : Type} {spec : OracleSpec ι} {R : Type} [CommSemiring R]
 
 open Polynomial ToOracle SimOracle OracleSpec in
 theorem poly_query_list_mapM {m : ℕ} (D : Fin m ↪ R) (p : R[X]) :
-    simulate' (routeOracles spec (fun _ : Unit => p)) ()
+    simulateQ (simOracle spec (fun _ : Unit => p))
       (List.finRange m |>.mapM (fun i => query (spec := [fun _ : Unit => R[X]]ₒ) () (D i)))
     = (pure (List.finRange m |>.map (fun i => p.eval (D i))) : OracleComp spec (List R)) := by
-  simp [routeOracles, OracleSpec.SubSpec.liftM_query_eq_liftM_liftM, StateT.run'_eq,
-    simulateT, StateT.run, SimOracle.impl, liftLeft', liftRightNil, idOracle, fnOracle]
+  simp [simOracle, OracleSpec.SubSpec.liftM_query_eq_liftM_liftM, StateT.run'_eq,
+    simulateQ, StateT.run]
   sorry
 
 end Test

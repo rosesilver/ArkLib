@@ -29,8 +29,8 @@ namespace Reduction
 open OracleComp OracleSpec ProtocolSpec
 open scoped NNReal
 
-variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
-    [∀ i, VCVCompatible (pSpec.Challenge i)] {StmtIn WitIn StmtOut WitOut : Type}
+variable {n : ℕ} {ι : Type} {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+    {StmtIn WitIn StmtOut WitOut : Type} [∀ i, VCVCompatible (pSpec.Challenge i)]
 
 section Completeness
 
@@ -92,7 +92,9 @@ variable [oSpec.FiniteRange]
 /-- It's not clear whether we need the stronger `AdaptiveProver` type, since the soundness notions
   are stated with regards to an arbitrary statement anyway (for plain soundness, the statement is
   arbitrary among the ones that are not in the language). -/
-structure AdaptiveProver extends Prover pSpec oSpec StmtIn WitIn StmtOut WitOut where
+structure AdaptiveProver (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
+    (StmtIn WitIn StmtOut WitOut : Type) extends Prover pSpec oSpec StmtIn WitIn StmtOut WitOut
+    where
   chooseStmtIn : OracleComp oSpec StmtIn
 
 /--
@@ -148,6 +150,35 @@ def knowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut →
       ¬ relIn stmtIn extractedWitIn ∧ relOut stmtOut witOut
     | reduction.run stmtIn witIn] ≤ knowledgeError
 
+section Rewinding
+
+/-- The oracle interface to call the prover as a black box -/
+def OracleSpec.proverOracle (pSpec : ProtocolSpec n) (StmtIn : Type) :
+    OracleSpec pSpec.MessageIndex := fun i => (StmtIn × pSpec.Transcript i, pSpec.Message i)
+
+def SimOracle.proverImpl (P : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut) :
+    SimOracle.Stateless (OracleSpec.proverOracle pSpec StmtIn) oSpec := sorry
+
+structure RewindingExtractor (pSpec : ProtocolSpec n) (oSpec : OracleSpec ι)
+    (StmtIn StmtOut WitIn WitOut : Type) where
+  /-- The state of the extractor -/
+  ExtState : Type
+  /-- Simulate challenge queries for the prover -/
+  simChallenge : SimOracle.Stateful [pSpec.Challenge]ₒ [pSpec.Challenge]ₒ ExtState
+  /-- Simulate oracle queries for the prover -/
+  simOracle : SimOracle.Stateful oSpec oSpec ExtState
+  /-- Run the extractor with the prover's oracle interface, allowing for calling the prover multiple
+    times -/
+  runExt : StmtOut → WitOut → StmtIn →
+    StateT ExtState (OracleComp (OracleSpec.proverOracle pSpec StmtIn)) WitIn
+
+def RewindingExtractor.run
+    (P : AdaptiveProver pSpec oSpec StmtIn WitIn StmtOut WitOut)
+    (E : RewindingExtractor pSpec oSpec StmtIn StmtOut WitIn WitOut) :
+    OracleComp oSpec WitIn := sorry
+
+end Rewinding
+
 section StateRestoration
 
 variable [DecidableEq StmtIn] [∀ i, DecidableEq (pSpec.Message i)]
@@ -156,18 +187,14 @@ variable [DecidableEq StmtIn] [∀ i, DecidableEq (pSpec.Message i)]
 -- /-- Version of `challengeOracle` that requires querying with the statement and prior messages.
 
 -- This is a stepping stone toward the Fiat-Shamir transform. -/
--- def challengeOracle' : OracleSpec (Fin n) where
---   domain := fun i => Statement × (∀ j : Fin i, (pSpec.take i (by omega) j)
---   range := fun i => pSpec.Challenge i
---   domain_decidableEq' := fun _ => decEq
---   range_decidableEq' := fun _ => Sampleable.toDecidableEq
---   range_inhabited' := fun _ => Sampleable.toInhabited
---   range_fintype' := fun _ => Sampleable.toFintype
+def challengeOracle' (pSpec : ProtocolSpec n) (Statement : Type) :
+    OracleSpec (pSpec.ChallengeIndex) :=
+  fun i => (Statement × pSpec.Transcript i.1, pSpec.Challenge i)
 
--- class StateRestorationProver extends Prover pSpec oSpec StmtIn WitIn StmtOut WitOut
--- where
---   stateRestorationQuery : OracleComp (oSpec ++ₒ challengeOracle' pSpec (Statement := Statement))
---     (prover.PrvState 0 × Statement × pSpec.FullTranscript)
+class StateRestorationProver extends Prover pSpec oSpec StmtIn WitIn StmtOut WitOut
+where
+  stateRestorationQuery :
+    OracleComp (oSpec ++ₒ challengeOracle' pSpec StmtIn) pSpec.FullTranscript
 
 -- def runStateRestorationProver
 --     (prover : StateRestorationProver pSpec oSpec StmtIn WitIn StmtOut WitOut)
@@ -258,17 +285,39 @@ def rbrKnowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut 
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
   ∀ i : pSpec.ChallengeIndex,
     [fun ⟨⟨⟨transcript, _⟩, proveQueryLog⟩, challenge⟩ =>
-      letI extractedWitIn := extractor i.1.castSucc stmtIn transcript proveQueryLog.fst
+      letI extractedWitIn := extractor i.1.castSucc stmtIn transcript proveQueryLog
       ¬ relIn stmtIn extractedWitIn ∧
         ¬ stateFunction.fn i.1.castSucc stmtIn transcript ∧
           stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge)
     | do
-      let result ← simulate loggingOracle ∅ (prover.runAux stmtIn witIn i.1.castSucc);
+      let result ← (simulateQ loggingOracle (prover.runAux stmtIn witIn i.1.castSucc)).run;
       let chal ← pSpec.getChallenge i
-      return (result, chal)] ≤
-      rbrKnowledgeError i
+      return (result, chal)] ≤ rbrKnowledgeError i
 
 end RoundByRound
+
+section Classes
+
+/-! We provide typeclasses for the security notions, so that we could synthesize them automatically
+with verified transformations
+
+For now, we only care about two properties: perfect completness and round-by-round knowledge
+soundness -/
+
+/-- Type class for (perfect) completeness for a reduction -/
+class IsComplete (reduction : Reduction pSpec oSpec StmtIn WitIn StmtOut WitOut)
+    (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut → WitOut → Prop) where
+  complete : perfectCompleteness relIn relOut reduction
+
+/-- Type class for round-by-round knowledge soundness for a reduction -/
+class IsRBRKnowledgeSound (verifier : Verifier pSpec oSpec StmtIn StmtOut)
+    (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut → WitOut → Prop) where
+  rbrKnowledgeError : pSpec.ChallengeIndex → ℝ≥0
+  stateFunction : StateFunction relIn.language relOut.language verifier
+  is_rbr_knowledge_sound : rbrKnowledgeSoundness relIn relOut verifier
+    stateFunction rbrKnowledgeError
+
+end Classes
 
 section Implications
 
@@ -345,7 +394,7 @@ section ZeroKnowledge
 
 -- The simulator should have programming access to the shared oracles `oSpec`
 structure Simulator (SimState : Type) where
-  oracleSim : SimOracle oSpec oSpec SimState
+  oracleSim : SimOracle.Stateful oSpec oSpec SimState
   proverSim : StmtIn → SimState → PMF (pSpec.FullTranscript × SimState)
 
 /-
@@ -378,11 +427,11 @@ namespace OracleReduction
 open OracleComp OracleSpec Reduction
 open scoped NNReal
 
-variable {n : ℕ} {ι : Type} [DecidableEq ι] {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+variable {n : ℕ} {ι : Type} {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
     [∀ i, ToOracle (pSpec.Message i)] [∀ i, VCVCompatible (pSpec.Challenge i)]
-    {StmtIn WitIn StmtOut WitOut : Type} {ιₛᵢ : Type} [DecidableEq ιₛᵢ]
-    {OStmtIn : ιₛᵢ → Type} [∀ i, ToOracle (OStmtIn i)]
-    {OStmtOut : ιₛᵢ → Type} [oSpec.FiniteRange]
+    {StmtIn WitIn StmtOut WitOut : Type}
+    {ιₛᵢ : Type} {OStmtIn : ιₛᵢ → Type} [∀ i, ToOracle (OStmtIn i)]
+    {ιₛₒ : Type} {OStmtOut : ιₛₒ → Type} [oSpec.FiniteRange]
 
 def completeness
     (relIn : (StmtIn × ∀ i, OStmtIn i) → WitIn → Prop)
@@ -392,8 +441,8 @@ def completeness
   Reduction.completeness relIn relOut oracleReduction.toReduction completenessError
 
 def perfectCompleteness
-    (relIn : (StmtIn × ∀ i, OStmtIn  i) → WitIn → Prop)
-    (relOut : (StmtOut × (∀ i, OStmtOut i)) → WitOut → Prop)
+    (relIn : (StmtIn × ∀ i, OStmtIn i) → WitIn → Prop)
+    (relOut : (StmtOut × ∀ i, OStmtOut i) → WitOut → Prop)
     (oracleReduction : OracleReduction pSpec oSpec StmtIn WitIn StmtOut WitOut OStmtIn OStmtOut) :
       Prop :=
   Reduction.perfectCompleteness relIn relOut oracleReduction.toReduction

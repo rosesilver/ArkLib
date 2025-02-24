@@ -14,12 +14,12 @@ then we obtain an oracle reduction for \(\mathcal{R}_1' \implies \mathcal{R}_2'\
 \[
 \frac{%
   \begin{array}{c}
-    \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\}\; \langle \mathcal{P},\, \mathcal{V},\, \mathcal{E}\rangle^{\mathcal{O}} : \tau \;\{\!\{\mathcal{R}_2; \,\mathsf{St};\, \epsilon\}\!\} \\[1.5ex]
+    \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\}\; \langle \mathcal{P},\, \mathcal{V},\, \mathcal{E}\rangle^{\mathcal{O}} : \tau \;\{\!\!\{\mathcal{R}_2; \,\mathsf{St};\, \epsilon\}\!\!\} \\[1.5ex]
     \mathcal{R}_1' \implies \mathcal{R}_1 \\[1.5ex]
     \mathcal{R}_2 \implies \mathcal{R}_2'
   \end{array}%
 }{%
-  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1'\}\; \langle \mathcal{P},\, \mathcal{V},\, \mathcal{E}\rangle^{\mathcal{O}} : \tau \;\{\!\{\mathcal{R}_2'; \,\mathsf{St};\, \epsilon\}\!\}
+  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1'\}\; \langle \mathcal{P},\, \mathcal{V},\, \mathcal{E}\rangle^{\mathcal{O}} : \tau \;\{\!\!\{\mathcal{R}_2'; \,\mathsf{St};\, \epsilon\}\!\!\}
 } \quad \text{(Conseq)}
 \]
 
@@ -28,9 +28,9 @@ then we obtain an oracle reduction for \(\mathcal{R}_1' \implies \mathcal{R}_2'\
 % Frame rule
 \[
 \frac{%
-  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\!\}
 }{%
-  \Psi; \Theta; \Sigma \vdash \{\mathcal{R} \times \mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R} \times \mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+  \Psi; \Theta; \Sigma \vdash \{\mathcal{R} \times \mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\!\{\mathcal{R} \times \mathcal{R}_2; \mathsf{St}; \epsilon\}\!\!\}
 } \quad \text{(Frame)}
 \]
 
@@ -38,11 +38,11 @@ then we obtain an oracle reduction for \(\mathcal{R}_1' \implies \mathcal{R}_2'\
 \[
 \frac{%
   \begin{array}{c}
-    \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}_1} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\} \\[1.5ex]
+    \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}_1} : \tau \; \{\!\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\!\} \\[1.5ex]
     \mathcal{O}_1 \subset \mathcal{O}_2
   \end{array}%
 }{%
-  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}_2} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\}
+  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}_2} : \tau \; \{\!\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\!\}
 } \quad \text{(Oracle-Lift)}
 \]
 
@@ -66,11 +66,11 @@ Sequential composition can be expressed as the folowing rule:
 \[
 \frac{%
   \begin{array}{c}
-    \Psi; \Theta; \varSigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}_1, \mathcal{V}_1, \mathcal{E}_1\rangle^{\mathcal{O}} : \tau_1 \; \{\!\{\mathcal{R}_2; \mathsf{St}_1; \epsilon_1\}\!\} \\[1.5ex]
-    \Psi; (\Theta :: \tau_1) ; \varSigma \vdash \{\mathcal{R}_2\} \; \langle\mathcal{P}_2, \mathcal{V}_2, \mathcal{E}_2\rangle^{\mathcal{O}} : \tau_2 \; \{\!\{\mathcal{R}_3; \mathsf{St}_2; \epsilon_2\}\!\}
+    \Psi; \Theta; \varSigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}_1, \mathcal{V}_1, \mathcal{E}_1\rangle^{\mathcal{O}} : \tau_1 \; \{\!\!\{\mathcal{R}_2; \mathsf{St}_1; \epsilon_1\}\!\!\} \\[1.5ex]
+    \Psi; (\Theta :: \tau_1) ; \varSigma \vdash \{\mathcal{R}_2\} \; \langle\mathcal{P}_2, \mathcal{V}_2, \mathcal{E}_2\rangle^{\mathcal{O}} : \tau_2 \; \{\!\!\{\mathcal{R}_3; \mathsf{St}_2; \epsilon_2\}\!\!\}
   \end{array}%
 }{%
-  \Psi; (\Theta :: \tau_1 :: \tau_2) \ ; \varSigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}_1 \circ \mathcal{P}_2, \mathcal{V}_1 \circ \mathcal{V}_2, \mathcal{E}_1 \circ_{\mathcal{V}_2} \mathcal{E}_2\rangle^{\mathcal{O}} : \tau_1 \oplus \tau_2 \; \{\!\{\mathcal{R}_3; \mathsf{St}_1 \oplus \mathsf{St}_2; \epsilon_1 \oplus \epsilon_2\}\!\}
+  \Psi; (\Theta :: \tau_1 :: \tau_2) \ ; \varSigma \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}_1 \circ \mathcal{P}_2, \mathcal{V}_1 \circ \mathcal{V}_2, \mathcal{E}_1 \circ_{\mathcal{V}_2} \mathcal{E}_2\rangle^{\mathcal{O}} : \tau_1 \oplus \tau_2 \; \{\!\!\{\mathcal{R}_3; \mathsf{St}_1 \oplus \mathsf{St}_2; \epsilon_1 \oplus \epsilon_2\}\!\!\}
 } \quad \text{(Seq-Comp)}
 \]
 
@@ -131,13 +131,13 @@ We will show security properties for this virtualization process. One can see th
 \[
 \frac{%
   \begin{array}{c}
-    \Psi'; \Theta'; \Sigma' \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\} \\[1.5ex]
+    \Psi'; \Theta'; \Sigma' \vdash \{\mathcal{R}_1\} \; \langle\mathcal{P}, \mathcal{V}, \mathcal{E}\rangle^{\mathcal{O}} : \tau \; \{\!\!\{\mathcal{R}_2; \mathsf{St}; \epsilon\}\!\!\} \\[1.5ex]
     f : (\Psi, \Theta, \Sigma) \to (\Psi', \Theta', \Sigma') \\[1.5ex]
     g : \Psi' \to \Psi \\[1.5ex]
     f.\mathsf{fst} \circ g = \mathsf{id}
   \end{array}%
 }{%
-  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1 \circ f\} \; \langle\mathcal{P} \circ f, \mathcal{V} \circ f, \mathcal{E} \circ (f, g)\rangle^{\mathcal{O}} : \tau \; \{\!\{\mathcal{R}_2 \circ f; \mathsf{St} \circ f; \epsilon\}\!\}
+  \Psi; \Theta; \Sigma \vdash \{\mathcal{R}_1 \circ f\} \; \langle\mathcal{P} \circ f, \mathcal{V} \circ f, \mathcal{E} \circ (f, g)\rangle^{\mathcal{O}} : \tau \; \{\!\!\{\mathcal{R}_2 \circ f; \mathsf{St} \circ f; \epsilon\}\!\!\}
 } \quad \text{(Virtual-Ctx)}
 \]
 

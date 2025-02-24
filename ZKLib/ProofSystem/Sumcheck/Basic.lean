@@ -5,6 +5,7 @@ Authors: Quang Dao
 -/
 
 import ZKLib.OracleReduction.Security.Basic
+import ZKLib.OracleReduction.Composition.Sequential
 import ZKLib.ProofSystem.Relation.Sumcheck
 import ZKLib.Data.Math.Fin
 
@@ -105,8 +106,6 @@ open Polynomial MvPolynomial OracleSpec OracleComp ProtocolSpec Finset
 
 noncomputable section
 
-#check PMF.bind
-
 theorem PMF.bind_eq_zero {α β : Type _} {p : PMF α} {f : α → PMF β} {b : β} :
     (p >>= f) b = 0 ↔ ∀ a, p a = 0 ∨ f a b = 0 := by simp
 
@@ -114,18 +113,21 @@ namespace Spec
 
 namespace Simpler
 
--- Let's try to simplify a single round of sum-check, and appeal to compositionality to `lift`
+-- Let's try to simplify a single round of sum-check, and appeal to compositionality to lift
 -- the result to the full protocol.
 
 -- In this simplified setting, the sum-check protocol consists of a _univariate_ polynomial
 -- `p : R⦃≤ d⦄[X]` of degree at most `d`, and the relation is that
 -- `∑ x ∈ univ.map D, p.eval x = target`.
 
+-- We further break it down into each message:
+-- In order of (witness, oracle statement, public statement ; relation):
+-- (∅, p : R⦃≤ d⦄[X], t : R ; ∑ x ∈ univ.map D, p.eval x = t) =>[1st message]
+-- (∅, (p, q) : R⦃≤ d⦄[X] × R⦃≤ d⦄[X], t : R ; p = q) =>[omit unused public statement]
+-- (∅, (p, q) : R⦃≤ d⦄[X] × R⦃≤ d⦄[X], ∅ ; p = q) =>[2nd message]
+-- (∅, (p, q) : R⦃≤ d⦄[X] × R⦃≤ d⦄[X], r : R ; p.eval r = q.eval r, t = q.eval r)
+
 variable (R : Type) [CommSemiring R] (d : ℕ) {m : ℕ} (D : Fin m ↪ R)
-
--- def InputStatement := R
-
--- def OutputStatement := R × R
 
 def InputOracleStatement : Unit → Type := fun _ => R⦃≤ d⦄[X]
 
@@ -214,7 +216,7 @@ theorem perfect_completeness : (reduction R d D).perfectCompleteness
     prover verifier pSpec
   simp only [Fin.induction_two, getDir_apply, getType_apply, Matrix.cons_val_zero,
     Matrix.cons_val_one, Matrix.head_cons, getChallenge]
-  simp only [probEvent_eq_one_iff, Prod.forall, simulate, simulateT, StateT.run]
+  simp only [probEvent_eq_one_iff, Prod.forall, simulate, simulateQ, StateT.run]
   constructor
   · simp
     simp [probFailure, OptionT.run]
@@ -226,7 +228,7 @@ theorem perfect_completeness : (reduction R d D).perfectCompleteness
       Set.mem_iUnion, Set.mem_image, Prod.mk.injEq, true_and, Prod.exists, exists_prop,
       Subtype.exists] at hSupport
     simp only [liftM_eq_liftComp] at hSupport
-    simp [support_liftComp, support_pure] at hSupport
+    -- simp [support_liftComp, support_pure] at hSupport
     obtain ⟨a, ha, a1, a2, ha2, b, supp, i, rest⟩ := hSupport
     -- rw [support_pure _] at supp
     -- simp only [] at hSupport
@@ -234,9 +236,10 @@ theorem perfect_completeness : (reduction R d D).perfectCompleteness
 
 end Simpler
 
-
 -- The variables for sum-check
 variable (R : Type) [CommSemiring R] (n : ℕ) (deg : ℕ) {m : ℕ} (D : Fin m ↪ R)
+
+section SingleRound
 
 /-- Statement for sum-check, parameterized by the ring `R`, the number of variables `n`,
 and the round index `i : Fin (n + 2)`
@@ -413,13 +416,13 @@ variable {R : Type} [CommSemiring R] [VCVCompatible R] {n : ℕ} {deg : ℕ} {m 
 /-- The oracle verifier does the same thing as the non-oracle verifier -/
 theorem oracleVerifier_eq_verifier :
     (oracleVerifier R n deg D oSpec i).toVerifier = verifier R n deg D oSpec i := by
-  simp only [pSpec, OracleVerifier.toVerifier, getDir_apply, getType_apply,
+  simp [pSpec, OracleVerifier.toVerifier, getDir_apply, getType_apply,
     instToOracleMessagePSpec, id_eq, oracleVerifier, bind_pure, guard_eq,
-    Fin.val_succ, bind_pure_comp, simulate_bind, simulate_map, simulate_query, statelessOracle,
+    Fin.val_succ, bind_pure_comp, simulate_bind, simulate_map, simulate_query,
     map_pure, Prod.map_apply, Fin.coe_castSucc, Function.Embedding.inl_apply,
     eq_mpr_eq_cast, cast_eq, map_bind, Functor.map_map, verifier, Fin.isValue, Matrix.cons_val_zero,
-    sum_map, Verifier.mk.injEq]
-  rw [← List.mapM'_eq_mapM]
+    sum_map, Verifier.mk.injEq, simulateQ]
+  -- rw [← List.mapM'_eq_mapM]
   funext stmt transcript
   split; next x p_i hp_i hEq =>
   have : p_i = (transcript 0).1 := by simp only [hEq]
@@ -446,8 +449,7 @@ theorem perfect_completeness : OracleReduction.perfectCompleteness
   simp only [pSpec, getType_apply, getDir_apply, evalDist, eq_mp_eq_cast, reduction, prover,
     proverIn, proverRound, eq_mpr_eq_cast, proverOut, verifier, Matrix.cons_val_zero,
     sum_map, decide_eq_true_eq, Bool.decide_or, Bool.decide_eq_true, decide_not,
-    append, simulate', simulate, map_pure, bind_pure_comp,
-    PMF.pure_bind, Function.comp_apply]
+    simulate', simulate, map_pure, bind_pure_comp, PMF.pure_bind, Function.comp_apply]
   simp only [map_eq_bind_pure_comp, bind, pure, PMF.bind_bind, PMF.pure_bind,
   Function.comp_apply, Function.uncurry_apply_pair, PMF.bind_apply, PMF.uniformOfFintype_apply,
   PMF.pure_apply, eq_iff_iff, eq_mp_eq_cast, mul_ite, mul_one, mul_zero, iff_true]
@@ -519,8 +521,75 @@ def rbrExtractor (i : Fin (n + 1)) :
 
 end Security
 
+end SingleRound
+
+namespace Combined
+
+/-!
+  We give the type signature & security guarantees for the whole sum-check protocol (so that we
+  could use it for other oracle reductions, e.g. Spartan, without needing to prove security of
+  sum-check first)
+-/
+
+def pSpec : ProtocolSpec ((n + 1) * 2) :=
+  fun i => if i % 2 = 0 then (.P_to_V, R⦃≤ deg⦄[X]) else (.V_to_P, R)
+
+instance : ∀ i, ToOracle ((pSpec R deg n).Message i) := fun ⟨i, hDir⟩ => by
+  by_cases h : i % 2 = 0
+  · simp [pSpec, h]; infer_instance
+  · simp [pSpec, h]; simp [MessageIndex, pSpec, h] at hDir
+
+instance [VCVCompatible R] : ∀ i, VCVCompatible ((pSpec R deg n).Challenge i) := fun ⟨i, hDir⟩ => by
+  by_cases h : i % 2 = 0
+  · simp [pSpec, h]; simp [pSpec, h] at hDir
+  · simp [pSpec, h]; infer_instance
+
+def StmtIn := R
+
+@[reducible]
+def OStmtIn : Unit → Type := fun _ => R⦃≤ deg⦄[X (Fin (n + 1))]
+
+def WitIn := Unit
+
+def StmtOut := R × (Fin (n + 1) → R)
+
+@[reducible]
+def OStmtOut : Unit → Type := fun _ => R⦃≤ deg⦄[X (Fin (n + 1))]
+
+def WitOut := Unit
+
+def relIn : (StmtIn R) × (∀ i, OStmtIn R n deg i) → WitIn → Prop :=
+  fun ⟨target, polyOracle⟩ _ => ∑ x ∈ (univ.map D) ^ᶠ (n + 1), (polyOracle ()).1 ⸨x⸩ = target
+
+def relOut : (StmtOut R n) × (∀ i, OStmtOut R n deg i) → WitOut → Prop :=
+  fun ⟨⟨target, challenges⟩, polyOracle⟩ _ => (polyOracle ()).1 ⸨challenges⸩ = target
+
+def prover : OracleProver (pSpec R deg n) []ₒ (StmtIn R) WitIn (StmtOut R n) WitOut
+    (OStmtIn R n deg) (OStmtOut R n deg) := sorry
+
+def verifier : OracleVerifier (pSpec R deg n) []ₒ (StmtIn R) (StmtOut R n)
+    (OStmtIn R n deg) (OStmtOut R n deg) := sorry
+
+def reduction : OracleReduction (pSpec R deg n) []ₒ (StmtIn R) WitIn (StmtOut R n) WitOut
+    (OStmtIn R n deg) (OStmtOut R n deg) :=
+  .mk (prover R n deg) (verifier R n deg)
+
+variable [VCVCompatible R]
+
+/-- Perfect completeness for the (full) sum-check protocol -/
+theorem reduction_complete : (reduction R n deg).perfectCompleteness
+    (relIn R n deg D) (relOut R n deg) := sorry
+
+-- def stateFunction : Reduction.StateFunction (pSpec R deg n) []ₒ (relIn R n deg D) (relOut R n deg)
+
+-- /-- Round-by-round knowledge soundness for the (full) sum-check protocol -/
+-- theorem reduction_sound :
+
+end Combined
+
 end Spec
 
+-- end for noncomputable section
 end
 
 end Sumcheck
