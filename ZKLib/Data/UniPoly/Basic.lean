@@ -689,6 +689,15 @@ noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
 
 alias ofPoly := Polynomial.toImpl
 
+theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x := by
+  unfold toPoly eval eval₂
+  rw [← Array.foldl_hom (Polynomial.eval x)
+    (fun acc (t : Q × ℕ) ↦ acc + Polynomial.C t.1 * Polynomial.X ^ t.2)
+    (fun acc (a, i) ↦ acc + a * x ^ i) ]
+  congr
+  exact Polynomial.eval_zero
+  simp
+
 theorem toPoly_add {p q : UniPoly R} : (add_raw p q).toPoly = p.toPoly + q.toPoly := by
   dsimp [toPoly]
   sorry
