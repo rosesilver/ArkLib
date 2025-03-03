@@ -720,7 +720,7 @@ theorem ofPoly_toPoly (p : Polynomial Q) : p = p.toImpl.toPoly := by
   simp only [Array.getD_eq_get?, Array.getElem?_ofFn]
   by_cases h : n < p.natDegree + 1
   · simp only [h, Option.getD_some, reduceDIte]
-  simp [h, reduceDIte, Option.getD_none]
+  simp only [h, Option.getD_none, reduceDIte]
   rw [not_lt] at h
   replace h := Nat.lt_of_succ_le h
   exact coeff_eq_zero_of_natDegree_lt h
