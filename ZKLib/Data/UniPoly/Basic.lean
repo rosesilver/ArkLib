@@ -711,7 +711,27 @@ theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x
 
 lemma coeff_toPoly (p : UniPoly Q) (n : ℕ) : p.toPoly.coeff n = p.getD n 0 := by
   unfold toPoly eval₂
-  sorry
+
+  let motive (k: ℕ) (a: Polynomial Q) := a.coeff n = if (k ≤ n) then 0 else Array.getD p n 0
+
+  let as := p.zipIdx
+  let f := fun (acc: Polynomial Q) ((a,i): Q × ℕ) ↦ acc + Polynomial.C a * Polynomial.X ^ i
+  show (Array.foldl f 0 as).coeff n = p.getD n 0
+
+  have h0 : motive 0 0 := by simp [motive]
+
+  have hf : ∀ (i : Fin as.size) acc, motive (↑i) acc → motive (↑i + 1) (f acc as[i]) := by
+    unfold motive
+    intros i acc h
+    rcases (Nat.lt_trichotomy i n) with hlt | heq | hgt
+    · sorry
+    · sorry
+    · sorry
+
+  rw [Array.foldl_induction motive h0 hf, ite_eq_right_iff]
+  intro hn
+  simp [as, Array.zipIdx] at hn
+  simp [hn]
 
 theorem ofPoly_toPoly (p : Polynomial Q) : p = p.toImpl.toPoly := by
   ext n
