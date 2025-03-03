@@ -687,6 +687,17 @@ variable {S: Type} [Semiring S]
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
   p.eval₂ Polynomial.C Polynomial.X
 
+-- this is more low-level and simple, maybe a better definition
+noncomputable def toPoly' (p : UniPoly R) : Polynomial R :=
+  Polynomial.ofFinsupp (Finsupp.onFinset (Finset.range p.size) (fun i => p.getD i 0) (by
+    intro n hn
+    simp only at hn
+    rw [Finset.mem_range]
+    by_contra! h
+    have h' : p.getD n 0 = 0 := by simp [h]
+    contradiction
+  ))
+
 alias ofPoly := Polynomial.toImpl
 
 theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x := by
