@@ -28,7 +28,7 @@ def UniPoly (R : Type*) := Array R
 
 /-- Convert a `Polynomial` to a `UniPoly`. -/
 def Polynomial.toImpl {R : Type*} [Semiring R] (p : Polynomial R) : UniPoly R :=
-  .ofFn (fun i : Fin p.natDegree => p.coeff i)
+  .ofFn (fun i : Fin (p.natDegree + 1) => p.coeff i)
 
 namespace UniPoly
 
@@ -698,18 +698,25 @@ theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x
   exact Polynomial.eval_zero
   simp
 
+lemma coeff_toPoly (p : UniPoly Q) (n : ℕ) : p.toPoly.coeff n = p.getD n 0 := by
+  unfold toPoly eval₂
+  sorry
+
+theorem ofPoly_toPoly (p : Polynomial Q) : p = p.toImpl.toPoly := by
+  ext n
+  rw [coeff_toPoly]
+  unfold Polynomial.toImpl
+  simp only [Array.getD_eq_get?, Array.getElem?_ofFn]
+  by_cases h : n < p.natDegree + 1
+  · simp only [h, Option.getD_some, reduceDIte]
+  simp [h, reduceDIte, Option.getD_none]
+  rw [not_lt] at h
+  replace h := Nat.lt_of_succ_le h
+  exact coeff_eq_zero_of_natDegree_lt h
+
 theorem toPoly_add {p q : UniPoly R} : (add_raw p q).toPoly = p.toPoly + q.toPoly := by
   dsimp [toPoly]
   sorry
-
-theorem ofPoly_toPoly (p : Polynomial R) : p = p.toImpl.toPoly := by
-  induction p using Polynomial.induction_on' with
-  | h_add p q hp hq =>
-    rw [hp, hq]
-    simp [toPoly, toImpl, eval₂]
-    sorry
-  | h_monomial n a =>
-    sorry
 
 end ToPoly
 
