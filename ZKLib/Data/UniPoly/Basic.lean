@@ -687,7 +687,7 @@ variable {S: Type} [Semiring S]
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
   p.eval₂ Polynomial.C Polynomial.X
 
--- this is more low-level and simple, maybe a better definition
+-- this is more low-level and direct, maybe a better definition
 noncomputable def toPoly' (p : UniPoly R) : Polynomial R :=
   Polynomial.ofFinsupp (Finsupp.onFinset (Finset.range p.size) (fun i => p.getD i 0) (by
     intro n hn
@@ -712,21 +712,32 @@ theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x
 lemma coeff_toPoly (p : UniPoly Q) (n : ℕ) : p.toPoly.coeff n = p.getD n 0 := by
   unfold toPoly eval₂
 
-  let motive (k: ℕ) (a: Polynomial Q) := a.coeff n = if (k ≤ n) then 0 else Array.getD p n 0
-
   let as := p.zipIdx
-  let f := fun (acc: Polynomial Q) ((a,i): Q × ℕ) ↦ acc + Polynomial.C a * Polynomial.X ^ i
+  let f := fun (acc: Q[X]) ((a,i): Q × ℕ) ↦ acc + Polynomial.C a * Polynomial.X ^ i
   show (Array.foldl f 0 as).coeff n = p.getD n 0
 
+  let motive (k: ℕ) (a: Q[X]) := a.coeff n = if (k ≤ n) then 0 else Array.getD p n 0
   have h0 : motive 0 0 := by simp [motive]
-
-  have hf : ∀ (i : Fin as.size) acc, motive (↑i) acc → motive (↑i + 1) (f acc as[i]) := by
+  have hf : ∀ (i : Fin p.zipIdx.size) acc, motive i acc → motive (i + 1) (f acc p.zipIdx[i]) := by
     unfold motive
     intros i acc h
+    have : p.zipIdx.size = p.size := by simp [Array.zipIdx]
+    have i_lt_p : i < p.size := by linarith [i.is_lt]
+    have : p.zipIdx[i] = (p[i], (i : ℕ)) := by simp [Array.getElem_zipIdx]
+    rw [this]
+    simp only [Fin.getElem_fin, coeff_add, coeff_C_mul, coeff_X_pow, mul_ite, mul_one, mul_zero,
+      Array.getD_eq_get?, f, motive, h]
     rcases (Nat.lt_trichotomy i n) with hlt | heq | hgt
-    · sorry
-    · sorry
-    · sorry
+    · simp only [Nat.le_of_lt hlt, Nat.succ_le_of_lt hlt, reduceIte,
+         _root_.zero_add, ite_eq_right_iff]
+      intro heq
+      linarith
+    · subst heq
+      simp [i_lt_p]
+    · have h1 : ¬ (i ≤ n) := by linarith
+      have h2 : ¬ (i + 1 ≤ n) := by linarith
+      have h3 : ¬ (n = i) := by linarith
+      simp [h1, h2, h3]
 
   rw [Array.foldl_induction motive h0 hf, ite_eq_right_iff]
   intro hn
