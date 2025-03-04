@@ -785,6 +785,26 @@ theorem toPoly_trim [LawfulBEq R] {p : UniPoly R} : p.trim.toPoly = p.toPoly := 
   ext n
   rw [coeff_toPoly, coeff_toPoly, Trim.getD_eq_getD]
 
+lemma toImpl_nonzero {p : Q[X]} (hp: p ≠ 0) : p.toImpl.size > 0 := by
+  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨_, h⟩
+  · contradiction
+  suffices h : p.toImpl ≠ #[] from Array.size_pos.mpr h
+  simp [h]
+
+lemma getLast_toImpl {p : Q[X]} (hp: p ≠ 0) : let h : p.toImpl.size > 0 := toImpl_nonzero hp;
+    p.toImpl[p.toImpl.size - 1] = p.leadingCoeff := by
+  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨h_nz, h⟩
+  · contradiction
+  simp [h]
+
+theorem trim_toImpl [LawfulBEq R] (p : R[X]) : p.toImpl.trim = p.toImpl := by
+  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨h_nz, h⟩
+  · rw [h]; exact Trim.canonical_empty
+  rw [Trim.canonical_iff]
+  unfold Array.getLast
+  intro
+  rw [getLast_toImpl h_nz]
+  exact Polynomial.leadingCoeff_ne_zero.mpr h_nz
 end ToPoly
 
 section Equiv
