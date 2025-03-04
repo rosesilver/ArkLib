@@ -759,9 +759,9 @@ theorem ofPoly_toPoly (p : Polynomial Q) : p = p.toImpl.toPoly := by
   replace h := Nat.lt_of_succ_le h
   exact coeff_eq_zero_of_natDegree_lt h
 
-theorem toPoly_add {p q : UniPoly R} : (add_raw p q).toPoly = p.toPoly + q.toPoly := by
-  dsimp [toPoly]
-  sorry
+theorem toPoly_add {p q : UniPoly Q} : (add_raw p q).toPoly = p.toPoly + q.toPoly := by
+  ext n
+  rw [coeff_add, coeff_toPoly, coeff_toPoly, coeff_toPoly, add_coeff?]
 
 end ToPoly
 
