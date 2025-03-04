@@ -27,8 +27,10 @@ the same polynomial via zero-padding, for example `#[1,2,3] = #[1,2,3,0,0,0,...]
 def UniPoly (R : Type*) := Array R
 
 /-- Convert a `Polynomial` to a `UniPoly`. -/
-def Polynomial.toImpl {R : Type*} [Semiring R] (p : Polynomial R) : UniPoly R :=
-  .ofFn (fun i : Fin (p.natDegree + 1) => p.coeff i)
+def Polynomial.toImpl {R : Type*} [Semiring R] (p : R[X]) : UniPoly R :=
+  match p.degree with
+  | ⊥ => #[]
+  | some d  => .ofFn (fun i : Fin (d + 1) => p.coeff i)
 
 namespace UniPoly
 
@@ -752,9 +754,16 @@ theorem ofPoly_toPoly {p : Q[X]} : p.toImpl.toPoly = p := by
   rw [coeff_toPoly]
   unfold Polynomial.toImpl
   simp only [Array.getD_eq_get?, Array.getElem?_ofFn]
+  by_cases hbot : p.degree = ⊥
+  · rw [hbot, degree_eq_bot.mp hbot, coeff_zero]
+    simp
+  have hd : p.degree = p.natDegree := degree_eq_natDegree (degree_ne_bot.mp hbot)
+  rw [hd]
+  simp only
   by_cases h : n < p.natDegree + 1
   · simp [h]
-  simp only [h, Option.getD_none, reduceDIte]
+  rw [Array.getElem?_ofFn, Nat.cast_id]
+  simp only [h, reduceDIte, Option.getD_none]
   rw [not_lt] at h
   replace h := Nat.lt_of_succ_le h
   exact coeff_eq_zero_of_natDegree_lt h |> Eq.symm
