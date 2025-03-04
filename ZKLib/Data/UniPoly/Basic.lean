@@ -763,7 +763,7 @@ lemma toImpl_elim (p : Q[X]) :
   have hnat : p.degree = p.natDegree := degree_eq_natDegree (degree_ne_bot.mp hbot)
   simp [hnat]
 
-theorem ofPoly_toPoly {p : Q[X]} : p.toImpl.toPoly = p := by
+theorem toPoly_toImpl {p : Q[X]} : p.toImpl.toPoly = p := by
   ext n
   rw [coeff_toPoly]
   rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨_, h⟩
@@ -805,6 +805,61 @@ theorem trim_toImpl [LawfulBEq R] (p : R[X]) : p.toImpl.trim = p.toImpl := by
   intro
   rw [getLast_toImpl h_nz]
   exact Polynomial.leadingCoeff_ne_zero.mpr h_nz
+
+lemma toPoly_induct (p: UniPoly Q) (motive : (p : UniPoly Q) → (q: Q[X] := p.toPoly) → (i: ℕ := p.size) → Prop)
+  (init : motive 0 0 0)
+  (induct : ∀ a : Q, ∀ p acc (i : Fin p.size), motive p acc i
+    → motive (p.push a) (acc + Polynomial.C a * Polynomial.X ^ (i : ℕ)) (i + 1))
+  : motive p := by
+  sorry
+
+theorem toPoly_degree [LawfulBEq R] (p: UniPoly R) :
+  p.toPoly.degree = match p.last_nonzero with
+    | none => ⊥
+    | some k => k
+   := by
+  induction p using Trim.last_nonzero_induct with
+  | case1 p h_none h_all_zero =>
+    rw [h_none]; dsimp only
+    suffices h : p.toPoly = 0 by
+      rw [h]
+      exact Polynomial.degree_zero
+    -- could extract this case into a lemma
+    -- `∀ (i : ℕ) (hi : i < Array.size p), p[i] = 0 → p.toPoly = 0`
+    unfold toPoly eval₂
+    let motive (size: ℕ) (acc: R[X]) := acc = 0
+    apply Array.foldl_induction motive
+    · simp [motive]
+    unfold motive
+    intro i acc ih
+    have zipIdx_getElem : p.zipIdx[i] = (p[i], ↑i) := by simp [Array.getElem_zipIdx]
+    have zipIdx_size : p.zipIdx.size = p.size := by simp [Array.zipIdx]
+    have i_lt : i < p.size := by linarith [i.is_lt]
+    rw [zipIdx_getElem, ih]
+    simp [h_all_zero i i_lt]
+  | case2 p k h_some h_nonzero h_max =>
+    rw [h_some]; dsimp only
+    have ⟨ k', h_some', h ⟩ := toPoly_induct p
+      (fun p q i => ∃ k, p.last_nonzero = some k ∧ q.degree = k)
+      ?h0 ?ih
+    have h_k_eq_k' : k = k' := by
+      suffices h' : some k = some k' by injections
+      rw [← h_some, ← h_some']
+    rw [h_k_eq_k', h]
+    sorry
+    sorry
+
+-- theorem toImpl_toPoly_of_canonical [LawfulBEq R] (p: UniPoly R) (hp: p.trim = p) :
+--     p.toPoly.toImpl = p := by
+--   -- we will show something slightly more general: toImpl is injective on canonical polynomials
+--   suffices h_inj : ∀ q : UniPoly R, q.trim = q → p.toPoly = q.toPoly → p = q by
+--     have : p.toPoly = p.toPoly.toImpl.toPoly := by rw [toPoly_toImpl]
+--     exact Eq.symm <| h_inj p.toPoly.toImpl (trim_toImpl p.toPoly) this
+
+--   intro q hq hpq
+--   -- unfold toPoly eval₂ at hpq
+--   ext i hip hiq
+
 end ToPoly
 
 section Equiv
