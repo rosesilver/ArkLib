@@ -369,6 +369,15 @@ theorem non_zero_map [LawfulBEq R] (f : R → R) (hf : ∀ r, f r = 0 → r = 0)
   have : p.size = 0 := by linarith
   have : fp.size = 0 := by simp [this, fp]
   apply canonical_of_size_zero this
+
+/-- Canonical polynomials enjoy a stronger extensionality theorem:
+  they just need to agree at all values, without any hypothesis about equal sizes
+-/
+theorem canonical_ext [LawfulBEq R] {p q : UniPoly R} (hp: p.trim = p) (hq: q.trim = q) :
+    equiv p q → p = q := by
+  intro h_equiv
+  rw [← hp, ← hq]
+  exact eq_of_equiv h_equiv
 end Trim
 
 /-- canonical version of UniPoly -/
@@ -849,17 +858,21 @@ theorem toPoly_degree [LawfulBEq R] (p: UniPoly R) :
     sorry
     sorry
 
--- theorem toImpl_toPoly_of_canonical [LawfulBEq R] (p: UniPoly R) (hp: p.trim = p) :
---     p.toPoly.toImpl = p := by
---   -- we will show something slightly more general: toImpl is injective on canonical polynomials
---   suffices h_inj : ∀ q : UniPoly R, q.trim = q → p.toPoly = q.toPoly → p = q by
---     have : p.toPoly = p.toPoly.toImpl.toPoly := by rw [toPoly_toImpl]
---     exact Eq.symm <| h_inj p.toPoly.toImpl (trim_toImpl p.toPoly) this
+theorem toImpl_toPoly_of_canonical [LawfulBEq R] (p: UniPoly R) (hp: p.trim = p) :
+    p.toPoly.toImpl = p := by
+  -- we will show something slightly more general: `toPoly` is injective on canonical polynomials
+  suffices h_inj : ∀ q : UniPoly R, q.trim = q → p.toPoly = q.toPoly → p = q by
+    have : p.toPoly = p.toPoly.toImpl.toPoly := by rw [toPoly_toImpl]
+    exact Eq.symm <| h_inj p.toPoly.toImpl (trim_toImpl p.toPoly) this
+  intro q hq hpq
+  apply Trim.canonical_ext hp hq
+  intro i
+  rw [← coeff_toPoly, ← coeff_toPoly]
+  congr
 
---   intro q hq hpq
---   -- unfold toPoly eval₂ at hpq
---   ext i hip hiq
-
+theorem toImpl_toPoly [LawfulBEq R] (p: UniPoly R) : p.toPoly.toImpl = p.trim := by
+  rw [← toPoly_trim]
+  exact toImpl_toPoly_of_canonical p.trim (Trim.trim_twice p)
 end ToPoly
 
 section Equiv
