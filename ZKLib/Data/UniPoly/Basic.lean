@@ -749,24 +749,33 @@ lemma coeff_toPoly {p : UniPoly Q} {n : ℕ} : p.toPoly.coeff n = p.getD n 0 := 
     have h2 : n < i + 1 := by linarith
     simp [hgt, h1, h2]
 
+/-- lemma to argue about toImpl by cases -/
+lemma toImpl_elim (p : Q[X]) :
+    (p = 0 ∧ p.toImpl = #[])
+  ∨ (p ≠ 0 ∧ p.toImpl = .ofFn (fun i : Fin (p.natDegree + 1) => p.coeff i)) := by
+  unfold toImpl
+  by_cases hbot : p.degree = ⊥
+  · left
+    use degree_eq_bot.mp hbot
+    rw [hbot]
+  right
+  use degree_ne_bot.mp hbot
+  have hnat : p.degree = p.natDegree := degree_eq_natDegree (degree_ne_bot.mp hbot)
+  simp [hnat]
+
 theorem ofPoly_toPoly {p : Q[X]} : p.toImpl.toPoly = p := by
   ext n
   rw [coeff_toPoly]
-  unfold Polynomial.toImpl
-  simp only [Array.getD_eq_get?, Array.getElem?_ofFn]
-  by_cases hbot : p.degree = ⊥
-  · rw [hbot, degree_eq_bot.mp hbot, coeff_zero]
-    simp
-  have hd : p.degree = p.natDegree := degree_eq_natDegree (degree_ne_bot.mp hbot)
-  rw [hd]
-  simp only
+  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨_, h⟩
+  · simp [h]
+  rw [h]
   by_cases h : n < p.natDegree + 1
   · simp [h]
-  rw [Array.getElem?_ofFn, Nat.cast_id]
+  simp only [Array.getD_eq_get?, Array.getElem?_ofFn]
   simp only [h, reduceDIte, Option.getD_none]
-  rw [not_lt] at h
-  replace h := Nat.lt_of_succ_le h
-  exact coeff_eq_zero_of_natDegree_lt h |> Eq.symm
+  replace h := Nat.lt_of_succ_le (not_lt.mp h)
+  symm
+  exact coeff_eq_zero_of_natDegree_lt h
 
 theorem toPoly_add {p q : UniPoly Q} : (add_raw p q).toPoly = p.toPoly + q.toPoly := by
   ext n
