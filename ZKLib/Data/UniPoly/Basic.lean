@@ -712,37 +712,40 @@ theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x
 lemma coeff_toPoly (p : UniPoly Q) (n : ℕ) : p.toPoly.coeff n = p.getD n 0 := by
   unfold toPoly eval₂
 
-  let as := p.zipIdx
   let f := fun (acc: Q[X]) ((a,i): Q × ℕ) ↦ acc + Polynomial.C a * Polynomial.X ^ i
-  show (Array.foldl f 0 as).coeff n = p.getD n 0
+  show (Array.foldl f 0 p.zipIdx).coeff n = p.getD n 0
 
-  let motive (k: ℕ) (a: Q[X]) := a.coeff n = if (k ≤ n) then 0 else Array.getD p n 0
-  have h0 : motive 0 0 := by simp [motive]
-  have hf : ∀ (i : Fin p.zipIdx.size) acc, motive i acc → motive (i + 1) (f acc p.zipIdx[i]) := by
-    unfold motive
-    intros i acc h
-    have : p.zipIdx.size = p.size := by simp [Array.zipIdx]
-    have i_lt_p : i < p.size := by linarith [i.is_lt]
-    have : p.zipIdx[i] = (p[i], (i : ℕ)) := by simp [Array.getElem_zipIdx]
-    rw [this]
-    simp only [Fin.getElem_fin, coeff_add, coeff_C_mul, coeff_X_pow, mul_ite, mul_one, mul_zero,
-      Array.getD_eq_get?, f, motive, h]
-    rcases (Nat.lt_trichotomy i n) with hlt | heq | hgt
-    · simp only [Nat.le_of_lt hlt, Nat.succ_le_of_lt hlt, reduceIte,
-         _root_.zero_add, ite_eq_right_iff]
-      intro heq
-      linarith
-    · subst heq
-      simp [i_lt_p]
-    · have h1 : ¬ (i ≤ n) := by linarith
-      have h2 : ¬ (i + 1 ≤ n) := by linarith
-      have h3 : ¬ (n = i) := by linarith
-      simp [h1, h2, h3]
+  -- we slightly weaken the goal, to use `Array.foldl_induction`
+  let motive (size: ℕ) (acc: Q[X]) := acc.coeff n = if (n < size) then Array.getD p n 0 else 0
 
-  rw [Array.foldl_induction motive h0 hf, ite_eq_right_iff]
-  intro hn
-  simp [as, Array.zipIdx] at hn
-  simp [hn]
+  have zipIdx_size : p.zipIdx.size = p.size := by simp [Array.zipIdx]
+
+  suffices h : motive p.zipIdx.size (Array.foldl f 0 p.zipIdx) by
+    rw [h, ite_eq_left_iff, zipIdx_size]
+    intro hn
+    replace hn : n ≥ p.size := by linarith
+    rw [Array.getD_eq_get?, Array.getElem?_eq_none hn, Option.getD_none]
+
+  apply Array.foldl_induction motive
+  · show motive 0 0
+    simp [motive]
+
+  show ∀ (i : Fin p.zipIdx.size) acc, motive i acc → motive (i + 1) (f acc p.zipIdx[i])
+  unfold motive f
+  intros i acc h
+  have i_lt_p : i < p.size := by linarith [i.is_lt]
+  have : p.zipIdx[i] = (p[i], ↑i) := by simp [Array.getElem_zipIdx]
+  rw [this, coeff_add, coeff_C_mul, coeff_X_pow, mul_ite, mul_one, mul_zero, h]
+  rcases (Nat.lt_trichotomy i n) with hlt | heq | hgt
+  · have h1 : ¬ (n < i) := by linarith
+    have h2 : ¬ (n = i) := by linarith
+    have h3 : ¬ (n < i + 1) := by linarith
+    simp [h1, h2, h3]
+  · subst heq
+    simp [i_lt_p]
+  · have h1 : ¬ (n = i) := by linarith
+    have h2 : n < i + 1 := by linarith
+    simp [hgt, h1, h2]
 
 theorem ofPoly_toPoly (p : Polynomial Q) : p = p.toImpl.toPoly := by
   ext n
