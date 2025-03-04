@@ -687,7 +687,7 @@ variable {S: Type} [Semiring S]
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
   p.eval₂ Polynomial.C Polynomial.X
 
--- this is more low-level and direct, maybe a better definition
+/-- this is more low-level and direct, maybe a better definition than `toPoly` -/
 noncomputable def toPoly' (p : UniPoly R) : Polynomial R :=
   Polynomial.ofFinsupp (Finsupp.onFinset (Finset.range p.size) (fun i => p.getD i 0) (by
     intro n hn
@@ -709,7 +709,7 @@ theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x
   exact Polynomial.eval_zero
   simp
 
-lemma coeff_toPoly (p : UniPoly Q) (n : ℕ) : p.toPoly.coeff n = p.getD n 0 := by
+lemma coeff_toPoly {p : UniPoly Q} {n : ℕ} : p.toPoly.coeff n = p.getD n 0 := by
   unfold toPoly eval₂
 
   let f := fun (acc: Q[X]) ((a,i): Q × ℕ) ↦ acc + Polynomial.C a * Polynomial.X ^ i
@@ -747,21 +747,25 @@ lemma coeff_toPoly (p : UniPoly Q) (n : ℕ) : p.toPoly.coeff n = p.getD n 0 := 
     have h2 : n < i + 1 := by linarith
     simp [hgt, h1, h2]
 
-theorem ofPoly_toPoly (p : Polynomial Q) : p = p.toImpl.toPoly := by
+theorem ofPoly_toPoly {p : Q[X]} : p.toImpl.toPoly = p := by
   ext n
   rw [coeff_toPoly]
   unfold Polynomial.toImpl
   simp only [Array.getD_eq_get?, Array.getElem?_ofFn]
   by_cases h : n < p.natDegree + 1
-  · simp only [h, Option.getD_some, reduceDIte]
+  · simp [h]
   simp only [h, Option.getD_none, reduceDIte]
   rw [not_lt] at h
   replace h := Nat.lt_of_succ_le h
-  exact coeff_eq_zero_of_natDegree_lt h
+  exact coeff_eq_zero_of_natDegree_lt h |> Eq.symm
 
 theorem toPoly_add {p q : UniPoly Q} : (add_raw p q).toPoly = p.toPoly + q.toPoly := by
   ext n
   rw [coeff_add, coeff_toPoly, coeff_toPoly, coeff_toPoly, add_coeff?]
+
+theorem toPoly_trim [LawfulBEq R] {p : UniPoly R} : p.trim.toPoly = p.toPoly := by
+  ext n
+  rw [coeff_toPoly, coeff_toPoly, Trim.getD_eq_getD]
 
 end ToPoly
 
