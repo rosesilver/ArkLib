@@ -830,8 +830,7 @@ theorem trim_toImpl [LawfulBEq R] (p : R[X]) : p.toImpl.trim = p.toImpl := by
 
 /-- on canonical `UniPoly`s, `toImpl` is also a left-inverse of `toPoly`.
   in particular, `toPoly` is a bijection from `UniPolyC` to `Polynomial`. -/
-lemma toImpl_toPoly_of_canonical [LawfulBEq R] (p: UniPolyC R) :
-    p.toPoly.toImpl = p := by
+lemma toImpl_toPoly_of_canonical [LawfulBEq R] (p: UniPolyC R) : p.toPoly.toImpl = p := by
   -- we will show something slightly more general: `toPoly` is injective on canonical polynomials
   suffices h_inj : ∀ q : UniPolyC R, p.toPoly = q.toPoly → p = q by
     have : p.toPoly = p.toPoly.toImpl.toPoly := by rw [toPoly_toImpl]
