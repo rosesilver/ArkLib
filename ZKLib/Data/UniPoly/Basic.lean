@@ -43,6 +43,9 @@ def coeffs {R : Type*} (p : UniPoly R) : Array R := p
 variable {R : Type*} [Ring R] [BEq R]
 variable {Q : Type*} [Ring Q]
 
+@[reducible]
+def coeff (p : UniPoly Q) (i : ℕ) : Q := p.getD i 0
+
 /-- The constant polynomial `C r`. -/
 def C (r : R) : UniPoly R := #[r]
 
@@ -193,8 +196,8 @@ theorem size_le_size (p : UniPoly R) : p.trim.size ≤ p.size := by
 
 attribute [simp] Array.getElem?_eq_none
 
-theorem getD_eq_getElem_of_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
-  p.trim.getD i 0 = p[i] := by
+theorem coeff_eq_getElem_of_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size) :
+  p.trim.coeff i = p[i] := by
   induction p using induct with
   | case1 p h_empty h_all_zero =>
     specialize h_all_zero i hi
@@ -213,24 +216,24 @@ theorem getD_eq_getElem_of_lt [LawfulBEq R] {p : UniPoly R} {i} (hi: i < p.size)
       rw [Array.getElem?_eq_getElem hik', Option.getD_some, Array.getElem_extract]
       simp only [zero_add]
 
-theorem getD_eq_getD [LawfulBEq R] (p : UniPoly R) (i : ℕ) :
-  p.trim.getD i 0 = p.getD i 0 := by
+theorem coeff_eq_coeff [LawfulBEq R] (p : UniPoly R) (i : ℕ) :
+  p.trim.coeff i = p.coeff i := by
   rcases (Nat.lt_or_ge i p.size) with hi | hi
-  · rw [getD_eq_getElem_of_lt hi]
+  · rw [coeff_eq_getElem_of_lt hi]
     simp [hi]
   · have hi' : i ≥ p.trim.size := by linarith [size_le_size p]
     simp [hi, hi']
 
-lemma getD_eq_coeff_getElem {p : UniPoly Q} {i} (hp : i < p.size) :
-  p.getD i 0 = p[i] := by
+lemma coeff_eq_getElem {p : UniPoly Q} {i} (hp : i < p.size) :
+  p.coeff i = p[i] := by
   simp [hp]
 
-/-- Two polynomials are equivalent if they are the same after removing leading zeroes. -/
+/-- Two polynomials are equivalent if they have the same `Nat` coefficients. -/
 def equiv (p q : UniPoly R) : Prop :=
-  ∀ i, p.getD i 0 = q.getD i 0
+  ∀ i, p.coeff i = q.coeff i
 
-lemma getD_eq_zero {p : UniPoly Q} :
-    (∀ i, (hi : i < p.size) → p[i] = 0) ↔ ∀ i, p.getD i 0 = 0
+lemma coeff_eq_zero {p : UniPoly Q} :
+    (∀ i, (hi : i < p.size) → p[i] = 0) ↔ ∀ i, p.coeff i = 0
 := by
   constructor <;> intro h i
   · cases Nat.lt_or_ge i p.size <;> simp [h, *]
@@ -241,9 +244,9 @@ lemma eq_degree_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.degre
   intro h_equiv
   induction p using last_nonzero_induct with
   | case1 p h_none_p h_all_zero =>
-    have h_zero_p : ∀ i, p.getD i 0 = 0 := getD_eq_zero.mp h_all_zero
-    have h_zero_q : ∀ i, q.getD i 0 = 0 := by intro i; rw [← h_equiv, h_zero_p]
-    have h_none_q : q.last_nonzero = none := last_nonzero_none (getD_eq_zero.mpr h_zero_q)
+    have h_zero_p : ∀ i, p.coeff i = 0 := coeff_eq_zero.mp h_all_zero
+    have h_zero_q : ∀ i, q.coeff i = 0 := by intro i; rw [← h_equiv, h_zero_p]
+    have h_none_q : q.last_nonzero = none := last_nonzero_none (coeff_eq_zero.mpr h_zero_q)
     rw [h_none_p, h_none_q]
   | case2 p k h_some_p h_nonzero_p h_max_p =>
     have h_equiv_k := h_equiv k
@@ -272,17 +275,17 @@ theorem eq_of_equiv [LawfulBEq R] {p q : UniPoly R} : equiv p q → p.trim = q.t
   ext
   · rw [size_eq_degree, size_eq_degree]
     apply eq_degree_of_equiv h
-  rw [← getD_eq_coeff_getElem, ← getD_eq_coeff_getElem]
-  rw [getD_eq_getD, getD_eq_getD, h _]
+  rw [← coeff_eq_getElem, ← coeff_eq_getElem]
+  rw [coeff_eq_coeff, coeff_eq_coeff, h _]
 
 theorem trim_equiv [LawfulBEq R] (p : UniPoly R) : equiv p.trim p := by
-  apply getD_eq_getD
+  apply coeff_eq_coeff
 
 theorem trim_twice [LawfulBEq R] (p : UniPoly R) : p.trim.trim = p.trim := by
   apply eq_of_equiv
   apply trim_equiv
 
-theorem canonical_empty : (UniPoly.mk #[]).trim = UniPoly.mk (R:=R) #[] := by
+theorem canonical_empty : (UniPoly.mk (R:=R) #[]).trim = #[] := by
   have : (UniPoly.mk (R:=R) #[]).last_nonzero = none := by
     simp [last_nonzero];
     apply Array.findIdxRev?_emtpy_none
@@ -371,7 +374,7 @@ theorem non_zero_map [LawfulBEq R] (f : R → R) (hf : ∀ r, f r = 0 → r = 0)
   apply canonical_of_size_zero this
 
 /-- Canonical polynomials enjoy a stronger extensionality theorem:
-  they just need to agree at all values, without any hypothesis about equal sizes
+  they just need to agree at all coefficients (without assuming equal sizes)
 -/
 theorem canonical_ext [LawfulBEq R] {p q : UniPoly R} (hp: p.trim = p) (hq: q.trim = q) :
     equiv p q → p = q := by
@@ -385,8 +388,7 @@ def UniPolyC (R : Type*) [BEq R] [Ring R] := { p : UniPoly R // p.trim = p }
 
 @[ext] theorem UniPolyC.ext {p q : UniPolyC R} (h : p.val = q.val) : p = q := Subtype.eq h
 
-instance : Coe (UniPolyC R) (UniPoly R) where
-  coe := Subtype.val
+instance : Coe (UniPolyC R) (UniPoly R) where coe := Subtype.val
 
 instance : Inhabited (UniPolyC R) := ⟨#[], Trim.canonical_empty⟩
 
@@ -547,7 +549,7 @@ theorem add_size {p q : UniPoly Q} : (add_raw p q).size = max p.size q.size := b
   rw [zipWith_size matchSize_size_eq, matchSize_size]
 
 theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
-  (add_raw p q)[i] = p.getD i 0 + q.getD i 0
+  (add_raw p q)[i] = p.coeff i + q.coeff i
 := by
   simp [add_raw]
   unfold List.matchSize
@@ -555,7 +557,7 @@ theorem add_coeff {p q : UniPoly Q} {i: ℕ} (hi: i < (add_raw p q).size) :
   simp only [List.getD_eq_getElem?_getD, Array.getElem?_eq_toList]
 
 theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
-  (add_raw p q).getD i 0 = p.getD i 0 + q.getD i 0
+  (add_raw p q).coeff i = p.coeff i + q.coeff i
 := by
   rcases (Nat.lt_or_ge i (add_raw p q).size) with h_lt | h_ge
   · rw [← add_coeff h_lt]; simp [h_lt]
@@ -567,7 +569,7 @@ theorem add_coeff? (p q : UniPoly Q) (i: ℕ) :
 lemma trim_add_trim [LawfulBEq R] (p q : UniPoly R) : p.trim + q = p + q := by
   apply Trim.eq_of_equiv
   intro i
-  rw [add_coeff?, add_coeff?, Trim.getD_eq_getD]
+  rw [add_coeff?, add_coeff?, Trim.coeff_eq_coeff]
 
 -- algebra theorems about addition
 
@@ -695,20 +697,17 @@ instance [LawfulBEq R] : AddCommGroup (UniPolyC R) where
 end OperationsC
 
 section ToPoly
-variable {S: Type} [Semiring S]
-
 /-- Convert a `UniPoly` to a (mathlib) `Polynomial`. -/
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
   p.eval₂ Polynomial.C Polynomial.X
 
 /-- a more low-level and direct definition of `toPoly`; currently unused. -/
 noncomputable def toPoly' (p : UniPoly R) : Polynomial R :=
-  Polynomial.ofFinsupp (Finsupp.onFinset (Finset.range p.size) (fun i => p.getD i 0) (by
+  Polynomial.ofFinsupp (Finsupp.onFinset (Finset.range p.size) p.coeff (by
     intro n hn
-    simp only at hn
     rw [Finset.mem_range]
     by_contra! h
-    have h' : p.getD n 0 = 0 := by simp [h]
+    have h' : p.coeff n = 0 := by simp [h]
     contradiction
   ))
 
@@ -726,15 +725,15 @@ theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x
   exact Polynomial.eval_zero
   simp
 
-/-- characterize `p.toPoly` by showing that its coefficients are the entries of `p` -/
-lemma coeff_toPoly {p : UniPoly Q} {n : ℕ} : p.toPoly.coeff n = p.getD n 0 := by
+/-- characterize `p.toPoly` by showing that its coefficients are exactly the coefficients of `p` -/
+lemma coeff_toPoly {p : UniPoly Q} {n : ℕ} : p.toPoly.coeff n = p.coeff n := by
   unfold toPoly eval₂
 
   let f := fun (acc: Q[X]) ((a,i): Q × ℕ) ↦ acc + Polynomial.C a * Polynomial.X ^ i
-  show (Array.foldl f 0 p.zipIdx).coeff n = p.getD n 0
+  show (Array.foldl f 0 p.zipIdx).coeff n = p.coeff n
 
   -- we slightly weaken the goal, to use `Array.foldl_induction`
-  let motive (size: ℕ) (acc: Q[X]) := acc.coeff n = if (n < size) then Array.getD p n 0 else 0
+  let motive (size: ℕ) (acc: Q[X]) := acc.coeff n = if (n < size) then p.coeff n else 0
 
   have zipIdx_size : p.zipIdx.size = p.size := by simp [Array.zipIdx]
 
@@ -742,7 +741,7 @@ lemma coeff_toPoly {p : UniPoly Q} {n : ℕ} : p.toPoly.coeff n = p.getD n 0 := 
     rw [h, ite_eq_left_iff, zipIdx_size]
     intro hn
     replace hn : n ≥ p.size := by linarith
-    rw [Array.getD_eq_get?, Array.getElem?_eq_none hn, Option.getD_none]
+    rw [coeff, Array.getD_eq_get?, Array.getElem?_eq_none hn, Option.getD_none]
 
   apply Array.foldl_induction motive
   · show motive 0 0
@@ -803,7 +802,7 @@ theorem toPoly_add {p q : UniPoly Q} : (add_raw p q).toPoly = p.toPoly + q.toPol
 /-- trimming doesn't change the `toPoly` image -/
 lemma toPoly_trim [LawfulBEq R] {p : UniPoly R} : p.trim.toPoly = p.toPoly := by
   ext n
-  rw [coeff_toPoly, coeff_toPoly, Trim.getD_eq_getD]
+  rw [coeff_toPoly, coeff_toPoly, Trim.coeff_eq_coeff]
 
 /-- helper lemma to be able to state the next lemma -/
 lemma toImpl_nonzero {p : Q[X]} (hp: p ≠ 0) : p.toImpl.size > 0 := by
