@@ -385,6 +385,9 @@ def UniPolyC (R : Type*) [BEq R] [Ring R] := { p : UniPoly R // p.trim = p }
 
 @[ext] theorem UniPolyC.ext {p q : UniPolyC R} (h : p.val = q.val) : p = q := Subtype.eq h
 
+instance : Coe (UniPolyC R) (UniPoly R) where
+  coe := Subtype.val
+
 instance : Inhabited (UniPolyC R) := ⟨#[], Trim.canonical_empty⟩
 
 section Operations
@@ -694,11 +697,11 @@ end OperationsC
 section ToPoly
 variable {S: Type} [Semiring S]
 
-/-- Convert a `UniPoly` to a `Polynomial`. -/
+/-- Convert a `UniPoly` to a (mathlib) `Polynomial`. -/
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
   p.eval₂ Polynomial.C Polynomial.X
 
-/-- this is more low-level and direct, maybe a better definition than `toPoly` -/
+/-- a more low-level and direct definition of `toPoly`; currently unused. -/
 noncomputable def toPoly' (p : UniPoly R) : Polynomial R :=
   Polynomial.ofFinsupp (Finsupp.onFinset (Finset.range p.size) (fun i => p.getD i 0) (by
     intro n hn
@@ -709,8 +712,11 @@ noncomputable def toPoly' (p : UniPoly R) : Polynomial R :=
     contradiction
   ))
 
+noncomputable def UniPolyC.toPoly (p : UniPolyC R) : Polynomial R := p.val.toPoly
+
 alias ofPoly := Polynomial.toImpl
 
+/-- evaluation stays the same after converting to mathlib -/
 theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x := by
   unfold toPoly eval eval₂
   rw [← Array.foldl_hom (Polynomial.eval x)
@@ -720,6 +726,7 @@ theorem eval_toPoly_eq_eval (x : Q) (p : UniPoly Q) : p.toPoly.eval x = p.eval x
   exact Polynomial.eval_zero
   simp
 
+/-- characterize `p.toPoly` by showing that its coefficients are the entries of `p` -/
 lemma coeff_toPoly {p : UniPoly Q} {n : ℕ} : p.toPoly.coeff n = p.getD n 0 := by
   unfold toPoly eval₂
 
@@ -747,18 +754,17 @@ lemma coeff_toPoly {p : UniPoly Q} {n : ℕ} : p.toPoly.coeff n = p.getD n 0 := 
   have i_lt_p : i < p.size := by linarith [i.is_lt]
   have : p.zipIdx[i] = (p[i], ↑i) := by simp [Array.getElem_zipIdx]
   rw [this, coeff_add, coeff_C_mul, coeff_X_pow, mul_ite, mul_one, mul_zero, h]
-  rcases (Nat.lt_trichotomy i n) with hlt | heq | hgt
+  rcases (Nat.lt_trichotomy i n) with hlt | rfl | hgt
   · have h1 : ¬ (n < i) := by linarith
     have h2 : ¬ (n = i) := by linarith
     have h3 : ¬ (n < i + 1) := by linarith
     simp [h1, h2, h3]
-  · subst heq
-    simp [i_lt_p]
+  · simp [i_lt_p]
   · have h1 : ¬ (n = i) := by linarith
     have h2 : n < i + 1 := by linarith
     simp [hgt, h1, h2]
 
-/-- lemma to argue about toImpl by cases -/
+/-- helper lemma, to argue about `toImpl` by cases -/
 lemma toImpl_elim (p : Q[X]) :
     (p = 0 ∧ p.toImpl = #[])
   ∨ (p ≠ 0 ∧ p.toImpl = .ofFn (fun i : Fin (p.natDegree + 1) => p.coeff i)) := by
@@ -772,6 +778,9 @@ lemma toImpl_elim (p : Q[X]) :
   have hnat : p.degree = p.natDegree := degree_eq_natDegree (degree_ne_bot.mp hbot)
   simp [hnat]
 
+/-- `toImpl` is a right-inverse of `toPoly`.
+  that is, the round-trip starting from a mathlib polynomial gets us back to where we were.
+  in particular, `toPoly` is surjective and `toImpl` is injective. -/
 theorem toPoly_toImpl {p : Q[X]} : p.toImpl.toPoly = p := by
   ext n
   rw [coeff_toPoly]
@@ -786,50 +795,67 @@ theorem toPoly_toImpl {p : Q[X]} : p.toImpl.toPoly = p := by
   symm
   exact coeff_eq_zero_of_natDegree_lt h
 
+/-- `UniPoly` addition is mapped to `Polynomial` addition -/
 theorem toPoly_add {p q : UniPoly Q} : (add_raw p q).toPoly = p.toPoly + q.toPoly := by
   ext n
   rw [coeff_add, coeff_toPoly, coeff_toPoly, coeff_toPoly, add_coeff?]
 
-theorem toPoly_trim [LawfulBEq R] {p : UniPoly R} : p.trim.toPoly = p.toPoly := by
+/-- trimming doesn't change the `toPoly` image -/
+lemma toPoly_trim [LawfulBEq R] {p : UniPoly R} : p.trim.toPoly = p.toPoly := by
   ext n
   rw [coeff_toPoly, coeff_toPoly, Trim.getD_eq_getD]
 
+/-- helper lemma to be able to state the next lemma -/
 lemma toImpl_nonzero {p : Q[X]} (hp: p ≠ 0) : p.toImpl.size > 0 := by
-  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨_, h⟩
+  rcases toImpl_elim p with ⟨rfl, _⟩ | ⟨_, h⟩
   · contradiction
   suffices h : p.toImpl ≠ #[] from Array.size_pos.mpr h
   simp [h]
 
+/-- helper lemma: the last entry of the `UniPoly` obtained by `toImpl` is just the `leadingCoeff` -/
 lemma getLast_toImpl {p : Q[X]} (hp: p ≠ 0) : let h : p.toImpl.size > 0 := toImpl_nonzero hp;
     p.toImpl[p.toImpl.size - 1] = p.leadingCoeff := by
-  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨h_nz, h⟩
+  rcases toImpl_elim p with ⟨rfl, _⟩ | ⟨_, h⟩
   · contradiction
   simp [h]
 
+/-- `toImpl` maps to canonical `UniPoly`s -/
 theorem trim_toImpl [LawfulBEq R] (p : R[X]) : p.toImpl.trim = p.toImpl := by
-  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨h_nz, h⟩
-  · rw [h]; exact Trim.canonical_empty
+  rcases toImpl_elim p with ⟨rfl, h⟩ | ⟨h_nz, _⟩
+  · rw [h, Trim.canonical_empty]
   rw [Trim.canonical_iff]
   unfold Array.getLast
   intro
   rw [getLast_toImpl h_nz]
   exact Polynomial.leadingCoeff_ne_zero.mpr h_nz
 
-theorem toImpl_toPoly_of_canonical [LawfulBEq R] (p: UniPoly R) (hp: p.trim = p) :
+/-- on canonical `UniPoly`s, `toImpl` is also a left-inverse of `toPoly`.
+  in particular, `toPoly` is a bijection from `UniPolyC` to `Polynomial`. -/
+lemma toImpl_toPoly_of_canonical [LawfulBEq R] (p: UniPolyC R) :
     p.toPoly.toImpl = p := by
   -- we will show something slightly more general: `toPoly` is injective on canonical polynomials
-  suffices h_inj : ∀ q : UniPoly R, q.trim = q → p.toPoly = q.toPoly → p = q by
+  suffices h_inj : ∀ q : UniPolyC R, p.toPoly = q.toPoly → p = q by
     have : p.toPoly = p.toPoly.toImpl.toPoly := by rw [toPoly_toImpl]
-    exact Eq.symm <| h_inj p.toPoly.toImpl (trim_toImpl p.toPoly) this
-  intro q hq hpq
-  apply Trim.canonical_ext hp hq
+    exact h_inj ⟨ p.toPoly.toImpl, trim_toImpl p.toPoly ⟩ this |> congrArg Subtype.val |>.symm
+  intro q hpq
+  apply UniPolyC.ext
+  apply Trim.canonical_ext p.property q.property
   intro i
   rw [← coeff_toPoly, ← coeff_toPoly]
-  congr
+  exact hpq |> congrArg (fun p => p.coeff i)
 
+/-- the roundtrip to and from mathlib maps a `UniPoly` to its trimmed/canonical representative -/
 theorem toImpl_toPoly [LawfulBEq R] (p: UniPoly R) : p.toPoly.toImpl = p.trim := by
   rw [← toPoly_trim]
-  exact toImpl_toPoly_of_canonical p.trim (Trim.trim_twice p)
+  exact toImpl_toPoly_of_canonical ⟨ p.trim, Trim.trim_twice p⟩
+
+/-- evaluation stays the same after converting a mathlib `Polynomial` to a `UniPoly` -/
+theorem eval_toImpl_eq_eval [LawfulBEq R] (x : R) (p : R[X]) : p.toImpl.eval x = p.eval x := by
+  rw [← toPoly_toImpl (p := p), toImpl_toPoly, ← toPoly_trim, eval_toPoly_eq_eval]
+
+/-- corollary: evaluation stays the same after trimming -/
+lemma eval_trim_eq_eval [LawfulBEq R] (x : R) (p : UniPoly R) : p.trim.eval x = p.eval x := by
+  rw [← toImpl_toPoly, eval_toImpl_eq_eval, eval_toPoly_eq_eval]
 end ToPoly
 
 section Equiv
