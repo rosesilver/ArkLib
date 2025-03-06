@@ -697,6 +697,7 @@ instance [LawfulBEq R] : AddCommGroup (UniPolyC R) where
 end OperationsC
 
 section ToPoly
+
 /-- Convert a `UniPoly` to a (mathlib) `Polynomial`. -/
 noncomputable def toPoly (p : UniPoly R) : Polynomial R :=
   p.eval₂ Polynomial.C Polynomial.X
@@ -854,6 +855,7 @@ theorem eval_toImpl_eq_eval [LawfulBEq R] (x : R) (p : R[X]) : p.toImpl.eval x =
 /-- corollary: evaluation stays the same after trimming -/
 lemma eval_trim_eq_eval [LawfulBEq R] (x : R) (p : UniPoly R) : p.trim.eval x = p.eval x := by
   rw [← toImpl_toPoly, eval_toImpl_eq_eval, eval_toPoly_eq_eval]
+
 end ToPoly
 
 section Equiv
