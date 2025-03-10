@@ -51,7 +51,7 @@ def completeness (relIn : StmtIn → WitIn → Prop)
   ∀ stmtIn : StmtIn,
   ∀ witIn : WitIn,
   relIn stmtIn witIn →
-    [fun ⟨stmtOut, witOut, _, _, _⟩ => relOut stmtOut witOut
+    [fun ⟨stmtOut, witOut, _⟩ => relOut stmtOut witOut
     | reduction.run stmtIn witIn] ≥ 1 - completenessError
 
 /-- A reduction satisfies **perfect completeness** if it satisfies completeness with error `0`. -/
@@ -59,18 +59,28 @@ def perfectCompleteness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut �
     (reduction : Reduction pSpec oSpec StmtIn WitIn StmtOut WitOut) : Prop :=
   completeness relIn relOut reduction 0
 
+variable {relIn : StmtIn → WitIn → Prop} {relOut : StmtOut → WitOut → Prop}
+    {reduction : Reduction pSpec oSpec StmtIn WitIn StmtOut WitOut}
+
 /-- Perfect completeness means that the probability of the reduction outputting a valid
   statement-witness pair is _exactly_ 1 (instead of at least `1 - 0`). -/
 @[simp]
-theorem perfectCompleteness_eq {relIn : StmtIn → WitIn → Prop} {relOut : StmtOut → WitOut → Prop}
-    {reduction : Reduction pSpec oSpec StmtIn WitIn StmtOut WitOut} :
-      reduction.perfectCompleteness relIn relOut ↔
-        ∀ stmtIn witIn, relIn stmtIn witIn →
-          [fun ⟨stmtOut, witOut, _, _, _⟩ => relOut stmtOut witOut
-          | reduction.run stmtIn witIn] = 1 := by
+theorem perfectCompleteness_eq_prob_one :
+    reduction.perfectCompleteness relIn relOut ↔
+      ∀ stmtIn witIn, relIn stmtIn witIn →
+        [fun ⟨stmtOut, witOut, _⟩ => relOut stmtOut witOut
+        | reduction.run stmtIn witIn] = 1 := by
   refine forall_congr' fun stmtIn => forall_congr' fun stmtOut => forall_congr' fun _ => ?_
   rw [ENNReal.coe_zero, tsub_zero, ge_iff_le, one_le_probEvent_iff,
     probEvent_eq_one_iff, Prod.forall]
+
+-- /-- For a reduction without shared oracles (i.e. `oSpec = []ₒ`), perfect completeness occurs
+--   when the reduction produces satisfying statement-witness pairs for all possible challenges. -/
+-- theorem perfectCompleteness_forall_challenge [reduction.IsDeterministic] :
+--       reduction.perfectCompleteness relIn relOut ↔
+--         ∀ stmtIn witIn, relIn stmtIn witIn → ∀ chals : ∀ i, pSpec.Challenge i,
+--           reduction.runWithChallenges stmtIn witIn chals = 1 := by
+
 
 end Completeness
 
@@ -113,7 +123,7 @@ def soundness (langIn : Set StmtIn) (langOut : Set StmtOut)
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
   ∀ stmtIn ∉ langIn,
     letI reduction := Reduction.mk prover verifier
-    [fun ⟨stmtOut, _, _, _, _⟩ => stmtOut ∉ langOut
+    [fun ⟨stmtOut, _, _⟩ => stmtOut ∉ langOut
     | reduction.run stmtIn witIn] ≤ soundnessError
 
 /--
@@ -148,7 +158,7 @@ def knowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut →
     [fun ⟨stmtOut, witOut, transcript, proveQueryLog, _⟩ =>
       letI extractedWitIn := extractor stmtIn stmtOut witOut transcript proveQueryLog
       ¬ relIn stmtIn extractedWitIn ∧ relOut stmtOut witOut
-    | reduction.run stmtIn witIn] ≤ knowledgeError
+    | reduction.runWithLog stmtIn witIn] ≤ knowledgeError
 
 section Rewinding
 
@@ -254,10 +264,12 @@ def rbrSoundness (langIn : Set StmtIn) (langOut : Set StmtOut)
   ∀ witIn : WitIn,
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
   ∀ i : pSpec.ChallengeIndex,
+    let ex : OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ) _ := do
+      return (← prover.runWithLogToRound i.1.castSucc stmtIn witIn, ← pSpec.getChallenge i)
     [fun ⟨⟨transcript, _⟩, challenge⟩ =>
       ¬ stateFunction.fn i.1.castSucc stmtIn transcript ∧
         stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge)
-    | do return (← prover.runAux stmtIn witIn i.1.castSucc, ← pSpec.getChallenge i)] ≤
+    | ex] ≤
       rbrSoundnessError i
 
 /-- A round-by-round extractor with index `m` is given the input statement, a partial transcript
@@ -284,15 +296,16 @@ def rbrKnowledgeSoundness (relIn : StmtIn → WitIn → Prop) (relOut : StmtOut 
   ∀ witIn : WitIn,
   ∀ prover : Prover pSpec oSpec StmtIn WitIn StmtOut WitOut,
   ∀ i : pSpec.ChallengeIndex,
-    [fun ⟨⟨⟨transcript, _⟩, proveQueryLog⟩, challenge⟩ =>
-      letI extractedWitIn := extractor i.1.castSucc stmtIn transcript proveQueryLog
+    let ex : OracleComp (oSpec ++ₒ [pSpec.Challenge]ₒ) _ := (do
+      let result ← prover.runWithLogToRound i.1.castSucc stmtIn witIn
+      let chal ← pSpec.getChallenge i
+      return (result, chal))
+    [fun ⟨⟨transcript, _, proveQueryLog⟩, challenge⟩ =>
+      letI extractedWitIn := extractor i.1.castSucc stmtIn transcript proveQueryLog.fst
       ¬ relIn stmtIn extractedWitIn ∧
         ¬ stateFunction.fn i.1.castSucc stmtIn transcript ∧
           stateFunction.fn i.1.succ stmtIn (transcript.snoc challenge)
-    | do
-      let result ← (simulateQ loggingOracle (prover.runAux stmtIn witIn i.1.castSucc)).run;
-      let chal ← pSpec.getChallenge i
-      return (result, chal)] ≤ rbrKnowledgeError i
+    | ex] ≤ rbrKnowledgeError i
 
 end RoundByRound
 

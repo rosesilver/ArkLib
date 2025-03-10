@@ -23,6 +23,15 @@ section Transport
 
 open scoped NNReal
 
+-- sub-reduction: (StmtIn, WitIn) →[..] (StmtOut, WitOut)
+
+-- current reduction : (StmtIn', WinIn')
+
+-- there's a mapping : (StmtIn', WinIn') → (StmtIn, WitIn), and an inverse mapping : WitIn → WitIn'
+-- (for extraction)
+
+-- what should be (StmtOut' = StmtIn × transcript, WitOut')?
+
 structure TransportStatement (StmtIn StmtOut StmtIn' StmtOut' : Type) where
   fStmtIn : StmtIn → StmtIn'
   fStmtOut : StmtIn × StmtOut' → StmtOut
@@ -137,7 +146,7 @@ theorem Prover.run_transport
           P.run (data.fStmtIn stmtIn) (data.fWitIn witIn)
         return ⟨data.fStmtOut (stmtIn, stmtOut), data.fWitOut (witIn, witOut),
           fullTranscript⟩ := by
-  unfold Prover.run Prover.runAux
+  unfold Prover.run Prover.runToRound
   simp [Prover.transport]
   sorry
 
@@ -146,11 +155,24 @@ theorem Reduction.run_transport
     {stmtIn : StmtIn} {witIn : WitIn}
     (R : Reduction pSpec oSpec StmtIn' WitIn' StmtOut' WitOut') :
       (R.transport data).run stmtIn witIn = do
-        let ⟨stmtOut, witOut, fullTranscript, queryLog⟩ ←
+        let ⟨stmtOut, witOut, fullTranscript⟩ ←
           R.run (data.fStmtIn stmtIn) (data.fWitIn witIn)
         return ⟨data.fStmtOut (stmtIn, stmtOut), data.fWitOut (witIn, witOut),
-          fullTranscript, queryLog⟩ := by
+          fullTranscript⟩ := by
   unfold Reduction.run
+  simp [Reduction.transport, Prover.run_transport, Verifier.transport]
+  sorry
+
+theorem Reduction.runWithLog_transport
+    {data : TransportData StmtIn WitIn StmtOut WitOut StmtIn' WitIn' StmtOut' WitOut'}
+    {stmtIn : StmtIn} {witIn : WitIn}
+    (R : Reduction pSpec oSpec StmtIn' WitIn' StmtOut' WitOut') :
+      (R.transport data).runWithLog stmtIn witIn = do
+        let ⟨stmtOut, witOut, fullTranscript, queryLog⟩ ←
+          R.runWithLog (data.fStmtIn stmtIn) (data.fWitIn witIn)
+        return ⟨data.fStmtOut (stmtIn, stmtOut), data.fWitOut (witIn, witOut),
+          fullTranscript, queryLog⟩ := by
+  unfold Reduction.runWithLog
   simp [Reduction.transport, Prover.run_transport, Verifier.transport]
   sorry
 

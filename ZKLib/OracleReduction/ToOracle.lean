@@ -22,18 +22,19 @@ import ZKLib.Data.MvPolynomial.Notation
 /-- `⊕ᵥ` is notation for `Sum.elim`, e.g. sending `α → γ` and `β → γ` to `α ⊕ β → γ`. -/
 infixr:35 " ⊕ᵥ " => Sum.elim
 
-open OracleComp
-
-open OracleSpec OracleQuery
+open OracleComp OracleSpec OracleQuery
 
 variable {ι ιₜ : Type}
 
+@[reducible]
 def SimOracle.Stateful (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) :=
   QueryImpl spec (StateT σ (OracleComp specₜ))
 
+@[reducible]
 def SimOracle.Stateless (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) :=
   QueryImpl spec (OracleComp specₜ)
 
+@[reducible]
 def SimOracle.Impl (spec : OracleSpec ι) := QueryImpl spec Option
 
 namespace SimOracle
@@ -172,6 +173,19 @@ def simOracle2 {ι : Type} (oSpec : OracleSpec ι)
     | .inl i => oracle (t₁ i) q
     | .inr i => oracle (t₂ i) q)
 
+
+/-- A message type together with a `ToOracle` instance is said to have **oracle distance** (at most)
+      `d` if for any two distinct messages, there is at most `d` queries that distinguish them, i.e.
+
+      `#{q | ToOracle.oracle a q = ToOracle.oracle b q} ≤ d`.
+
+    This property corresponds to the distance of a code, when the oracle instance is to encode the
+    message and the query is a position of the codeword. In particular, it applies to
+    `(Mv)Polynomial`. -/
+def distanceLE (Message : Type) [O : ToOracle Message]
+    [Fintype (O.Query)] [DecidableEq (O.Response)] (d : ℕ) : Prop :=
+  ∀ a b : Message, a ≠ b → Finset.card {q | ToOracle.oracle a q = ToOracle.oracle b q} ≤ d
+
 end ToOracle
 
 /-! ## `ToOracle` Instances -/
@@ -216,6 +230,13 @@ instance instToOracleMvPolynomialDegreeLE : ToOracle (R⦃≤ d⦄[X σ]) where
   Query := σ → R
   Response := R
   oracle := fun ⟨poly, _⟩ point => eval point poly
+
+variable [Fintype R] [DecidableEq R]
+
+theorem distanceLE_polynomial_degreeLT : ToOracle.distanceLE (R⦃< d⦄[X]) d := by
+  intro a b h
+  simp [ToOracle.oracle]
+  sorry
 
 end Polynomial
 
