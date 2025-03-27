@@ -98,6 +98,12 @@ There are some generalizations that we could consider later:
   such a notion of evaluation, something like `evalModule (x : σ → M) (p : MvPolynomial σ R) : M`,
   where we have `[Module R M]`.
 
+## References
+
+[JACM:LFKN92]
+
+[C:BooChiSot21]
+
 -/
 
 namespace Sumcheck
