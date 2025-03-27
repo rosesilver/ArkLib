@@ -6,7 +6,6 @@ Authors: Quang Dao
 
 import ZKLib.OracleReduction.Security.Basic
 import ZKLib.OracleReduction.Composition.Sequential
-import ZKLib.ProofSystem.Relation.Sumcheck
 import ZKLib.Data.Math.Fin
 
 /-!
