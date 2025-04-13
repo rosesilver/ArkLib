@@ -144,7 +144,7 @@ def generateProof {n : ℕ} (i : Fin (2 ^ n)) (cache : Cache α n) :
     List.Vector α n :=
   match n with
   | 0 => List.Vector.nil
-  | n + 1 => List.Vector.snoc (generateProof i (cache.upper))
+  | n + 1 => List.Vector.snoc (generateProof (i/2) (cache.upper))
                               ((cache.leaves).get (findNeighbors i (Fin.last _)))
 
 
