@@ -60,7 +60,7 @@ def Cache.cons (n : ℕ) (leaves : List.Vector α (2 ^ (n + 1))) (cache : Cache 
   Fin.snoc cache leaves
 
 /-- Removes the base layer to the cache -/
-def Cache.tail (n : ℕ) (cache : Cache α (n + 1)) :
+def Cache.upper (n : ℕ) (cache : Cache α (n + 1)) :
     Cache α n :=
   Fin.init cache
 
@@ -69,9 +69,9 @@ def Cache.leaves (n : ℕ) (cache : Cache α (n + 1)) :
     List.Vector α (2 ^ (n + 1)) := cache (Fin.last _)
 
 @[simp]
-lemma Cache.tail_cons (n : ℕ) (leaves : List.Vector α (2 ^ (n + 1))) (cache : Cache α n) :
-    Cache.tail α n (Cache.cons α n leaves cache) = cache := by
-  simp [Cache.tail, Cache.cons]
+lemma Cache.upper_cons (n : ℕ) (leaves : List.Vector α (2 ^ (n + 1))) (cache : Cache α n) :
+    Cache.upper α n (Cache.cons α n leaves cache) = cache := by
+  simp [Cache.upper, Cache.cons]
 
 @[simp]
 lemma Cache.leaves_cons (n : ℕ) (leaves : List.Vector α (2 ^ (n + 1))) (cache : Cache α n) :
@@ -144,7 +144,7 @@ def generateProof {n : ℕ} (i : Fin (2 ^ n)) (cache : Cache α n) :
     List.Vector α n :=
   match n with
   | 0 => List.Vector.nil
-  | n + 1 => List.Vector.snoc (generateProof i (cache.tail))
+  | n + 1 => List.Vector.snoc (generateProof i (cache.upper))
                               ((cache.leaves).get (findNeighbors i (Fin.last _)))
 
 
