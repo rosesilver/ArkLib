@@ -8,17 +8,17 @@ Many of these configs are taken from mathlib
 
 /-! ## Dependencies on upstream projects -/
 
-require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.18.0-rc1"
+require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.18.0"
 
-require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "master"
+require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "v4.18.0"
 
-require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
+require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git" @ "lean4.18.0"
 
 -- Dependent rewrite tactic
 require seq from git "https://github.com/Vtec234/lean4-seq.git"
 
 -- meta if get_config? env = some "dev" then
-require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
+require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "v4.18.0"
 
 /-- These options are used
 * as `leanOptions`, prefixed by `` `weak``, so that `lake build` uses them;
@@ -26,7 +26,7 @@ require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
   (as well as `Archive`, `Counterexamples` and `test`).
 -/
 abbrev zklibOnlyLinters : Array LeanOption := #[
-  ⟨`linter.docPrime, true⟩,
+  -- ⟨`linter.docPrime, true⟩,
   ⟨`linter.hashCommand, true⟩,
   ⟨`linter.oldObtain, true,⟩,
   ⟨`linter.refine, true⟩,
