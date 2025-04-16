@@ -37,13 +37,13 @@ private lemma line_passing_through_the_poly
   simp only
   have h_s_sq : s₀ ^ 2 = s₀ * s₀ := by ring 
   rw [h_s_sq]
-  apply eq_poly_deg_one s₀ (-s₀)
+  apply Aux.eq_poly_deg_one (x₁ := s₀) (x₂ := -s₀)
   · rw (occs := [1]) [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
     aesop (add simp [fₑ_x_eval_eq, fₒ_x_eval_eq], unsafe (by ring))
   · rw [fₑ_x_eval_eq hChar, fₒ_x_eval_eq hChar]
     conv_lhs => rw [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
     aesop (add simp [even_eval, fₑ_even, fₒ_even], safe (by field_simp; ring))
-  · exact fun c ↦ absurd (the_glorious_lemma _ hChar (by rw (occs := [1]) [two_mul _, c]; simp)) h₁
+  · exact fun c ↦ absurd (mul_left_cancel₀ hChar (by rw (occs := [1]) [two_mul _, c]; simp)) h₁
 
 include hChar in
 lemma consistency_check_comp { f : Polynomial F } 
