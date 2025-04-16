@@ -10,22 +10,7 @@ lemma the_glorious_lemma
   {x y : F} 
   (z : F) 
   (h : z ≠ 0) 
-  (h₁ : z * x = z * y ) : x = y := by
-  have hh : x = 1 * x := by ring_nf
-  rw [hh]
-  have hh : y = 1 * y := by ring_nf
-  rw [hh]
-  have hh : 1 = z * z⁻¹ := by
-    rw [Field.mul_inv_cancel]
-    exact h
-  conv =>
-    lhs
-    rw [hh, mul_comm z, mul_assoc, h₁]
-    rfl
-  conv =>
-    rhs
-    rw [hh, mul_comm z, mul_assoc,]
-    rfl
+  (h₁ : z * x = z * y ) : x = y := mul_left_cancel₀ h h₁
 
 lemma eq_poly_deg_one {a b c d : F} (x₁ x₂ : F) 
   (h1 : a + b * x₁ = c + d * x₁)

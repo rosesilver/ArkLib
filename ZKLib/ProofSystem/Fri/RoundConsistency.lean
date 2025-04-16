@@ -1,5 +1,7 @@
 import ZKLib.ProofSystem.Fri.AuxLemmas
 import ZKLib.ProofSystem.Fri.EvenAndOdd.Lemmas
+import Mathlib.Tactic.FieldSimp
+
 
 variable {F: Type} [Field F] [DecidableEq F]
 variable (hChar : (2 : F) ≠ 0) 
@@ -32,63 +34,16 @@ private lemma line_passing_through_the_poly
     Polynomial.C (Polynomial.eval (s₀^2) (fₑ_x f)) 
       + (Polynomial.C (Polynomial.eval (s₀^2) (fₒ_x f))) * Polynomial.X  := by
   unfold line_through_two_points
-  simp only 
+  simp only
   have h_s_sq : s₀ ^ 2 = s₀ * s₀ := by ring 
   rw [h_s_sq]
   apply eq_poly_deg_one s₀ (-s₀)
+  · rw (occs := [1]) [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
+    aesop (add simp [fₑ_x_eval_eq, fₒ_x_eval_eq], unsafe (by ring))
   · rw [fₑ_x_eval_eq hChar, fₒ_x_eval_eq hChar]
-    ring_nf
-    conv =>
-      lhs 
-      rw [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
-      rfl 
-    simp 
-    ring 
-  · rw [fₑ_x_eval_eq hChar, fₒ_x_eval_eq hChar]
-    conv => 
-      lhs 
-      rw [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
-      rfl 
-    simp 
-    rw [even_eval (fₑ_even hChar (f:=f)) (f := fₑ f), 
-        even_eval (fₒ_even hChar (f:=f)) (f := fₒ f)]
-    ring_nf
-    rw [h_s_sq]
-    have h_quad_term : s₀ * s₀ * Polynomial.eval s₀ (fₒ f) * s₀⁻¹ * (-2)⁻¹ * 4 
-      = - 2 * s₀ * Polynomial.eval s₀ (fₒ f) := by
-      have h_4 : (4 : F) = 2 * 2 := by ring
-      conv => 
-        lhs
-        rw [mul_assoc]
-        congr 
-        rw [mul_assoc s₀
-        , mul_comm
-        , ←mul_assoc, mul_comm (s₀⁻¹), Field.mul_inv_cancel _ h₁]
-        simp 
-        rfl
-        rw [h_4
-        , ←mul_assoc
-        , inv_neg
-        , mul_comm (- (2 : F)⁻¹)
-        , mul_neg
-        , Field.mul_inv_cancel _ hChar] 
-        simp
-        rfl 
-      ring 
-    rw [h_quad_term]
-    ring_nf 
-  · intro contr 
-    apply h₁
-    apply the_glorious_lemma 2 hChar
-    have h_s₀_2 : 2 * s₀ = s₀ + s₀ := by ring 
-    rw [h_s₀_2] 
-    conv =>
-      lhs 
-      congr 
-      rfl 
-      rw [contr] 
-      rfl
-    simp
+    conv_lhs => rw [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
+    aesop (add simp [even_eval, fₑ_even, fₒ_even], safe (by field_simp; ring))
+  · exact fun c ↦ absurd (the_glorious_lemma _ hChar (by rw (occs := [1]) [two_mul _, c]; simp)) h₁
 
 include hChar in
 lemma consistency_check_comp { f : Polynomial F } 
@@ -100,12 +55,6 @@ lemma consistency_check_comp { f : Polynomial F }
     (f.eval s₀) 
     (f.eval (-s₀)) 
     (Polynomial.eval (s₀ ^ 2) (foldα f x₀)) = true := by
-  unfold consistency_check
-  simp
-  rw [@line_passing_through_the_poly _ _ _ hChar f s₀ h₁]
-  have hh : (s₀ ^ 2 = s₀ * s₀) := by
-    ring_nf
-  simp [foldα
-  , hh
-  , fₒ_x_eval_eq hChar] 
-  ring
+  aesop (add simp [
+    consistency_check, line_passing_through_the_poly, foldα, fₒ_x_eval_eq], safe (by ring)
+  )
