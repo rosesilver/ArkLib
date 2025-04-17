@@ -33,10 +33,7 @@ private lemma line_passing_through_the_poly
   line_through_two_points (s₀, f.eval s₀) (-s₀, f.eval (-s₀)) =
     Polynomial.C (Polynomial.eval (s₀^2) (fₑ_x f)) 
       + (Polynomial.C (Polynomial.eval (s₀^2) (fₒ_x f))) * Polynomial.X  := by
-  unfold line_through_two_points
-  simp only
-  have h_s_sq : s₀ ^ 2 = s₀ * s₀ := by ring 
-  rw [h_s_sq]
+  simp only [line_through_two_points, pow_two]
   apply Aux.eq_poly_deg_one (x₁ := s₀) (x₂ := -s₀)
   · rw (occs := [1]) [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
     aesop (add simp [fₑ_x_eval_eq, fₒ_x_eval_eq], unsafe (by ring))
