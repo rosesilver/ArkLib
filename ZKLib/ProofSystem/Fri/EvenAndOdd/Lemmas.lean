@@ -1,8 +1,7 @@
 import ZKLib.ProofSystem.Fri.EvenAndOdd.Def
 import ZKLib.ProofSystem.Fri.EvenAndOdd.ToMathlib
 
-variable {F: Type} [Field F]
-variable (hChar : (2 : F) ≠ 0) 
+variable {F: Type} [NonBinaryField F]
 
 private noncomputable def fₑ' (f : Polynomial F) : Polynomial F :=
   match f with
@@ -52,7 +51,6 @@ private lemma x_times_fₒ'_eq_x_times_fₒ' {f : Polynomial F} :
   intro n
   rcases n with _ | n <;> try simp [Nat.odd_add_one]
 
-include hChar in
 private lemma really_glorious_lemma {f f' : Polynomial F} (h : 2 * f = 2 * f') :
     f = f' := by 
     apply Polynomial.ext 
@@ -61,10 +59,9 @@ private lemma really_glorious_lemma {f f' : Polynomial F} (h : 2 * f = 2 * f') :
     simp at h_2 
     aesop 
 
-include hChar in
 private lemma fₑ_eq_fₑ' {f : Polynomial F} : fₑ f = fₑ' f := by
-  apply really_glorious_lemma hChar
-  rw [fₑ_by_2 hChar]
+  apply really_glorious_lemma 
+  rw [fₑ_by_2]
   apply Polynomial.ext
   intro n
   simp [coeffs_of_comp_minus_x] 
@@ -85,67 +82,50 @@ private lemma fₒ_eq_fₒ'_aux' {f : Polynomial F}
     simp [hpar]
     ring_nf
 
-include hChar in
 private lemma fₒ_eq_fₒ' {f : Polynomial F} : fₒ f = fₒ' f := by
   simp [fₒ]
   rw [fₒ_eq_fₒ'_aux'
   , ←x_times_fₒ'_eq_x_times_fₒ'
   , ←mul_assoc
   , ←Polynomial.C_mul]
-  have h_2 : 2⁻¹ * (2 : F) = 1 := by
-    rw [mul_comm]
-    apply Field.mul_inv_cancel
-    tauto
-  rw [h_2]
-  simp
-  rw [Polynomial.mul_divByMonic_cancel_left]
-  simp
+  simp [Polynomial.mul_divByMonic_cancel_left]
 
-include hChar in
 @[simp]
 lemma fₒ_coeff {f : Polynomial F} {n : ℕ} :
     (fₒ f).coeff n = if Even n then f.coeff (n + 1) else 0 := by  
-  rw [fₒ_eq_fₒ' hChar]
-  simp
+  simp [fₒ_eq_fₒ']
 
-include hChar in
 @[simp]
 lemma fₑ_coeff {f : Polynomial F} {n : ℕ} :
     (fₑ f).coeff n = if Even n then f.coeff n else 0 := by 
-  rw [fₑ_eq_fₑ' hChar]
-  simp
+  simp [fₑ_eq_fₑ']
 
-include hChar in
 lemma f_eq_fₑ_plus_x_fₒ {f : Polynomial F} :
   f = fₑ f + Polynomial.X * fₒ f := by 
   apply Polynomial.ext 
   intro n
   simp 
-  rw [fₑ_coeff hChar, mul_comm Polynomial.X] 
+  rw [mul_comm Polynomial.X] 
   rcases n with _ | n <;> try simp
   by_cases hPar : Even (n + 1) <;> try simp [hPar]
-  · rw [fₒ_coeff hChar] 
-    rw [Nat.even_add_one] at hPar 
+  · rw [Nat.even_add_one] at hPar 
     simp [hPar]
-  · rw [fₒ_coeff hChar] 
-    rw [Nat.even_add_one] at hPar 
+  · rw [Nat.even_add_one] at hPar 
     simp at hPar 
     simp [hPar]
 
-include hChar in
 lemma fₒ_even {f : Polynomial F} :
     EvenPoly (fₒ f) := by 
   intro n hOdd 
-  simp [fₒ_coeff hChar]
+  simp 
   intro h 
   rw [←Nat.not_even_iff_odd] at hOdd
   tauto 
 
-include hChar in
 lemma fₑ_even {f : Polynomial F} :
     EvenPoly (fₑ f) := by 
   intro n hOdd 
-  simp [fₑ_coeff hChar]
+  simp 
   intro h 
   rw [←Nat.not_even_iff_odd] at hOdd
   tauto 
@@ -207,20 +187,18 @@ lemma evenize_eval {f : Polynomial F} {s : F}:
   rw [evenize_eq_comp_x_squared]
   simp [Polynomial.eval_comp, Polynomial.eval_mul]
 
-include hChar in
 lemma fₑ_x_eval_eq {f : Polynomial F} {s : F} :
     (fₑ_x f).eval (s * s) = (fₑ f).eval s := by 
   unfold fₑ_x 
   rw [←eq_evenize_deevenize (f := fₑ f)
       , evenize_eval
       , deevenize_evenize]
-  exact fₑ_even hChar
+  exact fₑ_even 
 
-include hChar in
 lemma fₒ_x_eval_eq {f : Polynomial F} {s : F} :
     (fₒ_x f).eval (s * s) = (fₒ f).eval s := by 
   unfold fₒ_x 
   rw [←eq_evenize_deevenize (f := fₒ f)
       , evenize_eval
       , deevenize_evenize]
-  exact fₒ_even hChar
+  exact fₒ_even

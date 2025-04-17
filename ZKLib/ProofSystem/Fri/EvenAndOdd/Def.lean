@@ -9,8 +9,7 @@ import ZKLib.ProofSystem.Fri.EvenAndOdd.FinsetAux
 
 section
 
-variable {F: Type} [Field F]
-variable (hChar : (2 : F) ≠ 0) 
+variable {F: Type} [NonBinaryField F]
 
 noncomputable def fₑ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
@@ -23,21 +22,16 @@ noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
 lemma fₑ_def {f : Polynomial F} : 
     fₑ f = Polynomial.C (2⁻¹ : F) * (f + f.comp (-Polynomial.X)) := by rfl 
 
-include hChar in 
 @[simp]
 lemma fₑ_by_2 {f : Polynomial F} :
     2 * (fₑ f) = f + f.comp (-Polynomial.X) := by 
   simp [fₑ_def, Polynomial.ext_iff]
-  intro n 
-  rw [←mul_assoc, Field.mul_inv_cancel _ hChar]
-  simp only [one_mul]
 
 lemma fₒ_def {f : Polynomial F} : 
     fₒ f = 
     Polynomial.C (2⁻¹ : F) * (f - f.comp (-Polynomial.X)) /ₘ Polynomial.X
  := by rfl 
 
-include hChar in 
 @[simp]
 lemma fₒ_by_2 {f : Polynomial F} :
     2 * (fₒ f) = (f - f.comp (-Polynomial.X)) /ₘ Polynomial.X
@@ -52,8 +46,7 @@ lemma fₒ_by_2 {f : Polynomial F} :
   , Polynomial.coeff_divByMonic_X_sub_C]
   simp only [map_zero, sub_zero, Polynomial.coeff_C_mul, Polynomial.coeff_sub]
   rw [Finset.mul_sum]
-  have hneinv : Polynomial.C (2⁻¹ : F) ≠ 0 := by
-    simp [ne_eq, map_eq_zero, inv_eq_zero, hChar]
+  have hneinv : Polynomial.C (2⁻¹ : F) ≠ 0 := by simp 
   apply Finset.sum_bij (fun n _ => n) <;> try tauto
   · rw [Polynomial.natDegree_mul] <;> try tauto
     simp only [Polynomial.natDegree_C, zero_add]
@@ -68,7 +61,7 @@ lemma fₒ_by_2 {f : Polynomial F} :
     , mul_comm 2
     , mul_assoc 
     , ←mul_assoc 2 
-    , Field.mul_inv_cancel 2 hChar]
+    ]
     simp 
 
 noncomputable def deevenize (f : Polynomial F) : Polynomial F :=

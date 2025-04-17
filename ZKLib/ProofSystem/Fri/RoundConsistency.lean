@@ -3,8 +3,7 @@ import ZKLib.ProofSystem.Fri.EvenAndOdd.Lemmas
 import Mathlib.Tactic.FieldSimp
 
 
-variable {F: Type} [Field F] [DecidableEq F]
-variable (hChar : (2 : F) ≠ 0) 
+variable {F: Type} [NonBinaryField F] [DecidableEq F]
 
 noncomputable def foldα 
   (f : Polynomial F) 
@@ -24,7 +23,6 @@ noncomputable def consistency_check (x₀ : F) (s₀ s₁ : F) (α₀ α₁ β :
   let p_x₀ := p.eval x₀
   p_x₀ == β
 
-include hChar in
 private lemma line_passing_through_the_poly 
   {f : Polynomial F} 
   {s₀ : F} 
@@ -35,14 +33,14 @@ private lemma line_passing_through_the_poly
       + (Polynomial.C (Polynomial.eval (s₀^2) (fₒ_x f))) * Polynomial.X  := by
   simp only [line_through_two_points, pow_two]
   apply Aux.eq_poly_deg_one (x₁ := s₀) (x₂ := -s₀)
-  · rw (occs := [1]) [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
+  · rw (occs := [1]) [f_eq_fₑ_plus_x_fₒ (f := f)]
     aesop (add simp [fₑ_x_eval_eq, fₒ_x_eval_eq], unsafe (by ring))
-  · rw [fₑ_x_eval_eq hChar, fₒ_x_eval_eq hChar]
-    conv_lhs => rw [f_eq_fₑ_plus_x_fₒ hChar (f := f)]
+  · rw [fₑ_x_eval_eq, fₒ_x_eval_eq]
+    conv_lhs => rw [f_eq_fₑ_plus_x_fₒ (f := f)]
     aesop (add simp [even_eval, fₑ_even, fₒ_even], safe (by field_simp; ring))
-  · exact fun c ↦ absurd (mul_left_cancel₀ hChar (by rw (occs := [1]) [two_mul _, c]; simp)) h₁
+  · exact fun c ↦ absurd (mul_left_cancel₀ NonBinaryField.char_neq_2  
+      (by rw (occs := [1]) [two_mul _, c]; simp)) h₁
 
-include hChar in
 lemma consistency_check_comp { f : Polynomial F } 
   {x₀ : F} 
   {s₀ : F} 

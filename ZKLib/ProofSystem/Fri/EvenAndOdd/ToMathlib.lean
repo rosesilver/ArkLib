@@ -3,9 +3,34 @@ import Mathlib.Algebra.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.Degree.Definitions
 import Mathlib.Algebra.Polynomial.FieldDivision
 import Mathlib.Algebra.Polynomial.Inductions
+import Mathlib.Algebra.CharP.Defs
+
+class NonBinaryField  
+  (F : Type) extends Field F where 
+  char_neq_2 : (2 : F) ≠ 0 
+ 
+section NonBinaryField
+
+variable {F : Type} [NonBinaryField F]
+
+@[simp]
+lemma two_neq_0_in_non_binary_field :
+  (2 : F) ≠ 0 := by
+  exact NonBinaryField.char_neq_2 
+
+@[simp]
+lemma two_mul_inv_two :
+  (2 : F) * 2⁻¹ = 1 := by
+    rw [Field.mul_inv_cancel _ two_neq_0_in_non_binary_field]
+
+@[simp]
+lemma inv_two_mul_two :
+  2⁻¹ * (2 : F)  = 1 := by
+    rw [mul_comm, Field.mul_inv_cancel _ two_neq_0_in_non_binary_field]
+
+end NonBinaryField
 
 variable {F: Type} [Field F]
-variable (hChar : (2 : F) ≠ 0) 
 
 private lemma coeffs_of_comp_minus_x_pos_degree {f : Polynomial F} {n : ℕ} (h : 0 < f.degree) :
     (f.comp (-Polynomial.X)).coeff n = if Even n then f.coeff n else -f.coeff n := by
