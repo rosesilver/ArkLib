@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024-2025 ZKLib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: František Silváši, Julian Sutherland, Ilia Vlasov 
+-/
 import Mathlib.Algebra.Field.Basic
 import Mathlib.Algebra.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.Degree.Definitions
@@ -6,6 +11,10 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Logic.Embedding.Basic
 
 import ZKLib.ProofSystem.Fri.EvenAndOdd.ToMathlib
+
+/-!
+  # Definitions and lemmas related to `Finset`.
+-/
 
 def erase_odd (s : Finset ℕ) : Finset ℕ := s.filter Even
 def erase_even (s : Finset ℕ) : Finset ℕ := s.filter Odd

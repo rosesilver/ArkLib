@@ -1,11 +1,17 @@
+/-
+Copyright (c) 2024-2025 ZKLib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: František Silváši, Julian Sutherland, Ilia Vlasov 
+-/
 import Mathlib.Algebra.Field.Basic
 import Mathlib.Algebra.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.Degree.Definitions
 import Mathlib.Algebra.Polynomial.FieldDivision
 import Mathlib.Algebra.Polynomial.Inductions
-import Mathlib.Algebra.CharP.Defs
 import Mathlib.Tactic.FieldSimp
 
+/-- A field of characteristic ≠ 2.
+-/
 class NonBinaryField  
   (F : Type) extends Field F where 
   char_neq_2 : (2 : F) ≠ 0 

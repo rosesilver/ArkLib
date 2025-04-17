@@ -1,20 +1,39 @@
+/-
+Copyright (c) 2024-2025 ZKLib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: František Silváši, Julian Sutherland, Ilia Vlasov 
+-/
 import Mathlib.Algebra.Field.Basic
 import Mathlib.Algebra.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.Degree.Definitions
 import Mathlib.Algebra.Polynomial.FieldDivision
 import Mathlib.Data.Finset.Insert
 
-import ZKLib.ProofSystem.Fri.EvenAndOdd.ToMathlib
 import ZKLib.ProofSystem.Fri.EvenAndOdd.FinsetAux
+import ZKLib.ProofSystem.Fri.EvenAndOdd.ToMathlib
+
+/-! 
+  # Even and odd parts of polynomial
+
+  The FFT-style splitting of a polynomial `f` 
+  of the degree `n` into two polynomials 
+  `fₑ` and `fₒ` of degree `< n/2`  such that `f = fₑ + X fₒ. 
+-/
 
 section
 
 variable {F: Type} [NonBinaryField F]
 
+/-- The even part of a polynomial `f`. 
+  Consists of the even terms of `f`.
+-/
 noncomputable def fₑ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
     Polynomial.C (2⁻¹ : F) * (f + f.comp (-X))
 
+/-- The odd part of a polynomial `f`. 
+  Consists of the odd terms of `f` divided by `X`.
+-/
 noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
     Polynomial.C (2⁻¹ : F) * (f - f.comp (-X)) /ₘ X
@@ -64,6 +83,14 @@ lemma fₒ_by_2 {f : Polynomial F} :
     ]
     simp 
 
+/-- A polynomial is even if does not contain
+  odd terms.
+-/
+def EvenPoly (f : Polynomial F) : Prop := ∀ n, Odd n → f.coeff n = 0
+
+/-- Given a polynomial `f`, `deevenize` removes 
+  all the odd terms and substitutes `X² ↦ X`.
+-/
 noncomputable def deevenize (f : Polynomial F) : Polynomial F :=
     match f with
       | ⟨⟨supp, g, h⟩⟩ => ⟨⟨divide_by_2 supp, fun n => g (2 * n), by {
@@ -76,6 +103,9 @@ lemma deevenize_coeff {f : Polynomial F} {n : ℕ} :
     rcases f with ⟨⟨supp, g, h⟩⟩ 
     simp [deevenize]
 
+/-- Given a polynomial `f`, `evenize`  
+  substitutes `X ↦ X²`.
+-/
 noncomputable def evenize (f : Polynomial F) : Polynomial F :=
   match f with
   | ⟨⟨supp, g, h⟩⟩ => ⟨⟨mul_by_2 supp, fun n => if Even n then g (n / 2) else 0, by {
@@ -88,10 +118,11 @@ lemma evenize_coeff {f : Polynomial F} {n : ℕ} :
     rcases f with ⟨⟨supp, g, h⟩⟩ 
     simp [evenize]
 
-
-def EvenPoly (f : Polynomial F) : Prop := ∀ n, Odd n → f.coeff n = 0
-
+/-- `fₑ` with the substitution `X² ↦ X` applied.
+-/
 noncomputable def fₑ_x (f : Polynomial F) : Polynomial F := deevenize (fₑ f)
+/-- `fₒ` with the substitution `X² ↦ X` applied.
+-/
 noncomputable def fₒ_x (f : Polynomial F) : Polynomial F := deevenize (fₒ f)
 
 end
