@@ -9,6 +9,8 @@ import ZKLib.Data.MvPolynomial.Notation
 import Mathlib.Algebra.Polynomial.Roots
 -- import ZKLib.Data.MlPoly.Basic
 
+universe u v w
+
 /-!
   # Definitions and Instances for `ToOracle`
 
@@ -111,9 +113,9 @@ end SimOracle
     consists of a query type `Query`, a response type `Response`, and a function `oracle` that
     transforms a message `m : Message` into a function `Query → Response`. -/
 @[ext]
-class ToOracle (Message : Type) where
-  Query : Type
-  Response : Type
+class ToOracle (Message : Type u) where
+  Query : Type v
+  Response : Type w
   oracle : Message → Query → Response
 
 namespace ToOracle
@@ -183,7 +185,7 @@ open Finset in
     This property corresponds to the distance of a code, when the oracle instance is to encode the
     message and the query is a position of the codeword. In particular, it applies to
     `(Mv)Polynomial`. -/
-def distanceLE (Message : Type) [O : ToOracle Message]
+def distanceLE (Message : Type u) [O : ToOracle Message]
     [Fintype (O.Query)] [DecidableEq (O.Response)] (d : ℕ) : Prop :=
   ∀ a b : Message, a ≠ b → #{q | ToOracle.oracle a q = ToOracle.oracle b q} ≤ d
 
@@ -194,7 +196,7 @@ section Polynomial
 
 open Polynomial MvPolynomial
 
-variable {R : Type} [CommSemiring R] {d : ℕ} {σ : Type}
+variable {R : Type*} [CommSemiring R] {d : ℕ} {σ : Type*}
 
 /-- Univariate polynomials can be accessed via evaluation queries. -/
 @[reducible, inline]
@@ -241,7 +243,7 @@ section PolynomialDistance
 
 open Polynomial MvPolynomial
 
-variable {R : Type} [CommRing R] {d : ℕ} [Fintype R] [DecidableEq R] [IsDomain R]
+variable {R : Type*} [CommRing R] {d : ℕ} [Fintype R] [DecidableEq R] [IsDomain R]
 
 -- TODO: golf this theorem
 @[simp]
@@ -293,7 +295,7 @@ theorem distanceLE_polynomial_degreeLE : ToOracle.distanceLE (R⦃≤ d⦄[X]) d
   obtain ⟨x, hMem, hx⟩ := this
   exact ⟨x, hMem, fun h => by simp_all⟩
 
-theorem distanceLE_mvPolynomial_degreeLE {σ : Type} [Fintype σ] [DecidableEq σ] : ToOracle.distanceLE (R⦃≤ d⦄[X σ]) (Fintype.card σ * d) := by
+theorem distanceLE_mvPolynomial_degreeLE {σ : Type*} [Fintype σ] [DecidableEq σ] : ToOracle.distanceLE (R⦃≤ d⦄[X σ]) (Fintype.card σ * d) := by
   simp [ToOracle.distanceLE, instToOracleMvPolynomialDegreeLE, MvPolynomial.mem_restrictDegree]
   intro a ha b hb hNe
   sorry
@@ -302,7 +304,7 @@ end PolynomialDistance
 
 section Vector
 
-variable {n : ℕ} {α : Type}
+variable {n : ℕ} {α : Type*}
 
 /-- Vectors of the form `Fin n → α` can be accessed via queries on their indices. -/
 instance instToOracleForallFin : ToOracle (Fin n → α) where
@@ -326,15 +328,15 @@ end Vector
 
 section Test
 
-variable {ι : Type} {spec : OracleSpec ι} {R : Type} [CommSemiring R]
+variable {ι : Type*} {spec : OracleSpec ι} {R : Type*} [CommSemiring R]
 
-open Polynomial ToOracle SimOracle OracleSpec in
-theorem poly_query_list_mapM {m : ℕ} (D : Fin m ↪ R) (p : R[X]) :
-    simulateQ (simOracle spec (fun _ : Unit => p))
-      (List.finRange m |>.mapM (fun i => query (spec := [fun _ : Unit => R[X]]ₒ) () (D i)))
-    = (pure (List.finRange m |>.map (fun i => p.eval (D i))) : OracleComp spec (List R)) := by
-  simp [simOracle, OracleSpec.SubSpec.liftM_query_eq_liftM_liftM, StateT.run'_eq,
-    simulateQ, StateT.run]
-  sorry
+-- open Polynomial ToOracle SimOracle OracleSpec in
+-- theorem poly_query_list_mapM {m : ℕ} (D : Fin m ↪ R) (p : R[X]) :
+--     simulateQ (simOracle spec (fun _ : Unit => p))
+--       (List.finRange m |>.mapM (fun i => query (spec := [fun _ : PUnit => R[X]]ₒ) () (D i)))
+--     = (pure (List.finRange m |>.map (fun i => p.eval (D i))) : OracleComp spec (List R)) := by
+--   simp [simOracle, OracleSpec.SubSpec.liftM_query_eq_liftM_liftM, StateT.run'_eq,
+--     simulateQ, StateT.run]
+--   sorry
 
 end Test
