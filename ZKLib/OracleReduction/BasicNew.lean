@@ -39,6 +39,10 @@ inductive OracleProtocolMessageType where
 @[reducible]
 def ProtocolSpec := List (Direction × Type u)
 
+@[reducible]
+def ProtocolSpec.Transcript (pSpec : ProtocolSpec) : Type _ :=
+  List.foldr (fun (_, α) acc => α × acc) PUnit pSpec
+
 def OracleProtocolSpec := List OracleProtocolMessageType
 
 def ProverInteractionType (pSpec : ProtocolSpec) (m : Type u → Type u)
@@ -101,6 +105,11 @@ def Verifier (pSpec : ProtocolSpec) (m : Type u → Type u)
     (StmtIn StmtOut : Type u) : Type _ :=
   StmtIn → VerifierInteractionType pSpec m StmtOut
 
+structure Reduction (pSpec : ProtocolSpec) (m : Type u → Type u)
+    (StmtIn StmtOut WitIn WitOut : Type u) where
+  prover : HonestProver pSpec m StmtIn StmtOut WitIn WitOut
+  verifier : Verifier pSpec m StmtIn StmtOut
+
 @[reducible]
 def ProtocolSpec.append (pSpec pSpec' : ProtocolSpec) : ProtocolSpec :=
   List.append pSpec pSpec'
@@ -114,6 +123,68 @@ theorem ProverInteractionType.cons_eq (firstRound : Direction × Type u)  (pSpec
     ProverInteractionType (firstRound :: pSpec) m Output = match firstRound.1 with
     | .P_to_V => m (firstRound.2 × ProverInteractionType pSpec m Output)
     | .V_to_P => m (firstRound.2 → ProverInteractionType pSpec m Output) := rfl
+
+section Execution
+
+variable (pSpec : ProtocolSpec) {m : Type u → Type u} [Monad m]
+    {StmtIn StmtOut WitIn WitOut : Type u}
+
+def InteractiveReduction.run
+    (proverInteraction : ProverInteractionType pSpec m (StmtOut × WitOut))
+    (verifierInteraction : VerifierInteractionType pSpec m StmtOut) :
+    m ((StmtOut × WitOut) × StmtOut) := by
+  induction pSpec with
+  | nil => exact (do return (proverInteraction, verifierInteraction))
+  | cons firstRound pSpec' ih =>
+    unfold ProverInteractionType at proverInteraction
+    unfold VerifierInteractionType at verifierInteraction
+    rcases h : firstRound.1
+    · simp [h] at proverInteraction verifierInteraction
+      exact (do
+        let (proverMsg, proverRest) ← proverInteraction
+        let verifierInteractionRest ← verifierInteraction
+        let verifierRest := verifierInteractionRest proverMsg
+        ih proverRest verifierRest)
+    · simp [h] at proverInteraction verifierInteraction
+      exact (do
+        let (verifierMsg, verifierRest) ← verifierInteraction
+        let proverInteractionRest ← proverInteraction
+        let proverRest := proverInteractionRest verifierMsg
+        ih proverRest verifierRest)
+
+#print InteractiveReduction.run
+
+def Reduction.run (stmtIn : StmtIn) (witIn : WitIn)
+    (reduction : Reduction pSpec m StmtIn StmtOut WitIn WitOut) :
+    m ((StmtOut × WitOut) × StmtOut) := do
+  InteractiveReduction.run pSpec (reduction.prover (stmtIn, witIn)) (reduction.verifier stmtIn)
+
+def InteractiveReduction.runOutputTranscript
+  (proverInteraction : ProverInteractionType pSpec m (StmtOut × WitOut))
+  (verifierInteraction : VerifierInteractionType pSpec m StmtOut) :
+  m (pSpec.Transcript × (StmtOut × WitOut) × StmtOut) := by
+induction pSpec with
+| nil => exact (do return (PUnit.unit, proverInteraction, verifierInteraction))
+| cons firstRound pSpec' ih =>
+  unfold ProverInteractionType at proverInteraction
+  unfold VerifierInteractionType at verifierInteraction
+  rcases h : firstRound.1
+  · simp [h] at proverInteraction verifierInteraction
+    exact (do
+      let (proverMsg, proverRest) ← proverInteraction
+      let verifierInteractionRest ← verifierInteraction
+      let verifierRest := verifierInteractionRest proverMsg
+      let ⟨transcript, rest⟩ ← ih proverRest verifierRest
+      return ((proverMsg, transcript), rest))
+  · simp [h] at proverInteraction verifierInteraction
+    exact (do
+      let (verifierMsg, verifierRest) ← verifierInteraction
+      let proverInteractionRest ← proverInteraction
+      let proverRest := proverInteractionRest verifierMsg
+      let ⟨transcript, rest⟩ ← ih proverRest verifierRest
+      return ((verifierMsg, transcript), rest))
+
+end Execution
 
 section ExampleCompose
 
