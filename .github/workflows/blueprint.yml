@@ -3,9 +3,9 @@ name: Compile blueprint
 on:
   push:
     # branches:
-    #   - main # Trigger on pushes to the default branch
+      # - main # Trigger on pushes to ANY branch now
   workflow_dispatch: # Allow manual triggering of the workflow from the GitHub Actions interface
-  pull_request:
+  # pull_request:
     # branches: [main]
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -13,6 +13,8 @@ permissions:
   contents: read # Read access to repository contents
   pages: write # Write access to GitHub Pages
   id-token: write # Write access to ID tokens
+  issues: write # Write access to issues
+  pull-requests: write # Write access to pull requests
 
 jobs:
   cancel:
@@ -41,35 +43,6 @@ jobs:
       - name: Build project
         run: ~/.elan/bin/lake build ZKLib
 
-      - name: Cache mathlib API docs
-        uses: actions/cache@v4
-        with:
-          path: |
-            .lake/build/doc/Init
-            .lake/build/doc/Lake
-            .lake/build/doc/Lean
-            .lake/build/doc/Std
-            .lake/build/doc/Mathlib
-            .lake/build/doc/declarations
-            .lake/build/doc/find
-            .lake/build/doc/*.*
-            !.lake/build/doc/declarations/declaration-data-ZKLib*
-          key: MathlibDoc-${{ hashFiles('lake-manifest.json') }}
-          restore-keys: MathlibDoc-
-
-      - name: Build project API documentation
-        run: ~/.elan/bin/lake -R -Kenv=dev build ZKLib:docs
-
-      - name: Check for `home_page` folder # this is meant to detect a Jekyll-based website
-        id: check_home_page
-        run: |
-          if [ -d home_page ]; then
-            echo "The 'home_page' folder exists in the repository."
-            echo "HOME_PAGE_EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "The 'home_page' folder does not exist in the repository."
-            echo "HOME_PAGE_EXISTS=false" >> $GITHUB_ENV
-          fi
 
       - name: Build blueprint and copy to `home_page/blueprint`
         uses: xu-cheng/texlive-action@v2
@@ -96,15 +69,49 @@ jobs:
         run: |
           ~/.elan/bin/lake exe checkdecls blueprint/lean_decls
 
+      - name: Cache build artifacts and API docs
+        uses: actions/cache@v4
+        with:
+          path: |
+            .lake/build
+          key: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-${{ hashFiles('lake-manifest.json') }}
+          # Optionally add restore-keys if needed, e.g.:
+          # restore-keys: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-
+
+      - name: Build project API documentation
+        # Only build blueprint on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+        run: |
+          ~/.elan/bin/lake -R -Kenv=dev build ZKLib:docs
+
+      - name: Check for `home_page` folder # this is meant to detect a Jekyll-based website
+        # Only build blueprint on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+        id: check_home_page
+        run: |
+          if [ -d home_page ]; then
+            echo "The 'home_page' folder exists in the repository."
+            echo "HOME_PAGE_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "The 'home_page' folder does not exist in the repository."
+            echo "HOME_PAGE_EXISTS=false" >> $GITHUB_ENV
+          fi
+
       - name: Copy API documentation to `home_page/docs`
+        # Only copy docs on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: cp -r .lake/build/doc home_page/docs
 
       - name: Remove unnecessary lake files from documentation in `home_page/docs`
+        # Only remove files on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: |
           find home_page/docs -name "*.trace" -delete
           find home_page/docs -name "*.hash" -delete
 
       - name: Bundle dependencies
+        # Only bundle on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         uses: ruby/setup-ruby@v1
         with:
           working-directory: home_page
@@ -112,21 +119,30 @@ jobs:
           bundler-cache: true # Enable caching for bundler
 
       - name: Build website using Jekyll
-        if: env.HOME_PAGE_EXISTS == 'true'
+        # Only build website on push to main or manual trigger, if home_page exists
+        if: ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && env.HOME_PAGE_EXISTS == 'true'
         working-directory: home_page
         run: JEKYLL_ENV=production bundle exec jekyll build # Note this will also copy the blueprint and API doc into home_page/_site
 
       - name: "Upload website (API documentation, blueprint and any home page)"
+        # Only upload artifact on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.HOME_PAGE_EXISTS == 'true' && 'home_page/_site' || 'home_page/' }}
 
       - name: Deploy to GitHub Pages
+        # Only deploy on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         id: deployment
         uses: actions/deploy-pages@v4
 
       - name: Make sure the API documentation cache works
+        # Only run this step related to docs on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: mv home_page/docs .lake/build/doc
+
+        
   # lint:
   #   name: Lint Files
   #   runs-on: ubuntu-latest

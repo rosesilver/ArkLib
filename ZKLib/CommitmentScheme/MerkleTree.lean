@@ -196,38 +196,41 @@ theorem completeness {n : ℕ} (leaves : List.Vector α (2 ^ n)) (i : Fin (2 ^ n
     ((do
       let cache ← buildMerkleTree α n leaves
       let proof := generateProof α i cache
-      let verif ← verifyProof α i leaves[i] (getRoot α cache) proof).simulate
+      let verif ← verifyProof α i leaves[i] (getRoot α cache) proof).simulateQ
       (implement_with_function α hash)
-      ()).noFailure := by
+      ()).neverFails := by
   induction n with
   | zero =>
     simp [buildMerkleTree, getRoot, generateProof, verifyProof, getPutativeRoot]
     have : i = 0 := by aesop
     subst i
     simp [Fin.instGetElemFinVal]
+    -- TODO: the below is not necessary once `neverFails` lemmas are (re-)added
+    unfold neverFails neverFailsWhen allWhen OracleComp.construct FreeMonad.construct
+    simp [pure, StateT.pure, OptionT.pure, OptionT.mk]
   | succ n ih =>
-    simp_all [Fin.getElem_fin, Vector.getElem_eq_get, Fin.eta, getRoot, Fin.val_zero,
-      Nat.pow_zero, Fin.zero_eta, Vector.get_zero, bind_pure_comp, id_map', probFailure_eq_zero_iff,
-      noFailure_bind_iff, buildMerkleTree, generateProof, LawfulMonad.bind_assoc, bind_map_left,
-      Cache.upper_cons, Cache.leaves_cons]
-    refine ⟨?_, ?_⟩
-    ·
-      simp [buildLayer, simulate, simulateQ, implement_with_function, noFailure]
+    -- simp_all [Fin.getElem_fin, Vector.getElem_eq_get, Fin.eta, getRoot, Fin.val_zero,
+    --   Nat.pow_zero, Fin.zero_eta, Vector.get_zero, bind_pure_comp, id_map', probFailure_eq_zero_iff,
+    --   neverFails_bind_iff, buildMerkleTree, generateProof, LawfulMonad.bind_assoc, bind_map_left,
+    --   Cache.upper_cons, Cache.leaves_cons]
+    -- refine ⟨?_, ?_⟩
+    -- ·
+      simp [buildLayer, simulateQ, simulateQ, implement_with_function, neverFails]
       sorry
 
-    · intro newLeaves h_newLeaves
-      let i' : Fin (2 ^ n) := i.val / 2
-      specialize ih newLeaves i'
-      rcases ih with ⟨ih', ih⟩
-      sorry
+    -- · intro newLeaves h_newLeaves
+    --   let i' : Fin (2 ^ n) := i.val / 2
+    --   specialize ih newLeaves i'
+    --   rcases ih with ⟨ih', ih⟩
+    --   sorry
       -- refine ⟨?_, ?_⟩
       -- · exact ih'
       -- · intro cache h_cache
       --   specialize ih cache h_cache
       --   unfold verifyProof
-      --   simp only [guard_eq, noFailure_bind_iff]
+      --   simp only [guard_eq, neverFails_bind_iff]
       --   unfold verifyProof at ih
-      --   simp only [guard_eq, noFailure_bind_iff] at ih
+      --   simp only [guard_eq, neverFails_bind_iff] at ih
       --   rcases ih with ⟨ih_getroot, ih_cmp⟩
       --   refine ⟨?_, ?_⟩
       --   · -- I think this just needs a simple lemma about `getPutativeRoot`
