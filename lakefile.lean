@@ -10,7 +10,7 @@ Many of these configs are taken from mathlib
 
 require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.18.0"
 
-require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "v4.18.0"
+require VCVio from git "https://github.com/dtumad/VCV-io.git" @ "polynomial-functors"
 
 require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git" @ "lean4.18.0"
 

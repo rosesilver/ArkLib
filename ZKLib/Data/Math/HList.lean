@@ -115,107 +115,91 @@ def HList.ofDVec {α : Fin n → Type u} (l : DVec (m := Fin n) α) :
 /-- Equivalent between `HList.getValue` and `HList.toDVec` -/
 lemma HList.toDVec_eq_getValue (l : HList) (i : Fin l.length) : l.toDVec i = l.getValue i := rfl
 
-
-/-
-
-Other candidate implementations of `HList`:
+-- Other candidate implementations of `HList`:
 
 -- This is a port from [Soup](https://github.com/crabbo-rave/Soup/tree/master)
 
-inductive HList : List (Type u) → Type (u + 1) where
-  | nil : HList []
-  | cons {α : Type u} (x : α) {αs : List (Type u)} (xs : HList αs) : HList (α :: αs)
+inductive DList : List (Type u) → Type (u + 1) where
+  | nil : DList []
+  | cons {α : Type u} (x : α) {αs : List (Type u)} (xs : DList αs) : DList (α :: αs)
 
-syntax (name := hlist) "[" term,* "]ₕ" : term
-macro_rules (kind := hlist)
-  | `([]ₕ) => `(HList.nil)
-  | `([$x]ₕ) => `(HList.cons $x HList.nil)
-  | `([$x, $xs,*]ₕ) => `(HList.cons $x [$xs,*]ₕ)
+syntax (name := dlist) "[" term,* "]ᵈ" : term
+macro_rules (kind := dlist)
+  | `([]ᵈ) => `(DList.nil)
+  | `([$x]ᵈ) => `(DList.cons $x DList.nil)
+  | `([$x, $xs,*]ᵈ) => `(DList.cons $x [$xs,*]ᵈ)
 
 /- HList.cons notation -/
-infixr:67 " ::ₕ " => HList.cons
+infixr:67 " ::ᵈ " => DList.cons
 
 
-namespace HList
+namespace DList
 
 /-- Returns the first element of a HList -/
-def head {α : Type u} {αs : List (Type u)} : HList (α :: αs) → α
-  | x ::ₕ _ => x
+def head {α : Type u} {αs : List (Type u)} : DList (α :: αs) → α
+  | x ::ᵈ _ => x
 
 /-- Returns a HList of all the elements besides the first -/
-def tail {α : Type u} {αs : List (Type u)} : HList (α :: αs) → HList αs
-  | _ ::ₕ xs => xs
+def tail {α : Type u} {αs : List (Type u)} : DList (α :: αs) → DList αs
+  | _ ::ᵈ xs => xs
 
 /-- Returns the length of a HList -/
-def length {αs : List (Type u)} (_ : HList αs) := αs.length
+def length {αs : List (Type u)} (_ : DList αs) := αs.length
 
 /-- Returns the nth element of a HList -/
 @[reducible]
-def get {αs : List (Type u)} : HList αs → (n : Fin αs.length) → αs.get n
-  | x ::ₕ _, ⟨0, _⟩ => x
-  | _ ::ₕ xs, ⟨n+1, h⟩ => xs.get ⟨n, Nat.lt_of_succ_lt_succ h⟩
+def get {αs : List (Type u)} : DList αs → (n : Fin αs.length) → αs.get n
+  | x ::ᵈ _, ⟨0, _⟩ => x
+  | _ ::ᵈ xs, ⟨n+1, h⟩ => xs.get ⟨n, Nat.lt_of_succ_lt_succ h⟩
 
-def getTypes {αs : List Type} (_ : HList αs) : List Type := αs
-
-/--
-`O(|join L|)`. `join L` concatenates all the lists in `L` into one list.
-* `join [[a], [], [b, c], [d, e, f]] = [a, b, c, d, e, f]`
--/
--- def join {αs : List (Type u)} {βs : αs → List (Type v)} : HList (List (HList βs)) → HList αs
---   | []      => []
---   | a :: as => a ++ join as
-
-@[simp] theorem join_nil : List.join ([] : List (List α)) = [] := rfl
-@[simp] theorem join_cons : (l :: ls).join = l ++ ls.join := rfl
-
+def getTypes {αs : List Type} (_ : DList αs) : List Type := αs
 
 section Repr
 
-class HListRepr (α : Type _) where
+class DListRepr (α : Type _) where
   repr: α → Std.Format
 
-instance : HListRepr (HList []) where
+instance : DListRepr (DList []) where
   repr := fun _ => ""
 
-instance [Repr α] (αs : List Type) [HListRepr (HList αs)] : HListRepr (HList (α :: αs)) where
+instance [Repr α] (αs : List (Type u)) [DListRepr (DList αs)] : DListRepr (DList (α :: αs)) where
   repr
-  | HList.cons x xs =>
+  | x ::ᵈ xs =>
     match xs with
-    | HList.nil => reprPrec x 0
-    | HList.cons _ _ => reprPrec x 0 ++ ", " ++ HListRepr.repr xs
+    | nil => reprPrec x 0
+    | _ ::ᵈ _ => reprPrec x 0 ++ ", " ++ DListRepr.repr xs
 
 /-- Repr instance for HLists -/
-instance (αs : List Type) [HListRepr (HList αs)] : Repr (HList αs) where
+instance (αs : List Type) [DListRepr (DList αs)] : Repr (DList αs) where
   reprPrec
-  | v, _ => "[" ++ HListRepr.repr v ++ "]"
+  | v, _ => "[" ++ DListRepr.repr v ++ "]"
 
-class HListString (α : Type _) where
+class DListString (α : Type _) where
   toString : α → String
 
-instance : HListString (HList []) where
+instance : DListString (DList []) where
   toString
-  | HList.nil => ""
+  | DList.nil => ""
 
-instance [ToString α] (αs : List Type) [HListString (HList αs)] :
-    HListString (HList (α :: αs)) where
+instance [ToString α] (αs : List (Type u)) [DListString (DList αs)] :
+    DListString (DList (α :: αs)) where
   toString
-  | HList.cons x xs =>
+  | x ::ᵈ xs =>
     match xs with
-    | HList.nil => toString x
-    | HList.cons _ _ => toString x ++ ", " ++ HListString.toString xs
+    | nil => toString x
+    | _ ::ᵈ _ => toString x ++ ", " ++ DListString.toString xs
 
 /-- ToString instance for HLists -/
-instance (αs : List Type) [HListString (HList αs)] : ToString (HList αs) where
-  toString : HList αs → String
-  | t => "[" ++ HListString.toString t ++ "]"
+instance (αs : List Type) [DListString (DList αs)] : ToString (DList αs) where
+  toString : DList αs → String
+  | t => "[" ++ DListString.toString t ++ "]"
 
 end Repr
 
-def test : HList [Nat, String, Nat] :=
-  HList.cons 1 (HList.cons "bad" (HList.cons 3 HList.nil))
+def test : DList [Nat, String, Nat] :=
+  DList.cons 1 (DList.cons "bad" (DList.cons 3 DList.nil))
 
-#eval test
-
+-- #eval test
 
 -- def mapNthNoMetaEval : (n : Fin αs.length) → ((αs.get n) → β) → HList αs → HList (αs.repla n β)
 --   | ⟨0, _⟩, f, a::as => (f a)::as
@@ -226,8 +210,9 @@ def test : HList [Nat, String, Nat] :=
 --   let typeSig : List Type := αs.replaceAt n β
 --   the (HList typeSig) (h.mapNthNoMetaEval n f)
 
-end HList
+end DList
 
+/-
 
 inductive HList' {α : Type v} (β : α → Type u) : List α → Type (max u v)
   | nil  : HList' β []

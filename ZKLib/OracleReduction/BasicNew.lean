@@ -1,6 +1,7 @@
 import ZKLib.OracleReduction.ToOracle
 import ZKLib.OracleReduction.Prelude
-
+import ZKLib.Data.Math.HList
+import ZKLib.Data.MvPolynomial.Degrees
 
 /-!
 
@@ -11,6 +12,11 @@ We give a **new** modeling of IORs based on continuations / session types.
 -/
 
 universe u v w
+
+@[reducible]
+def Direction.dual : Direction → Direction
+| .P_to_V => .V_to_P
+| .V_to_P => .P_to_V
 
 inductive OracleCompAlt {ι : Type u} (spec : OracleSpec.{u,v} ι) : Type w → Type (max u v w) where
   | pure {α} (x : α) : OracleCompAlt spec α
@@ -39,9 +45,69 @@ inductive OracleProtocolMessageType where
 @[reducible]
 def ProtocolSpec := List (Direction × Type u)
 
+namespace ProtocolSpec
+
+def getDir (pSpec : ProtocolSpec) (i : Fin pSpec.length) : Direction := (pSpec.get i).1
+
+def getMsgType (pSpec : ProtocolSpec) (i : Fin pSpec.length) : Type u := (pSpec.get i).2
+
+/-- The dual of a protocol spec is the same spec with all the directions flipped. -/
+def dual (pSpec : ProtocolSpec) : ProtocolSpec :=
+  pSpec.map (fun (dir, α) => (dir.dual, α))
+
+def append (pSpec pSpec' : ProtocolSpec) : ProtocolSpec :=
+  List.append pSpec pSpec'
+
+def cons (dir : Direction) (α : Type u) (pSpec : ProtocolSpec) : ProtocolSpec :=
+  List.cons (dir, α) pSpec
+
+def concat (pSpec : ProtocolSpec) (dir : Direction) (α : Type u) : ProtocolSpec :=
+  List.concat pSpec (dir, α)
+
+/-- The transcript of a protocol consists of the messages exchanged. This is represented using an
+  iterated product type.-/
 @[reducible]
-def ProtocolSpec.Transcript (pSpec : ProtocolSpec) : Type _ :=
+def Transcript (pSpec : ProtocolSpec) : Type _ :=
   List.foldr (fun (_, α) acc => α × acc) PUnit pSpec
+
+def toOracleInst (pSpec : ProtocolSpec) := ∀ i : Fin pSpec.length, Option (ToOracle (pSpec.get i).2)
+  -- | [] => fun i => Fin.elim0 i
+  -- | (dir, α) :: pSpec => fun i => match i with
+  --   | ⟨0, _⟩ => by simp
+  --   | ⟨i+1, h⟩ => toOracleInst pSpec ⟨i, Nat.lt_of_succ_lt_succ h⟩
+
+/-- The type of algorithms that conform to the protocol spec, with the given output type. -/
+def InteractionType (m : Type u → Type u) (Output : Type u) (pSpec : ProtocolSpec) : Type _ :=
+  List.foldr (fun (dir, α) acc => match dir with
+    | .P_to_V => m (α × acc)
+    | .V_to_P => m (α → acc)) Output pSpec
+
+/-- The type of algorithms that conform to the protocol spec, with the given input and output types.
+  -/
+def IOType (m : Type u → Type u) (Input Output : Type u) (pSpec : ProtocolSpec) : Type _ :=
+  Input → pSpec.InteractionType m Output
+
+namespace IOType
+
+def cons {m : Type u → Type u} {Input Middle Output : Type u} {pSpec : ProtocolSpec}
+    (dir : Direction) (α : Type u)
+    (io1 : IOType m Input Middle [(dir, α)])
+    (ioType : IOType m Middle Output pSpec) :
+    (pSpec.cons dir α).IOType m Input Output := sorry
+
+#check List.foldr_concat
+
+def concat {m : Type u → Type u} {Input Middle Output : Type u} {pSpec : ProtocolSpec}
+    (ioType : pSpec.IOType m Input Output) (dir : Direction) (α : Type u) :
+    (pSpec.concat dir α).IOType m Input Output := sorry
+
+def append {m : Type u → Type u} {Input Middle Output : Type u} {pSpec pSpec' : ProtocolSpec}
+    (ioType : pSpec.IOType m Input Output) (ioType' : pSpec'.IOType m Middle Output) :
+    (pSpec.append pSpec').IOType m Input Output := sorry
+
+end IOType
+
+end ProtocolSpec
 
 def OracleProtocolSpec := List OracleProtocolMessageType
 
@@ -109,10 +175,6 @@ structure Reduction (pSpec : ProtocolSpec) (m : Type u → Type u)
     (StmtIn StmtOut WitIn WitOut : Type u) where
   prover : HonestProver pSpec m StmtIn StmtOut WitIn WitOut
   verifier : Verifier pSpec m StmtIn StmtOut
-
-@[reducible]
-def ProtocolSpec.append (pSpec pSpec' : ProtocolSpec) : ProtocolSpec :=
-  List.append pSpec pSpec'
 
 section Lemmas
 
@@ -287,23 +349,24 @@ def HonestProver.cons (firstRound : Direction × Type u) (pSpec : ProtocolSpec) 
 
 #print HonestProver.cons
 
-def HonestProver.concat (pSpec : ProtocolSpec) (lastRound : Direction × Type u) (m : Type u → Type u) [Monad m]
-    (StmtIn StmtMid StmtOut WitIn WitMid WitOut : Type u)
-    (proverFirst : HonestProver pSpec m StmtIn StmtMid WitIn WitMid)
-    (proverLast : HonestProver [lastRound] m StmtMid StmtOut WitMid WitOut) :
-    HonestProver (pSpec.concat lastRound) m StmtIn StmtOut WitIn WitOut := by
-  sorry
+-- def HonestProver.concat (pSpec : ProtocolSpec) (lastRound : Direction × Type u) (m : Type u → Type u) [Monad m]
+--     (StmtIn StmtMid StmtOut WitIn WitMid WitOut : Type u)
+--     (proverFirst : HonestProver pSpec m StmtIn StmtMid WitIn WitMid)
+--     (proverLast : HonestProver [lastRound] m StmtMid StmtOut WitMid WitOut) :
+--     HonestProver (pSpec.concat lastRound) m StmtIn StmtOut WitIn WitOut := by
+--   sorry
 
-def HonestProver.append (pSpec pSpec' : ProtocolSpec) (m : Type u → Type u) [Monad m]
-    (StmtIn StmtMid StmtOut WitIn WitMid WitOut : Type u)
-    (prover1 : HonestProver pSpec m StmtIn StmtMid WitIn WitMid)
-    (prover2 : HonestProver pSpec' m StmtMid StmtOut WitMid WitOut) :
-    HonestProver (pSpec.append pSpec') m StmtIn StmtOut WitIn WitOut := by
-  induction pSpec with
-  | nil => exact prover2 ∘ prover1
-  | cons firstRound pSpec ih =>
-    dsimp [ProtocolSpec.append]
-    sorry
+-- def HonestProver.append (pSpec pSpec' : ProtocolSpec) (m : Type u → Type u) [Monad m]
+--     (StmtIn StmtMid StmtOut WitIn WitMid WitOut : Type u)
+--     (prover1 : HonestProver pSpec m StmtIn StmtMid WitIn WitMid)
+--     (prover2 : HonestProver pSpec' m StmtMid StmtOut WitMid WitOut) :
+--     HonestProver (pSpec.append pSpec') m StmtIn StmtOut WitIn WitOut := by
+--   induction pSpec with
+--   | nil => exact prover2 ∘ prover1
+--   | cons firstRound pSpec ih =>
+--     dsimp [ProtocolSpec.append]
+--     refine HonestProver.cons firstRound (pSpec ++ pSpec') m StmtIn ?_ StmtOut WitIn ?_ WitOut ?_ ?_
+--     sorry
     -- dsimp [HonestProver, ProverInteractionType] at prover1
     -- exact HonestProver.cons firstRound pSpec m StmtIn StmtMid StmtOut WitIn WitMid WitOut prover1 ih
   -- | [] => prover' ∘ prover
@@ -321,6 +384,10 @@ def HonestProver.append (pSpec pSpec' : ProtocolSpec) (m : Type u → Type u) [M
     --   let (output, rest) ← prover.2 input
     --   let (output', rest') ← prover'.2 output rest
     --   return (output', rest'))
+
+-- def HonestProver.flatten (listPSpec : List ProtocolSpec) (m : Type u → Type u) [Monad m]
+--     (Stmt : Fin (listPSpec.length + 1) → Type u) (Wit : Fin (listPSpec.length + 1) → Type u)
+--     (prover : )
 
 end Composition
 
