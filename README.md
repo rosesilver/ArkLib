@@ -1,6 +1,6 @@
-# Formally Verified Cryptographic Proof Systems
+# Formally Verified Cryptographic Arguments
 
-This library aims to provide a modular and composable framework for formally verifying cryptographic proof systems (e.g. SNARKs) based on Interactive (Oracle) Proofs. This is done as part of the Verified zkEVM project.
+This library aims to provide a modular and composable framework for formally verifying (succinct) cryptographic arguments (e.g. SNARKs) based on Interactive (Oracle) Proofs. This is done as part of the Verified zkEVM project.
 
 In the first stage of this library (until middle of 2025), we plan to formalize interactive (oracle) reductions (a modular way of stating IOPs), and prove information-theoretic completeness and soundness for a select list of protocols.
 
