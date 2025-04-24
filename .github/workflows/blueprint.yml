@@ -124,6 +124,11 @@ jobs:
         working-directory: home_page
         run: JEKYLL_ENV=production bundle exec jekyll build # Note this will also copy the blueprint and API doc into home_page/_site
 
+      - name: Copy API documentation to `home_page/docs`
+        # Only run this step related to docs on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+        run: cp -r .lake/build/doc home_page/docs
+
       - name: "Upload website (API documentation, blueprint and any home page)"
         # Only upload artifact on push to main or manual trigger
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
@@ -137,12 +142,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Make sure the API documentation cache works
-        # Only run this step related to docs on push to main or manual trigger
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-        run: mv home_page/docs .lake/build/doc
-
-        
   # lint:
   #   name: Lint Files
   #   runs-on: ubuntu-latest
