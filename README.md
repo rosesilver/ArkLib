@@ -1,8 +1,8 @@
 # Formally Verified Cryptographic Arguments
 
-This library aims to provide a modular and composable framework for formally verifying (succinct) cryptographic arguments (e.g. SNARKs) based on Interactive (Oracle) Proofs. This is done as part of the Verified zkEVM project.
+This library aims to provide a modular and composable framework for formally verifying (succinct) cryptographic arguments (e.g. SNARKs) based on Interactive (Oracle) Proofs. This is done as part of the [Verified zkEVM](https://verified-zkevm.org/) project.
 
-In the first stage of this library (until middle of 2025), we plan to formalize interactive (oracle) reductions (a modular way of stating IOPs), and prove information-theoretic completeness and soundness for a select list of protocols.
+In the first stage of this library (until middle of 2025), we plan to formalize interactive (oracle) reductions (a modular way of stating IOPs), and prove information-theoretic completeness and soundness for a select list of protocols (see the list of active formalizations below).
 
 In particular, we aim to formalize the following:
 - IOPs building on univariate polynomials: [Plonk](https://eprint.iacr.org/2019/953.pdf) and [FRI](https://eccc.weizmann.ac.il/report/2017/134/)
@@ -29,8 +29,17 @@ The core of our library is a mechanized theory of **$$\mathcal{F}$$-Interactive 
 
 Using the theory of $$\mathcal{F}$$-IOR, we then formalize various proof systems in [ProofSystem](ZKLib/ProofSystem).
 
+## Status & Active Formalizations
+
+The library is currently in development, with the following components being actively worked on:
+- The sumcheck protocol
+- A blueprint for FRI and coding theory pre-requisites
+- A blueprint for STIR and WHIR
+
+[VCV-io](https://github.com/dtumad/VCV-io), the main dependency (alongside [mathlib](https://github.com/leanprover-community/mathlib4)) that is used to provide , is also being developed in parallel.
+
 ## Roadmap & Contributing
 
-See the list of issues for immediate tasks and the [ROADMAP](./ROADMAP.md) for long-term projects.
+We welcome outside contributions to the library! Please see [CONTRIBUTING](./CONTRIBUTING.md) and, the list of issues for immediate tasks, and the [ROADMAP](./ROADMAP.md) for a list of desired contributions.
 
-We welcome outside contributions to the library! If you're interested in working on any of the items mentioned in the list of issues or the roadmap, please join the Verified zkEVM Telegram group, contact [the authors](mailto:qvd@andrew.cmu.edu), or open a new issue.
+If you're interested in working on any of the items mentioned in the list of issues or the roadmap, please join the Verified zkEVM Telegram group, contact [the authors](mailto:qvd@andrew.cmu.edu), or open a new issue.
