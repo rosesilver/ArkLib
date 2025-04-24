@@ -2,7 +2,8 @@
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
-# layout: default # Use the theme's default layout
+title: Formally Verified Arguments of Knowledge in Lean
+layout: default # Use the theme's default layout
 usemathjax: true
 ---
 
