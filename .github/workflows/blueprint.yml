@@ -74,9 +74,9 @@ jobs:
         with:
           path: |
             .lake/build
-          key: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-${{ hashFiles('lake-manifest.json') }}
+          key: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}
           # Optionally add restore-keys if needed, e.g.:
-          # restore-keys: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-
+          # restore-keys: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}
 
       - name: Build project API documentation
         # Only build blueprint on push to main or manual trigger
