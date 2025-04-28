@@ -1,4 +1,4 @@
-import Codes.RelativeHammingDistances
+import ArkLib.Data.CodingTheory.RelativeHammingDistance
 
 namespace DivergenceOfSets
 
