@@ -1,65 +1,45 @@
 import Mathlib.Data.Matrix.Rank
+import Mathlib.InformationTheory.Hamming
 
 namespace LinearCodes
 
 open Classical
 
-variable {ι : Type*} [Fintype ι]
-         {F : Type*}
-         {C : Set (ι → F)}
+variable {ι κ : ℕ}
+         {F : Type*} [Semiring F]
+         {C : Set (Fin ι → F)}
 
-abbrev LinearCode.{u, v} (ι : Type u) (F : Type v) [Semiring F] : Type (max u v) := Submodule F (ι → F)
+abbrev LinearCode.{u} (ι : ℕ) (F : Type u) [Semiring F] : Type u := Submodule F (Fin ι → F)
 
 noncomputable section
+
+def dist [Semiring F] (LC : LinearCode ι F) : ℕ :=
+  sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v ≤ d }
+
 /--
-A linear code of length n is defined by a k x n generating matrix
+A linear code of length `ι` is defined by a `κ x ι` generator matrix `G`.
 -/
-def codeByGenMatrix' {k : Type*} [Fintype k] [Semiring F] (G : Matrix k ι F) : LinearCode ι F :=
+def byGenMat (G : Matrix (Fin κ) (Fin ι) F) : LinearCode ι F :=
   LinearMap.range G.vecMulLinear
 
-/--
-C(G) denotes the code corresponding to the generating matrix G
--/
-notation "C(" G ")" => LinearCodes.codeByGenMatrix' G
-
-/--
- Definition of the dimension of a linear code C
--/
-def dimLinCode {ι : Type*} [Semiring F] (LC : LinearCode ι F) : ℕ :=
+def dim (LC : LinearCode ι F) : ℕ :=
   Module.finrank F LC
 
 /--
-dimC(C) denotes the dimension of a linear code C
- -/
-notation "dimC(" LC ")" => dimLinCode LC
-
-/--
-The dimension of a linear code equals the rank of its associated generating matrix
+The dimension of a linear code equals the rank of its associated generator matrix.
 -/
-lemma dimLinCodeByGenMatrix {k : Type*} [Fintype k] [CommRing F] {G : Matrix k ι F} :
-  dimC(C(G)) = G.rank := sorry
+lemma dimEqRankGenMat [CommRing F] {G : Matrix (Fin κ) (Fin ι) F} :
+  G.rank = dim (byGenMat G) := by sorry
 
+def length [CommRing F] (LC : LinearCode ι F) := Fintype.card (Fin ι)
+
+def rate [CommRing F] (LC : LinearCode ι F) : ℚ :=
+  (dim LC : ℚ) / (length LC : ℚ)
 
 /--
-Length of a linear code C
+`ρ LC` is the rate of the linear code `LC`.
 -/
-def lengthCode [CommRing F] (LC : LinearCode ι F) := Fintype.card ι
-
-/--
-len(C) denotes the length of a linear code C
--/
-notation "lenC(" C ")" => lengthCode C
-
-/--
-rate of a linear code
--/
-def rateCode [CommRing F] (LC : LinearCode ι F) : ℚ :=
-  (dimC(LC) : ℚ) / (lenC(LC) : ℚ)
-
-/--
-ρ(C) denotes the rate of a linear code C
---/
-notation "ρ(" LC ")" => rateCode LC
+notation "ρ" LC => rate LC
 
 end
 
