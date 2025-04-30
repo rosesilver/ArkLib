@@ -15,20 +15,21 @@ namespace Vandermonde
 /--
   `ι x deg` Vandermonde matrix
 -/
-def nonsquare {deg : ℕ} (α : Fin ι ↪ F) : Matrix (Fin ι) (Fin deg) F :=
+def nonsquare (deg : ℕ) (α : Fin ι ↪ F) : Matrix (Fin ι) (Fin deg) F :=
   Matrix.of (fun i j => (α i) ^ j.1)
 
 /--
   The transpose of a `ι x deg` Vandermonde matrix
 -/
-def nonsquareTranspose [Field F] {deg : ℕ} (α : Fin ι ↪ F) :
+def nonsquareTranspose [Field F] (deg : ℕ) (α : Fin ι ↪ F) :
   Matrix (Fin deg) (Fin ι) F :=
-  (Vandermonde.nonsquare α).transpose
+  (Vandermonde.nonsquare deg α).transpose
 
 -- also requires α_i being distinct but we already have this with the embedding Fin ι ↪ F
 -- and is generally true for RS codes.
+-- TBD: keep α implicit or explicit
 
-lemma nonsquareRank [CommRing F] {deg : ℕ} (α : Fin ι ↪ F) :
+lemma nonsquareRank [CommRing F] {deg : ℕ} {α : Fin ι ↪ F} :
   if (deg ≤ ι) then (Vandermonde.nonsquare (deg := deg) α).rank = deg
   else (Vandermonde.nonsquare (deg := deg) α).rank = ι := by sorry
 
@@ -39,32 +40,32 @@ namespace ReedSolomonCode
 /--
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
-lemma genMatIsVandermonde [Field F] {deg : ℕ} (α : Fin ι ↪ F) :
+lemma genMatIsVandermonde [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCodes.genMat_mul (Vandermonde.nonsquare (deg := deg) α) = ReedSolomon.code α deg := by sorry
 
 
 -- our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
 -- for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
--- Check : is `deg ≤ ι` implemented in Quang's defn?
+-- Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.
 
 lemma dim_eq_deg [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCodes.dim (ReedSolomon.code α deg) = deg := by
   rw[← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat]
   sorry
 
-lemma length_eq_domain_size [Field F] (deg : ℕ) (α : Fin ι ↪ F) :
+lemma length_eq_domain_size [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCodes.length (ReedSolomon.code α deg) = ι := by
   rw[LinearCodes.length]
   simp
 
-lemma rate [Field F] (deg : ℕ) (α : Fin ι ↪ F) :
+lemma rate [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCodes.rate (ReedSolomon.code α deg) = deg / ι := by
   rw[LinearCodes.rate, dim_eq_deg, length_eq_domain_size]
 
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
-lemma minDist [Field F] (deg : ℕ) (α : Fin ι ↪ F) :
+lemma minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCodes.dist (ReedSolomon.code α deg) = ι - deg + 1 := by sorry
 
 end ReedSolomonCode
