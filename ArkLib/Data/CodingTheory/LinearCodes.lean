@@ -1,26 +1,42 @@
 import Mathlib.Data.Matrix.Rank
 import Mathlib.InformationTheory.Hamming
+import Mathlib.LinearAlgebra.Matrix.ToLin
+import Mathlib.Algebra.Module.Submodule.Range
+import Mathlib.Algebra.Module.Submodule.Defs
 
 namespace LinearCodes
 
 open Classical
 
-variable {ι κ : ℕ}
+noncomputable section
+
+variable {ι : ℕ}
          {F : Type*} [Semiring F]
-         {C : Set (Fin ι → F)}
 
 abbrev LinearCode.{u} (ι : ℕ) (F : Type u) [Semiring F] : Type u := Submodule F (Fin ι → F)
 
+def dist (LC : LinearCode ι F) : ℕ :=
+  sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v ≤ d }
+end
+
 noncomputable section
 
-def dist [Semiring F] (LC : LinearCode ι F) : ℕ :=
-  sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v ≤ d }
+variable {ι κ : ℕ}
+        {F : Type*} [CommRing F]
 
 /--
-A linear code of length `ι` is defined by a `κ x ι` generator matrix `G`.
+A linear code of length `ι` defined by right multiplication by a `κ x ι` generator matrix `G`.
 -/
-def byGenMat (G : Matrix (Fin κ) (Fin ι) F) : LinearCode ι F :=
+def mul_GenMat (G : Matrix (Fin κ) (Fin ι) F) : LinearCode ι F :=
   LinearMap.range G.vecMulLinear
+
+/--
+A linear code of length `ι` defined by left multiplication by a `ι x κ` generator matrix `G`.
+-/
+
+def genMat_mul (G : Matrix (Fin ι) (Fin κ) F) : Submodule F (Fin ι → F) :=
+  LinearMap.range G.mulVecLin
+
 
 def dim (LC : LinearCode ι F) : ℕ :=
   Module.finrank F LC
@@ -28,12 +44,13 @@ def dim (LC : LinearCode ι F) : ℕ :=
 /--
 The dimension of a linear code equals the rank of its associated generator matrix.
 -/
-lemma dimEqRankGenMat [CommRing F] {G : Matrix (Fin κ) (Fin ι) F} :
-  G.rank = dim (byGenMat G) := by sorry
+lemma dimEqRankGenMat {G : Matrix (Fin κ) (Fin ι) F} :
+  G.rank = dim (genMat_mul G) := by
+  rw[Matrix.rank, dim, genMat_mul]
 
-def length [CommRing F] (LC : LinearCode ι F) := Fintype.card (Fin ι)
+def length (LC : LinearCode ι F) := Fintype.card (Fin ι)
 
-def rate [CommRing F] (LC : LinearCode ι F) : ℚ :=
+def rate (LC : LinearCode ι F) : ℚ :=
   (dim LC : ℚ) / (length LC : ℚ)
 
 /--
@@ -42,5 +59,4 @@ def rate [CommRing F] (LC : LinearCode ι F) : ℚ :=
 notation "ρ" LC => rate LC
 
 end
-
 end LinearCodes
