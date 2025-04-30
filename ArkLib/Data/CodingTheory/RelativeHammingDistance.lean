@@ -124,20 +124,9 @@ lemma finite_d_w [Nonempty ι] : (d_w w C).Finite :=
 
 instance [Nonempty ι] : Fintype (d_w w C) := @Fintype.ofFinite _ finite_d_w
 
---Q: Do we still want this counterexample?
-/--
-  Counter example to d_wNonempty,
-  need an extra condition that C has at least two elements or
-  w isn't in C and C is non-empty?
--/
-example : d_w w {w} = ∅ := by
-  unfold d_w
-  simp
-
 /--
 relative Hamming distance between a vector `w` and a code `C`
 -/
-
 def distToCode [Nonempty ι] (w : ι → F) (C : Set (ι → F)) : ℚ :=
   if h : (d_w w C).Nonempty
   then (d_w w C).toFinset.min' (Set.toFinset_nonempty.2 h)
