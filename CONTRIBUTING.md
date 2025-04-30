@@ -9,7 +9,7 @@ Whether you are fixing bugs, improving documentation, or adding new formalizatio
 * **Roadmap Goals:** We maintain a [ROADMAP](ROADMAP.md) outlining the planned direction and major goals for the library. 
 * **Documentation:** Documentation is actively being worked and will be available as soon as possible.
 
-If you're interested in contributing but unsure where to begin, please get in touch.
+If you are interested in contributing but unsure where to begin, please get in touch.
 
 ### Large Contributions
 
