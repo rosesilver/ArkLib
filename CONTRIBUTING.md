@@ -13,9 +13,9 @@ If you are interested in contributing but unsure where to begin, please get in t
 
 ### Large Contributions
 
-For substantial contributions, such as a new proof system, we strongly encourage the development of a **"Blueprint"** first.
+For substantial contributions, such as a new proof system, we strongly encourage the development of a [blueprint](https://github.com/PatrickMassot/leanblueprint) first.
 
-* **What is a Blueprint?** A blueprint is a document (see`/blueprint` document) that outlines:
+* **What is a Blueprint?** A blueprint is a document that outlines:
     * The contents of the formalization.
     * The proposed formalization strategy in Lean (key definitions, theorems, assumptions).
     * A dependency graph relating all intermediate results to the final desired result.
