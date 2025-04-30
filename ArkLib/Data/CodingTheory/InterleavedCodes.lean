@@ -9,7 +9,6 @@ import ArkLib.Data.CodingTheory.Basic
 import ArkLib.Data.CodingTheory.LinearCodes
 import ArkLib.Data.CodingTheory.ReedSolomon
 
-
 open Classical LinearCodes
 
 noncomputable section
@@ -54,13 +53,13 @@ def distance (U V : Matrix (Fin κ) (Fin ι) F) : ℕ :=
 
 notation "Δ(" U "," V ")" => distance U V
 
-def minDistance (IC : InterleavedCode κ ι F) : ℕ :=
+def minDist (IC : InterleavedCode κ ι F) : ℕ :=
  sInf { d : ℕ | ∃ U ∈ IC, ∃ V ∈ IC, distance U V = d }
 
 /--
 `Δ IC` is the min distance of an interleaved code `IC`
 -/
-notation "Δ" IC => minDistance IC
+notation "Δ" IC => minDist IC
 
 /--
 The distance from a `κ x ι` matrix `U` to the closest word in a `κ`-interleaved code `IC`.
@@ -73,8 +72,9 @@ def distToCode (U : Matrix (Fin κ) (Fin ι) F) (IC : InterleavedCode κ ι F) :
 -/
 notation "Δ(" U "," IC ")" => distToCode U IC
 
-lemma distInterleavedEqDistCode {LC : LinearCode ι F} {IC : InterleavedCode κ ι F } :
-  codeDist (LC : Set (Fin ι → F)) = minDistance IC := by sorry
+lemma distInterleavedEqDistCode {LC : LinearCode ι F} {IC : InterleavedCode κ ι F} :
+  codeDist (LC : Set (Fin ι → F)) = minDist IC := by sorry
+
 
 end InterleavedCodes
 
