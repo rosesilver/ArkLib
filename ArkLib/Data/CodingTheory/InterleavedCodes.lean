@@ -146,7 +146,8 @@ Lemma 4.5 Ligero
 lemma probOfBadPts (deg : ℕ) (α : Fin ι ↪ F) (e : ℕ) (U : Matrix (Fin κ) (Fin ι) F)
   (he : (e : ℚ) < (ι - deg + 1 / 3)) (hU : Δ(U, code (ReedSolomon.code α deg)) > e) :
   (PMF.uniformOfFintype (Matrices.rowSpan U)).toOuterMeasure
-  { w | distFromCode w (ReedSolomon.code α deg) ≤ e} ≤ (ι - deg + 1)/(Fintype.card F)
+    { w | distFromCode (n := Fin ι) (R := F) w (ReedSolomon.code α deg) ≤ e}
+  ≤ (ι - deg + 1)/(Fintype.card F)
   := by sorry
 
 end ProximityToRS
