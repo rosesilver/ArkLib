@@ -6,7 +6,7 @@ Whether you are fixing bugs, improving documentation, or adding new formalizatio
 
 * **Active formalizations:** Please see the list of active formalization efforts and their blueprints.
 * **Open Issues:** Please see the list of open issues for bugs, requested features, and specific formalization tasks. Issues tagged as `good first issue` or `help wanted` are great places to start.
-* **Roadmap Goals:** We maintain a [roadmap](ROADMAP.md) outlining the planned direction and major goals for the library. 
+* **Roadmap Goals:** We maintain a [ROADMAP](ROADMAP.md) outlining the planned direction and major goals for the library. 
 * **Documentation:** Documentation is actively being worked and will be available as soon as possible.
 
 If you're interested in contributing but unsure where to begin, please get in touch.
