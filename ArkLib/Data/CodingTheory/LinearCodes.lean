@@ -4,9 +4,15 @@ import Mathlib.LinearAlgebra.Matrix.ToLin
 import Mathlib.Algebra.Module.Submodule.Range
 import Mathlib.Algebra.Module.Submodule.Defs
 
-namespace LinearCodes
-
 open Classical
+
+/--
+  weight of a vector
+-/
+noncomputable def vector.wt {F : Type*} [Semiring F][Zero F] {ι : ℕ}
+  (v : Fin ι → F) : ℕ  := Finset.card {i | v i ≠ 0}
+
+namespace LinearCodes
 
 noncomputable section
 
@@ -15,7 +21,7 @@ variable {ι : ℕ}
 
 abbrev LinearCode.{u} (ι : ℕ) (F : Type u) [Semiring F] : Type u := Submodule F (Fin ι → F)
 
-def dist (LC : LinearCode ι F) : ℕ :=
+def minDist (LC : LinearCode ι F) : ℕ :=
   sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v ≤ d }
 end
 
@@ -57,6 +63,16 @@ def rate (LC : LinearCode ι F) : ℚ :=
 `ρ LC` is the rate of the linear code `LC`.
 -/
 notation "ρ" LC => rate LC
+
+def minWtCodewords (LC : LinearCode ι F) : ℕ :=
+  sInf {w | ∃ c ∈ LC, vector.wt c = w}
+
+/--
+The min distance of a linear code `LC` equals to the minimum of the weights of non-zero codewords.
+-/
+lemma minDistEqWt (LC : LinearCode ι F) :
+  minDist LC = minWtCodewords LC := by sorry
+
 
 end
 end LinearCodes
