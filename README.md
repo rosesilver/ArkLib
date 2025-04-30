@@ -32,7 +32,7 @@ The library is currently in development. Alongside general development of the li
 - A blueprint for STIR and WHIR
 - Binius
 
-[VCV-io](https://github.com/dtumad/VCV-io), ArkLibs' main dependency alongside [mathlib](https://github.com/leanprover-community/mathlib4) is also being developed in parallel.
+[VCV-io](https://github.com/dtumad/VCV-io), ArkLib's main dependency alongside [mathlib](https://github.com/leanprover-community/mathlib4) is also being developed in parallel.
 
 ## Roadmap & Contributing
 
