@@ -4,7 +4,7 @@ import ArkLib.Data.CodingTheory.LinearCodes
 open Classical
 
 variable {ι : ℕ}
-         {F : Type*} [Semiring F]
+         {F : Type*}
          {C : Set (Fin ι → F)}
 
 --abbrev LinearCode.{u} (F : Type u) [Semiring F] : Type u := Submodule F ((Fin ι) → F)
@@ -15,7 +15,7 @@ namespace Vandermonde
 /--
   `ι x deg` Vandermonde matrix
 -/
-def nonsquare (deg : ℕ) (α : Fin ι ↪ F) : Matrix (Fin ι) (Fin deg) F :=
+def nonsquare [Semiring F] (deg : ℕ) (α : Fin ι ↪ F) : Matrix (Fin ι) (Fin deg) F :=
   Matrix.of (fun i j => (α i) ^ j.1)
 
 /--
@@ -40,9 +40,8 @@ namespace ReedSolomonCode
 /--
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
-lemma genMatIsVandermonde [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
+lemma genMatIsVandermonde [Field F] {deg : ℕ} (α : Fin ι ↪ F) :
   LinearCodes.genMat_mul (Vandermonde.nonsquare (deg := deg) α) = ReedSolomon.code α deg := by sorry
-
 
 -- our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
 -- for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
@@ -66,7 +65,7 @@ lemma rate [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
 lemma minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
-  LinearCodes.dist (ReedSolomon.code α deg) = ι - deg + 1 := by sorry
+  LinearCodes.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by sorry
 
 end ReedSolomonCode
 end
