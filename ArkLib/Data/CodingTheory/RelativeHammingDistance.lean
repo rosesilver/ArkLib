@@ -16,11 +16,6 @@ abbrev LinearCode.{u, v} (ι : Type u) (F : Type v) [Semiring F] : Type (max u v
 
 noncomputable section
 
-/--
-  weight of a vector
--/
-def vector.wt [Zero F] (v : ι → F) : Finset ι := {i | v i ≠ 0}
-
 namespace RelativeHamming
 
 section
