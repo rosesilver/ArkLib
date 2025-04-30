@@ -1,6 +1,6 @@
 # Roadmap
 
-We provide here a list of projects and extensions to ArkLib. This list will be updated as items are taken off into immediate issues to be worked on.
+We provide here a list of projects and extensions to ArkLib. Please note that this list is extensive and covers more than our immediate priorities. This list will be updated as items are taken off into immediate issues to be worked on.
 
 ## General Theory
 
@@ -14,32 +14,24 @@ We provide here a list of projects and extensions to ArkLib. This list will be u
 
 ### 5. Mechanized Adversary Runtime
 
+
 ## Proof Systems
 
 ### 1. GKR, Lasso, and Jolt
 
-### 2. AIR and STIR/WHIR
+### 2. FRI, STIR, WHIR
 
-### 3. Binary Tower Fields and (FRI-)Binius
+Note that this item is under active development.
 
-### 4. Pairing-based and DLog-based Commitment Schemes
+### 3. Binary Tower Fields and Binius.
 
-- KZG
-- Bulletproofs (as an inner product argument (IPA), or even more specialized, a polynomial commitment scheme (PCS))
-- Hyrax
-- HyperKZG / Zeromorph
-- Dory
+Note that this item is under active development.
 
-### 5. Extensions to Plonk
+### 4. Pairing DLog based commitment schemes
 
-- High-degree gates
-- Lookups based on univariate polynomials (plookup? logup? cq?)
+### 5. Plonk and its variants
 
 ### 6. Folding Schemes
-
-- Nova, Hypernova, and NeutronNova
-- Protostar and ProtoGalaxy
-- Arc
 
 ## Miscellaneous
 

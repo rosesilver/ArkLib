@@ -1,14 +1,15 @@
 ## Contributing to ArkLib
 
-We enthusiastically welcome contributions to ArkLib! As a project focused on the formal verification of cryptographic arguments in Lean 4, community involvement is vital for its growth and correctness.
+We enthusiastically welcome contributions to ArkLib!
 
 Whether you are fixing bugs, improving documentation, or adding new formalizations, your input is valuable. We particularly encourage contributions that address:
 
 * **Active formalizations:** Please see the list of active formalization efforts and their blueprints.
 * **Open Issues:** Please see the list of open issues for bugs, requested features, and specific formalization tasks. Issues tagged as `good first issue` or `help wanted` are great places to start.
-* **Roadmap Goals:** We maintain a [ROADMAP.md](ROADMAP.md) outlining the planned direction and major goals for the library. 
+* **Roadmap Goals:** We maintain a [roadmap](ROADMAP.md) outlining the planned direction and major goals for the library. 
+* **Documentation:** Documentation is actively being worked and will be available as soon as possible.
 
-If you're unsure where to begin, please get in touch.
+If you're interested in contributing but unsure where to begin, please get in touch.
 
 ### Large Contributions
 
@@ -21,12 +22,12 @@ For substantial contributions, such as a new proof system, we strongly encourage
     * References to relevant literature.
     * Potential challenges and design choices.
 * **Why a Blueprint?** This helps align the contribution with the project's structure and goals *before* significant coding and proving effort is invested. It facilitates discussion and feedback from maintainers and the community. It also makes it easier to manage large efforts in a distributed way.
-* **Process:** Please open a new discussion or issue to propose the large contribution and discuss the blueprint before starting implementation. 
+* **Process:** Please open a new discussion or issue to propose your planned contribution and discuss the blueprint before starting implementation. 
 
 ### Style Guide
 
 ArkLib aims to align closely with the established conventions of the Lean community, particularly those used in `mathlib`.
-Please follow the [mathlib4 Style Guide](https://github.com/leanprover-community/mathlib4/blob/master/CONTRIBUTING.md#style-guide-and-conventions).
+Please follow the [mathlib Style Guide](https://github.com/leanprover-community/mathlib4/blob/master/CONTRIBUTING.md#style-guide-and-conventions).
 This covers naming conventions, proof style, formatting, and more.
 
 Adhering to this style guide ensures consistency across the library, making it easier for everyone to read, understand, and maintain the code. Our [linting script](`./scripts/lint-style.sh`) helps enforce some aspects of the style guide. Please ensure your code passes the linter checks.

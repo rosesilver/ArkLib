@@ -25,7 +25,7 @@ The core of our library is a mechanized theory of **$$\mathcal{F}$$-Interactive 
 4. We can also carry out the **BCS transform**, which takes an $$\mathcal{F}$$-IOR and compose it with **$$\mathcal{F}$$-commitment schemes** to result in an interactive argument.
   - Roughly speaking, an $$\mathcal{F}$$-commitment scheme is a commitment scheme with an associated opening argument for the correctness of the specified oracle interface.
   - The BCS transform then replaces every oracle message from the prover with a commitment to that message, and runs an opening argument for each oracle query the verifier makes to the prover's messages.
-5. For reference, $$\mathcal{F}$$-IOR is a natural notion, and related versions have appeared in various places in the literature (see [References](./References.md) for a detailed comparison). Our library takes these existing threads and formalizes them into a cohesive theory.
+5. $$\mathcal{F}$$-IOR is a natural notion, and related versions have appeared in various places in the literature (see [BACKGROUND.md](./References.md) for a detailed comparison). Our library takes these existing threads and formalizes them into a cohesive theory.
 
 Using the theory of $$\mathcal{F}$$-IOR, we then formalize various proof systems in [ProofSystem](ArkLib/ProofSystem).
 
@@ -42,4 +42,4 @@ The library is currently in development, with the following components being act
 
 We welcome outside contributions to the library! Please see [CONTRIBUTING](./CONTRIBUTING.md) and, the list of issues for immediate tasks, and the [ROADMAP](./ROADMAP.md) for a list of desired contributions.
 
-If you're interested in working on any of the items mentioned in the list of issues or the roadmap, please join the Verified zkEVM Telegram group, contact [the authors](mailto:qvd@andrew.cmu.edu), or open a new issue.
+If you're interested in working on any of the items mentioned in the list of issues or the roadmap, please see [verified-zkevm effort](https://verified-zkevm.org/), contact [the authors](mailto:qvd@andrew.cmu.edu), or open a new issue.
