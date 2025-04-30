@@ -41,7 +41,7 @@ jobs:
         run: ~/.elan/bin/lake exe cache get || true
 
       - name: Build project
-        run: ~/.elan/bin/lake build ZKLib
+        run: ~/.elan/bin/lake build ArkLib
 
 
       - name: Build blueprint and copy to `home_page/blueprint`
@@ -74,15 +74,15 @@ jobs:
         with:
           path: |
             .lake/build
-          key: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-${{ hashFiles('lake-manifest.json') }}
+          key: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}
           # Optionally add restore-keys if needed, e.g.:
-          # restore-keys: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-
+          # restore-keys: LakeBuild-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}
 
       - name: Build project API documentation
         # Only build blueprint on push to main or manual trigger
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: |
-          ~/.elan/bin/lake -R -Kenv=dev build ZKLib:docs
+          ~/.elan/bin/lake -R -Kenv=dev build ArkLib:docs
 
       - name: Check for `home_page` folder # this is meant to detect a Jekyll-based website
         # Only build blueprint on push to main or manual trigger
@@ -115,7 +115,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           working-directory: home_page
-          ruby-version: "3.0" # Specify Ruby version
+          ruby-version: "3.4.3" # Specify Ruby version
           bundler-cache: true # Enable caching for bundler
 
       - name: Build website using Jekyll
@@ -123,6 +123,11 @@ jobs:
         if: ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && env.HOME_PAGE_EXISTS == 'true'
         working-directory: home_page
         run: JEKYLL_ENV=production bundle exec jekyll build # Note this will also copy the blueprint and API doc into home_page/_site
+
+      - name: Copy API documentation to `home_page/docs`
+        # Only run this step related to docs on push to main or manual trigger
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+        run: cp -r .lake/build/doc home_page/docs
 
       - name: "Upload website (API documentation, blueprint and any home page)"
         # Only upload artifact on push to main or manual trigger
@@ -137,12 +142,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Make sure the API documentation cache works
-        # Only run this step related to docs on push to main or manual trigger
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-        run: mv home_page/docs .lake/build/doc
-
-        
   # lint:
   #   name: Lint Files
   #   runs-on: ubuntu-latest
