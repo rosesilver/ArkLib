@@ -141,7 +141,11 @@ lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι
     match deg_def : deg with
     | .zero => aesop
     | deg + 1 =>
-      rw [Vandermonde.eval_matrixOfPolynomials_eq_nsvandermonde_mul_matrixOfPolynomials (by linarith)] at h
+      rw
+        [
+          Vandermonde.eval_matrixOfPolynomials_eq_nsvandermonde_mul_matrixOfPolynomials
+            (by linarith)
+        ] at h
       rw [←h, Submodule.mem_map]
       exists p
       apply And.intro
