@@ -20,7 +20,7 @@ variable {κ ι : ℕ}
 namespace Affine
 
 /--
-affine line between u and v
+affine line between vectors `u` and `v`.
 -/
 def line [Ring F] (u v : Fin ι → F) : Set (Fin ι → F) :=
   {x | ∃ γ : F, x = γ • u + (1 - γ) • v}
