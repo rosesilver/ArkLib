@@ -41,24 +41,24 @@ lemma nonsquareRank [CommRing F] {deg : ℕ} {α : Fin ι ↪ F} :
 
 theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
   {deg : ℕ} [NeZero deg] [CommRing F] {v : Fin ι ↪ F}
-  {p : F[X]} (h_deg : p.natDegree ≤ deg) :
-    (Vandermonde.nonsquare (deg + 1) v).mulVecLin (p.coeff ∘ Fin.val) =
+  {p : F[X]} (h_deg : p.natDegree < deg) :
+    (Vandermonde.nonsquare deg v).mulVecLin (p.coeff ∘ Fin.val) = -- NOTE: Use `liftF`.
     fun i => p.eval (v i) := by
   ext i
   simp only [
     nonsquare_mulVecLin, Finset.sum_fin_eq_sum_range, eval_eq_sum
   ]
-  refine Eq.symm (Finset.sum_of_injOn (·%(deg + 1)) ?p₁ ?p₂ (fun i _ h ↦ ?p₃) (fun i _ ↦ ?p₄))
+  refine Eq.symm (Finset.sum_of_injOn (·%deg) ?p₁ ?p₂ (fun i _ h ↦ ?p₃) (fun i _ ↦ ?p₄))
   · aesop (add simp [Set.InjOn])
-          (add safe forward [Polynomial.le_natDegree_of_mem_supp, le_trans, Nat.lt_add_one_of_le])
+          (add safe forward [le_natDegree_of_mem_supp, lt_of_le_of_lt, Nat.lt_add_one_of_le])
           (add 10% apply (show ∀ {a b c : ℕ}, a < c → b < c → a % c = b % c → a = b from
                                  fun h₁ h₂ ↦ by aesop (add simp Nat.mod_eq_of_lt)))
           (erase simp mem_support_iff)
-  · aesop (add simp Set.MapsTo) (add safe apply Nat.mod_lt)
+  · aesop (add simp Set.MapsTo) (add safe apply Nat.mod_lt) (add 1% cases Nat)
   · aesop (add safe (by specialize h i)) (add simp Nat.mod_eq_of_lt)
-  · have : i < deg + 1 := by aesop (add safe forward Polynomial.le_natDegree_of_mem_supp)
-                                   (erase simp mem_support_iff)
-                                   (add safe (by omega))
+  · have : i < deg := by aesop (add safe forward le_natDegree_of_mem_supp)
+                               (erase simp mem_support_iff)
+                               (add safe (by omega))
     aesop (add simp Nat.mod_eq_of_lt) (add safe (by ring))
 
 end Vandermonde
@@ -102,63 +102,11 @@ lemma polynomialOfCoeffs_mem_degreeLT
   polynomialOfCoeffs coeffs ∈ degreeLT F deg := by
   aesop (add simp Polynomial.mem_degreeLT)
 
-lemma genMatIsVandermonde'''' [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι ↪ F) :
-  LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
-  unfold LinearCodes.genMat_mul ReedSolomon.code
-  ext x
-  apply Iff.intro
-  · intros h
-    rw [LinearMap.mem_range] at h
-    rcases h with ⟨coeffs, h⟩
-    let p := polynomialOfCoeffs coeffs
-    have p_deg : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
-    have h' : p.coeff ∘ Fin.val = coeffs := coeff_polynomialOfCoeffs_eq_coeffs
-    -- rcases exists_poly_of_coeffs deg coeffs with ⟨p, h', p_deg⟩
-    rw [←h'] at h
-    match deg_def : deg with
-    | .zero => aesop
-    | deg + 1 =>
-      rw
-        [
-          Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
-            (by linarith)
-        ] at h
-      rw [←h, Submodule.mem_map]
-      exists p
-      apply And.intro
-      · rw [Polynomial.mem_degreeLT]
-        by_cases p_ne_zero : p ≠ 0
-        · rw
-            [
-              Polynomial.degree_eq_natDegree p_ne_zero,
-              Nat.cast_withBot, Nat.cast_withBot, WithBot.coe_lt_coe
-            ]
-          exact p_deg
-        · simp only [ne_eq, Decidable.not_not] at p_ne_zero
-          rw [p_ne_zero, Polynomial.degree_zero, Nat.cast_withBot]
-          simp
-          decide
-      · simp only [ReedSolomon.evalOnPoints, LinearMap.coe_mk, AddHom.coe_mk]
-  · intros h
-    rw [Submodule.mem_map] at h
-    rcases h with ⟨p, h⟩
-    rw [LinearMap.mem_range]
-    exists (p.coeff ∘ Fin.val)
-    match def_def : deg with
-    | .zero => aesop
-    | deg + 1 =>
-      rw [Polynomial.mem_degreeLT] at h
-      rw [Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials, ←h.2]
-      unfold ReedSolomon.evalOnPoints
-      simp only [LinearMap.coe_mk, AddHom.coe_mk]
-      by_cases p_ne_zero : p ≠ 0
-      · rw
-          [
-            Polynomial.degree_eq_natDegree p_ne_zero,
-            Nat.cast_withBot, Nat.cast_withBot, WithBot.coe_lt_coe
-          ] at h
-        linarith
-      · aesop
+lemma natDegree_lt_of_mem_degreeLT
+  [Semiring F] {deg : ℕ} [NeZero deg] {p : F[X]} (h : p ∈ degreeLT F deg) : p.natDegree < deg := by
+  by_cases p = 0
+  · cases deg <;> aesop
+  · aesop (add simp [natDegree_lt_iff_degree_lt, mem_degreeLT])
 
 /--
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
@@ -167,62 +115,17 @@ lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι
   LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
   unfold LinearCodes.genMat_mul ReedSolomon.code
   ext x; rw [LinearMap.mem_range, Submodule.mem_map]
-  refine ⟨fun ⟨coeffs, h⟩ ↦ ⟨polynomialOfCoeffs coeffs, ?p₁⟩, fun h ↦ ?p₂⟩
-  simp
-
-  -- apply Iff.intro
-  -- · intros h
-  --   rw [LinearMap.mem_range] at h
-  --   rcases h with ⟨coeffs, h⟩
-  --   let p := polynomialOfCoeffs coeffs
-  --   have p_deg : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
-  --   have h' : p.coeff ∘ Fin.val = coeffs := coeff_polynomialOfCoeffs_eq_coeffs
-  --   -- rcases exists_poly_of_coeffs deg coeffs with ⟨p, h', p_deg⟩
-  --   rw [←h'] at h
-  --   match deg_def : deg with
-  --   | .zero => aesop
-  --   | deg + 1 =>
-  --     rw
-  --       [
-  --         Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
-  --           (by linarith)
-  --       ] at h
-  --     rw [←h, Submodule.mem_map]
-  --     exists p
-  --     apply And.intro
-  --     · rw [Polynomial.mem_degreeLT]
-  --       by_cases p_ne_zero : p ≠ 0
-  --       · rw
-  --           [
-  --             Polynomial.degree_eq_natDegree p_ne_zero,
-  --             Nat.cast_withBot, Nat.cast_withBot, WithBot.coe_lt_coe
-  --           ]
-  --         exact p_deg
-  --       · simp only [ne_eq, Decidable.not_not] at p_ne_zero
-  --         rw [p_ne_zero, Polynomial.degree_zero, Nat.cast_withBot]
-  --         simp
-  --         decide
-  --     · simp only [ReedSolomon.evalOnPoints, LinearMap.coe_mk, AddHom.coe_mk]
-  -- · intros h
-  --   rw [Submodule.mem_map] at h
-  --   rcases h with ⟨p, h⟩
-  --   rw [LinearMap.mem_range]
-  --   exists (p.coeff ∘ Fin.val)
-  --   match def_def : deg with
-  --   | .zero => aesop
-  --   | deg + 1 =>
-  --     rw [Polynomial.mem_degreeLT] at h
-  --     rw [Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials, ←h.2]
-  --     unfold ReedSolomon.evalOnPoints
-  --     simp only [LinearMap.coe_mk, AddHom.coe_mk]
-  --     by_cases p_ne_zero : p ≠ 0
-  --     · rw
-  --         [
-  --           Polynomial.degree_eq_natDegree p_ne_zero,
-  --           Nat.cast_withBot, Nat.cast_withBot, WithBot.coe_lt_coe
-  --         ] at h
-  --       linarith
-  --     · aesop
+  refine ⟨
+    fun ⟨coeffs, h⟩ ↦ ⟨polynomialOfCoeffs coeffs, h.symm ▸ ?p₁⟩,
+    fun ⟨p, h⟩ ↦ ⟨p.coeff ∘ Fin.val, ?p₂⟩
+  ⟩
+  · rw [
+      ←coeff_polynomialOfCoeffs_eq_coeffs (coeffs := coeffs),
+      Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials (by simp)
+    ]
+    simp [ReedSolomon.evalOnPoints]
+  · exact h.2 ▸ Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
+                  (natDegree_lt_of_mem_degreeLT h.1)
 
 -- our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
 -- for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
