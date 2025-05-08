@@ -40,7 +40,7 @@ lemma nonsquareRank [CommRing F] {deg : ℕ} {α : Fin ι ↪ F} :
   (Vandermonde.nonsquare deg α).rank = min deg ι := by sorry
 
 theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
-  {deg : ℕ} [CommRing F] {v : Fin ι ↪ F}
+  {deg : ℕ} [NeZero deg] [CommRing F] {v : Fin ι ↪ F}
   {p : F[X]} (h_deg : p.natDegree ≤ deg) :
     (Vandermonde.nonsquare (deg + 1) v).mulVecLin (p.coeff ∘ Fin.val) =
     fun i => p.eval (v i) := by
@@ -77,57 +77,35 @@ def polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] (coeffs : Fin deg �
                      (add simp [Fin.natCast_def, Nat.mod_eq_of_lt])
   ⟩
 
+@[simp]
 lemma natDegree_polynomialOfCoeffs_deg_lt_deg
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
   (polynomialOfCoeffs coeffs).natDegree < deg := by
   aesop (add simp polynomialOfCoeffs)
         (add safe apply natDegree_lt_of_lbounded_zero_coeff)
 
+@[simp]
+lemma degree_polynomialOfCoeffs_deg_lt_deg
+  [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  (polynomialOfCoeffs coeffs).degree < deg := by
+  aesop (add simp [polynomialOfCoeffs, degree_lt_iff_coeff_zero])
+
+@[simp]
 lemma coeff_polynomialOfCoeffs_eq_coeffs
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
-  (polynomialOfCoeffs coeffs).coeff ∘ Fin.val = coeffs:= by -- NOTE TO SELF: `liftF' coeffs`!
+  (polynomialOfCoeffs coeffs).coeff ∘ Fin.val = coeffs := by -- NOTE TO SELF: `liftF' coeffs`!
   aesop (add simp polynomialOfCoeffs)
 
--- lemma exists_poly_of_coeffs [Semiring F] (deg : ℕ) [NeZero deg] (coeffs : Fin deg → F) :
---   ∃ p : F[X], coeffs = p.coeff ∘ Fin.val ∧ p.natDegree < deg := by
---   let p : F[X] :=
---     ⟨
---       Finset.map ⟨Fin.val, Fin.val_injective⟩ {i | coeffs i ≠ 0},
---       fun i ↦ if h : i < deg then coeffs ⟨i, h⟩ else 0, -- NOTE TO SELF: Use `liftF` I implemented
---                                                         -- in some of the BW cleanups?
---       by
---         dsimp
---         intros a
---         simp_all only
---           [
---             Finset.mem_map, Finset.mem_filter, Finset.mem_univ,
---             true_and, Function.Embedding.coeFn_mk,
---             dite_eq_right_iff, not_forall
---           ]
---         apply Iff.intro
---         · intro a_1
---           obtain ⟨w, h⟩ := a_1
---           obtain ⟨left, right⟩ := h
---           subst right
---           simp_all only [Fin.eta, not_false_eq_true, Fin.is_lt, exists_const,]
---         · intro a_1
---           obtain ⟨w, h⟩ := a_1
---           exists ⟨a, w⟩
---     ⟩
---   exists p
---   simp only [coeff_ofFinsupp, Finsupp.coe_mk, support, p]
---   apply And.intro
---   · aesop
---   · apply natDegree_lt_of_lbounded_zero_coeff; aesop
+@[simp]
+lemma polynomialOfCoeffs_mem_degreeLT
+  [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  polynomialOfCoeffs coeffs ∈ degreeLT F deg := by
+  aesop (add simp Polynomial.mem_degreeLT)
 
-/--
-The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
--/
-lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι ↪ F) :
+lemma genMatIsVandermonde'''' [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι ↪ F) :
   LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
   unfold LinearCodes.genMat_mul ReedSolomon.code
-  apply Submodule.ext
-  intros x
+  ext x
   apply Iff.intro
   · intros h
     rw [LinearMap.mem_range] at h
@@ -181,6 +159,70 @@ lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι
           ] at h
         linarith
       · aesop
+
+/--
+The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
+-/
+lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι ↪ F) :
+  LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
+  unfold LinearCodes.genMat_mul ReedSolomon.code
+  ext x; rw [LinearMap.mem_range, Submodule.mem_map]
+  refine ⟨fun ⟨coeffs, h⟩ ↦ ⟨polynomialOfCoeffs coeffs, ?p₁⟩, fun h ↦ ?p₂⟩
+  simp
+
+  -- apply Iff.intro
+  -- · intros h
+  --   rw [LinearMap.mem_range] at h
+  --   rcases h with ⟨coeffs, h⟩
+  --   let p := polynomialOfCoeffs coeffs
+  --   have p_deg : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
+  --   have h' : p.coeff ∘ Fin.val = coeffs := coeff_polynomialOfCoeffs_eq_coeffs
+  --   -- rcases exists_poly_of_coeffs deg coeffs with ⟨p, h', p_deg⟩
+  --   rw [←h'] at h
+  --   match deg_def : deg with
+  --   | .zero => aesop
+  --   | deg + 1 =>
+  --     rw
+  --       [
+  --         Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
+  --           (by linarith)
+  --       ] at h
+  --     rw [←h, Submodule.mem_map]
+  --     exists p
+  --     apply And.intro
+  --     · rw [Polynomial.mem_degreeLT]
+  --       by_cases p_ne_zero : p ≠ 0
+  --       · rw
+  --           [
+  --             Polynomial.degree_eq_natDegree p_ne_zero,
+  --             Nat.cast_withBot, Nat.cast_withBot, WithBot.coe_lt_coe
+  --           ]
+  --         exact p_deg
+  --       · simp only [ne_eq, Decidable.not_not] at p_ne_zero
+  --         rw [p_ne_zero, Polynomial.degree_zero, Nat.cast_withBot]
+  --         simp
+  --         decide
+  --     · simp only [ReedSolomon.evalOnPoints, LinearMap.coe_mk, AddHom.coe_mk]
+  -- · intros h
+  --   rw [Submodule.mem_map] at h
+  --   rcases h with ⟨p, h⟩
+  --   rw [LinearMap.mem_range]
+  --   exists (p.coeff ∘ Fin.val)
+  --   match def_def : deg with
+  --   | .zero => aesop
+  --   | deg + 1 =>
+  --     rw [Polynomial.mem_degreeLT] at h
+  --     rw [Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials, ←h.2]
+  --     unfold ReedSolomon.evalOnPoints
+  --     simp only [LinearMap.coe_mk, AddHom.coe_mk]
+  --     by_cases p_ne_zero : p ≠ 0
+  --     · rw
+  --         [
+  --           Polynomial.degree_eq_natDegree p_ne_zero,
+  --           Nat.cast_withBot, Nat.cast_withBot, WithBot.coe_lt_coe
+  --         ] at h
+  --       linarith
+  --     · aesop
 
 -- our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
 -- for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
