@@ -20,9 +20,6 @@ import Mathlib.Algebra.Module.Submodule.Defs
 open Classical
 open Finset
 
-noncomputable def wt {F : Type*} [Semiring F] [Zero F] {ι : ℕ}
-  (v : Fin ι → F) : ℕ := #{i | v i ≠ 0}
-
 namespace LinearCodes
 
 noncomputable section
@@ -31,6 +28,9 @@ variable {ι : ℕ}
          {F : Type*} [Semiring F]
 
 abbrev LinearCode.{u} (ι : ℕ) (F : Type u) [Semiring F] : Type u := Submodule F (Fin ι → F)
+
+def wt {F : Type*} [Semiring F] [Zero F] {ι : ℕ}
+  (v : Fin ι → F) : ℕ := #{i | v i ≠ 0}
 
 def minDist (LC : LinearCode ι F) : ℕ :=
   sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v = d }
