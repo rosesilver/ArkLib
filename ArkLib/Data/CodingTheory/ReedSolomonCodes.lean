@@ -1,5 +1,9 @@
 import ArkLib.Data.CodingTheory.ReedSolomon
 import ArkLib.Data.CodingTheory.LinearCodes
+import Mathlib.Data.Int.Basic
+import Mathlib.Algebra.Polynomial.Eval.Defs
+
+
 
 open Classical
 open Polynomial
@@ -153,11 +157,31 @@ lemma minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg �
   LinearCodes.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
   have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
-  case p₁ => sorry
+  case p₁ =>
+     have distUB := LinearCodes.singletonBound (ReedSolomon.code α deg)
+     rw[length_eq_domain_size, dim_eq_deg h] at distUB
+     --zify [show LinearCodes.minDist (ReedSolomon.code α deg) ≤ ι by sorry] at distUB
+     have : LinearCodes.minDist (ReedSolomon.code α deg) ≤ ι := sorry
+     omega
   case p₂ =>
-    choose c hc using show ∃ c, c ∈ ReedSolomon.code α deg by sorry
-    let p := polynomialOfCoeffs c
+    by_cases eq : ∃ c, c ∈ ReedSolomon.code α deg
+    · rcases eq with ⟨c, hc⟩
+      set p := polynomialOfCoeffs c with eq_p
+      have p_deg := natDegree_polynomialOfCoeffs_deg_lt_deg (coeffs := c) --katy: we should not eval at c; need encoding map
+      rw[← eq_p] at p_deg
+      have p_roots : p.roots.card < ι := lt_of_le_of_lt (Polynomial.card_roots' _) p_deg -- katy: actually need `p.roots.card < deg`
+      have p_eval_alpha := λ i : Fin ι => p.eval (α i)
+
+      done
+    · sorry
+    --choose c hc using show ∃ c, c ∈ ReedSolomon.code α deg by
+      ---use fun _ ↦ 0
+
+      --done
+
+    ---let p := polynomialOfCoeffs c
     sorry
 
+Polynomial.card_roots'
 end ReedSolomonCode
 end
