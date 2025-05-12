@@ -150,6 +150,9 @@ lemma rate [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ �
   rw[LinearCodes.rate, dim_eq_deg, length_eq_domain_size]
   exact h
 
+lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
+LinearCodes.minDist (ReedSolomon.code α deg) ≤ ι := by sorry
+
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
