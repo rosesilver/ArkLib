@@ -10,6 +10,8 @@ import Mathlib.LinearAlgebra.Matrix.ToLin
 import Mathlib.Algebra.Module.Submodule.Range
 import Mathlib.Algebra.Module.Submodule.Defs
 
+import ArkLib.Data.CodingTheory.Prelims
+
 /-!
   Definition of a linear code, minimal distance of a linear code, length, dimension and rate.
   Linear codes defined by a generator matrices and rephrase of dimension in this framework.
@@ -65,7 +67,7 @@ lemma dimEqRankGenMat {G : Matrix (Fin κ) (Fin ι) F} :
   G.rank = dim (mulByGenMat G) := by
   rw[Matrix.rank, dim, mulByGenMat]
 
-def length (LC : LinearCode ι F) := Fintype.card (Fin ι)
+def length (_ : LinearCode ι F) := ι
 
 def rate (LC : LinearCode ι F) : ℚ :=
   (dim LC : ℚ) / (length LC : ℚ)
@@ -76,7 +78,7 @@ def rate (LC : LinearCode ι F) : ℚ :=
 notation "ρ" LC => rate LC
 
 def minWtCodewords (LC : LinearCode ι F) : ℕ :=
-  sInf {w | ∃ c ∈ LC, c ≠ 0 ∧ wt c = w}
+  sInf { w | ∃ c ∈ LC, c ≠ 0 ∧ wt c = w }
 
 
 lemma hammingDist_eq_wt_sub {u v : Fin ι → F} : hammingDist u v = wt (u - v) := by
@@ -90,12 +92,18 @@ lemma minDist_eq_minWtCodewords {LC : LinearCode ι F} : minDist LC = minWtCodew
   refine congrArg _ (Set.ext fun _ ↦ ⟨fun ⟨u, _, v, _⟩ ↦ ⟨u - v, ?p₁⟩, fun _ ↦ ⟨0, ?p₂⟩⟩) <;>
   aesop (add simp [hammingDist_eq_wt_sub, sub_eq_zero])
 
-
-
 lemma minDist_UB {LC : LinearCode ι F} : minDist LC ≤ length LC := by
   rw [minDist_eq_minWtCodewords, minWtCodewords]
-  unfold wt
-  sorry
+  apply sInf.sInf_UB_of_le_UB
+  intro s h
+  rw [Set.mem_setOf_eq] at h
+  rcases h with ⟨c, c_in_code, _, s_def⟩
+  rw [←s_def]
+  transitivity
+  apply Finset.card_le_card
+  exact Finset.subset_univ _
+  rw [card_univ, Fintype.card_fin]
+  rfl
 
 /--
 Singleton Bound Theorem.

@@ -143,54 +143,63 @@ lemma dim_eq_deg [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg
 
 lemma length_eq_domain_size [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCode.length (ReedSolomon.code α deg) = ι := by
-  rw[LinearCode.length]
-  simp
+  rw [LinearCode.length]
 
 lemma rate [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ ι) :
   LinearCode.rate (ReedSolomon.code α deg) = deg / ι := by
-  rw[LinearCode.rate, dim_eq_deg, length_eq_domain_size]
+  rw [LinearCode.rate, dim_eq_deg, length_eq_domain_size]
   exact h
 
 lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
-LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := by sorry
+    LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := by
+  simp [(@length_eq_domain_size ι F _ deg α).symm]
+  exact LinearCode.minDist_UB
 
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
-lemma minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg ≤ ι) :
+
+theorem minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg ≤ ι) :
   LinearCode.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
+  -- refine le_antisymm ?p₁ ?p₂
+  -- · sorry
+  -- · rw [←genMatIsVandermonde, LinearCode.minDist_eq_minWtCodewords]
+
+  --   unfold LinearCode.minDist
+
+  -- unfold ReedSolomon.code
+
   have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
      have distUB := LinearCode.singletonBound (ReedSolomon.code α deg)
-     rw[length_eq_domain_size, dim_eq_deg h] at distUB
-     --zify [show LinearCodes.minDist (ReedSolomon.code α deg) ≤ ι by sorry] at distUB
-     have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := sorry
+     rw [length_eq_domain_size, dim_eq_deg h] at distUB
+     have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := dist_le_length
      omega
   case p₂ =>
 
 
 
 
---- proof below is not okay because c should not be in the RS code. c should be an arbitrary vector of length deg
+-- --- proof below is not okay because c should not be in the RS code. c should be an arbitrary vector of length deg
 
 
-    by_cases eq : ∃ c, c ∈ ReedSolomon.code α deg
-    · rcases eq with ⟨c, hc⟩
-      set p := polynomialOfCoeffs c with eq_p
-      have p_deg := natDegree_polynomialOfCoeffs_deg_lt_deg (coeffs := c) --katy: we should not eval at c; need encoding map
-      rw[← eq_p] at p_deg
-      have p_roots : p.roots.card < ι := lt_of_le_of_lt (Polynomial.card_roots' _) p_deg -- katy: actually need `p.roots.card < deg`
-      have p_eval_alpha := λ i : Fin ι => p.eval (α i)
+    -- by_cases eq : ∃ c, c ∈ ReedSolomon.code α deg
+    -- · rcases eq with ⟨c, hc⟩
+    --   set p := polynomialOfCoeffs c with eq_p
+    --   have p_deg := natDegree_polynomialOfCoeffs_deg_lt_deg (coeffs := c) --katy: we should not eval at c; need encoding map
+    --   rw[← eq_p] at p_deg
+    --   have p_roots : p.roots.card < ι := lt_of_le_of_lt (Polynomial.card_roots' _) p_deg -- katy: actually need `p.roots.card < deg`
+    --   have p_eval_alpha := λ i : Fin ι => p.eval (α i)
 
-      done
-    · sorry
-    --choose c hc using show ∃ c, c ∈ ReedSolomon.code α deg by
-      ---use fun _ ↦ 0
+    --   done
+    -- · sorry
+    -- --choose c hc using show ∃ c, c ∈ ReedSolomon.code α deg by
+    --   ---use fun _ ↦ 0
 
-      --done
+    --   --done
 
-    ---let p := polynomialOfCoeffs c
+    -- let p := polynomialOfCoeffs c
     sorry
 
 end ReedSolomonCode

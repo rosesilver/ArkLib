@@ -42,3 +42,20 @@ def neqCols (U V : Matrix (Fin κ) (Fin ι) F) : Finset (Fin ι) :=
   {j | ∃ i : (Fin κ), V i j ≠ U i j}
 
 end Matrices
+
+namespace sInf
+
+lemma sInf_UB_of_le_UB {S : Set ℕ} {i : ℕ} : (∀ s ∈ S, s ≤ i) → sInf S ≤ i := by
+  intro h
+  by_cases S_empty : S.Nonempty
+  · rw [Nat.sInf_def S_empty, Nat.find_le_iff]
+    rcases S_empty with ⟨s, S_empty⟩
+    exists s
+    refine ⟨h s S_empty, S_empty⟩
+  · have : S = ∅ := by
+      unfold Set.Nonempty at S_empty
+      aesop
+    rw [this]
+    simp
+
+end sInf
