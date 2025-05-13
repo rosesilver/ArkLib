@@ -73,6 +73,7 @@ lemma natDegree_lt_of_lbounded_zero_coeff [Semiring F] {p : F[X]} {deg : ℕ} [N
   (h : ∀ i, deg ≤ i → p.coeff i = 0) : p.natDegree < deg := by
   aesop (add unsafe [(by by_contra), (by specialize h p.natDegree)])
 
+--katy : this IS the encoding map?
 def polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] (coeffs : Fin deg → F) : F[X] :=
   ⟨
     Finset.map ⟨Fin.val, Fin.val_injective⟩ {i | coeffs i ≠ 0},
@@ -116,8 +117,8 @@ lemma natDegree_lt_of_mem_degreeLT
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
 lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι ↪ F) :
-  LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
-  unfold LinearCodes.genMat_mul ReedSolomon.code
+  LinearCode.mulByGenMat (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
+  unfold LinearCode.mulByGenMat ReedSolomon.code
   ext x; rw [LinearMap.mem_range, Submodule.mem_map]
   refine ⟨
     fun ⟨coeffs, h⟩ ↦ ⟨polynomialOfCoeffs coeffs, h.symm ▸ ?p₁⟩,
@@ -131,42 +132,49 @@ lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι
   · exact h.2 ▸ Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
                   (natDegree_lt_of_mem_degreeLT h.1)
 
--- our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
--- for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
--- Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.
+/- Our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
+for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
+Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
 lemma dim_eq_deg [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ ι) :
-  LinearCodes.dim (ReedSolomon.code α deg) = deg := by
-  rw [← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat, Vandermonde.nonsquareRank]
+  LinearCode.dim (ReedSolomon.code α deg) = deg := by
+  rw [← genMatIsVandermonde, ← LinearCode.dimEqRankGenMat, Vandermonde.nonsquareRank]
   simp [h]
 
 lemma length_eq_domain_size [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
-  LinearCodes.length (ReedSolomon.code α deg) = ι := by
-  rw[LinearCodes.length]
+  LinearCode.length (ReedSolomon.code α deg) = ι := by
+  rw[LinearCode.length]
   simp
 
 lemma rate [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ ι) :
-  LinearCodes.rate (ReedSolomon.code α deg) = deg / ι := by
-  rw[LinearCodes.rate, dim_eq_deg, length_eq_domain_size]
+  LinearCode.rate (ReedSolomon.code α deg) = deg / ι := by
+  rw[LinearCode.rate, dim_eq_deg, length_eq_domain_size]
   exact h
 
 lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
-LinearCodes.minDist (ReedSolomon.code α deg) ≤ ι := by sorry
+LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := by sorry
 
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
 lemma minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg ≤ ι) :
-  LinearCodes.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
+  LinearCode.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
   have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
-     have distUB := LinearCodes.singletonBound (ReedSolomon.code α deg)
+     have distUB := LinearCode.singletonBound (ReedSolomon.code α deg)
      rw[length_eq_domain_size, dim_eq_deg h] at distUB
      --zify [show LinearCodes.minDist (ReedSolomon.code α deg) ≤ ι by sorry] at distUB
-     have : LinearCodes.minDist (ReedSolomon.code α deg) ≤ ι := sorry
+     have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := sorry
      omega
   case p₂ =>
+
+
+
+
+--- proof below is not okay because c should not be in the RS code. c should be an arbitrary vector of length deg
+
+
     by_cases eq : ∃ c, c ∈ ReedSolomon.code α deg
     · rcases eq with ⟨c, hc⟩
       set p := polynomialOfCoeffs c with eq_p
@@ -185,6 +193,5 @@ lemma minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg �
     ---let p := polynomialOfCoeffs c
     sorry
 
-Polynomial.card_roots'
 end ReedSolomonCode
 end
