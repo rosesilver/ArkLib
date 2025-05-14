@@ -107,6 +107,9 @@ lemma polynomialOfCoeffs_mem_degreeLT
   polynomialOfCoeffs coeffs ∈ degreeLT F deg := by
   aesop (add simp Polynomial.mem_degreeLT)
 
+-- lemma eval_polynomialOfCoeffs [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι] {coeffs : Fin deg → F} {α : Fin ι → F} :
+ -- eval α (@polynomialOfCoeffs F inferInstance deg inferInstance coeffs) = 0 ↔ sorry := by sorry
+
 lemma natDegree_lt_of_mem_degreeLT
   [Semiring F] {deg : ℕ} [NeZero deg] {p : F[X]} (h : p ∈ degreeLT F deg) : p.natDegree < deg := by
   by_cases p = 0
@@ -144,6 +147,7 @@ lemma dim_eq_deg [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg
 lemma length_eq_domain_size [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCode.length (ReedSolomon.code α deg) = ι := by
   rw [LinearCode.length]
+  simp
 
 lemma rate [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ ι) :
   LinearCode.rate (ReedSolomon.code α deg) = deg / ι := by
@@ -155,11 +159,12 @@ lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
   simp [(@length_eq_domain_size ι F _ deg α).symm]
   exact LinearCode.minDist_UB
 
+
+open Finset in
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
-
-theorem minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg ≤ ι) :
+theorem minDist [Field F] [Inhabited F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg ≤ ι) :
   LinearCode.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
   -- refine le_antisymm ?p₁ ?p₂
   -- · sorry
@@ -177,11 +182,42 @@ theorem minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg 
      have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := dist_le_length
      omega
   case p₂ =>
+    have vec : Fin deg → F := Inhabited.default
+    set p := polynomialOfCoeffs vec with eq_p
+    have p_deg := natDegree_polynomialOfCoeffs_deg_lt_deg (coeffs := vec)
+    rw[← eq_p] at p_deg
+    have p_1 := Polynomial.card_roots' p
+    have p_roots : p.roots.card < deg := lt_of_le_of_lt p_1 p_deg
+    set p_eval_alpha := λ i : Fin ι => p.eval (α i) with p_alpha
+    let range : Finset F := Finset.image p_eval_alpha Finset.univ
+    have h1 : #range ≤ ι := by
+      dsimp [range, p_eval_alpha]
+      simp_rw [show ι = #(univ : Finset (Fin ι)) by simp]
+      apply card_image_le
+    let range_zeros : Finset F := range.filter (· =0)
+    have h2 : #range_zeros ≤ #range := by
+      apply card_filter_le
+    have h3 : #range_zeros ≤ deg - 1 := by
+      dsimp [range_zeros, range, p_eval_alpha]
+      rw [card_filter]
+      simp
+      split_ifs with h3
+      swap
+      simp
+      rcases h3 with ⟨i, hi⟩
+      rcases deg with _ | deg'
+      aesop
+      simp
+      rw [eq_p] at hi
+      unfold polynomialOfCoeffs at hi
+      simp at hi
 
 
 
 
--- --- proof below is not okay because c should not be in the RS code. c should be an arbitrary vector of length deg
+
+
+
 
 
     -- by_cases eq : ∃ c, c ∈ ReedSolomon.code α deg
@@ -201,6 +237,7 @@ theorem minDist [Field F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg 
 
     -- let p := polynomialOfCoeffs c
     sorry
+
 
 end ReedSolomonCode
 end
