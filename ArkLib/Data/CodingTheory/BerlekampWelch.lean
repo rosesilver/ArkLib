@@ -11,6 +11,7 @@ import Mathlib.Data.Matrix.Reflection
 import ArkLib.Data.CodingTheory.Basic
 import ArkLib.Data.CodingTheory.BerlekampWelch.Sorries
 import ArkLib.Data.CodingTheory.BerlekampWelch.ToMathlib
+import ArkLib.Data.Fin.Basic
 
 namespace BerlekampWelch
 
@@ -18,88 +19,6 @@ variable {α : Type} {F : Type} [Field F]
          {m n : ℕ} {p : Polynomial F}
 
 open Polynomial
-
-section Hoist
-
-/-
-  Basic ad-hoc lifting;
-  - `liftF : (Fin n → α) → ℕ → α`
-  - `liftF` : (ℕ → α) → Fin n → α
-  These invert each other assuming appropriately-bounded domains.
-
-  These are specialised versions of true lifts that uses `Nonempty` / `Inhabited`
-  and take the complement of the finite set which is the domain of the function being lifted.
--/
-
-variable [Zero α] {f : ℕ → α} {f' : Fin n → α}
-
-/--
-  `liftF` lifts functions over domains `Fin n` to functions over domains `ℕ`
-  by returning `0` on points `≥ n`.
--/
-protected def liftF (f : Fin n → α) : ℕ → α :=
-  fun m ↦ if h : m < n then f ⟨m, h⟩ else 0
-
-/--
-  `liftF'` lifts functions over domains `ℕ` to functions over domains `Fin n`
-  by taking the obvious injection.
--/
-protected def liftF' (f : ℕ → α) : Fin n → α :=
-  fun m ↦ f m.1
-
-open BerlekampWelch (liftF liftF')
-
-@[simp]
-protected lemma liftF_succ {f : Fin (n + 1) → α} : liftF f n = f ⟨n, Nat.lt_add_one _⟩ := by
-  aesop (add simp liftF)
-
-protected lemma liftF'_liftF_of_lt {k : Fin m} (h : k < n) :
-  liftF' (n := m) (liftF (n := n) f') k = f' ⟨k, by omega⟩ := by
-  aesop (add simp [liftF, liftF'])
-
-@[simp]
-protected lemma liftF'_liftF_succ {f : Fin (n + 1) → α} {x : Fin n} :
-  liftF' (liftF (n := n + 1) f) x = f x.castSucc := by
-  aesop (add simp [liftF, liftF']) (add safe (by omega))
-
-@[simp]
-protected lemma liftF'_liftF : Function.LeftInverse liftF' (liftF (α := α) (n := n)) := by
-  aesop (add simp [Function.LeftInverse, liftF, liftF'])
-
-protected lemma liftF_liftF'_of_lt (h : m < n) : liftF (liftF' (n := n) f) m = f m := by
-  aesop (add simp liftF)
-
-@[simp]
-protected lemma liftF_liftF'_succ : liftF (liftF' (n := n + 1) f) n = f n := by
-  aesop (add simp liftF)
-
-protected lemma liftF_eval {f : Fin n → α} {i : Fin n} :
-  liftF f i.val = f i := by
-  aesop (add simp liftF)
-
-protected lemma liftF_ne_0 {f : Fin n → α} {i : ℕ}
-  (h : liftF f i ≠ 0)
-  : i < n := by
-  aesop (add simp liftF)
-
-
-protected abbrev contract (m : ℕ) (f : Fin n → α) := liftF (liftF' (n := m) (liftF f))
-
-open BerlekampWelch (contract)
-
-protected lemma contract_eq_liftF_of_lt {k : ℕ} (h₁ : k < m) :
-  contract m f' k = liftF f' k := by
-  aesop (add simp [contract, liftF, liftF'])
-
-attribute [simp] contract.eq_def
-
-protected lemma eval_liftF_of_lt {f : Fin m → F} (h : n < m) :
-  eval (liftF f n) p = eval (f ⟨n, h⟩) p := by
-  aesop (add simp liftF)
-
-variable [DecidableEq F]
-
-end Hoist
 
 section BW
 
@@ -182,7 +101,7 @@ protected lemma elocPoly_leading_coeff_one : (ElocPoly n ωs f p).leadingCoeff =
 
 section
 
-open BerlekampWelch (liftF liftF' contract liftF_liftF'_of_lt liftF_liftF'_of_lt)
+open Fin 
 
 protected lemma elocPoly_congr {ωs' f' : ℕ → F}
   (h₁ : ∀ {m}, m < n → ωs m = ωs' m) (h₂ : ∀ {m}, m < n → f m = f' m) :
@@ -196,7 +115,7 @@ protected lemma elocPoly_congr {ωs' f' : ℕ → F}
   ]
   aesop (add simp List.mem_range)
 
-open BerlekampWelch (elocPoly_congr contract_eq_liftF_of_lt)
+open BerlekampWelch (elocPoly_congr)
 
 noncomputable def ElocPolyF (ωs f : Fin n → F) (p : Polynomial F) : Polynomial F :=
   ElocPoly n (liftF ωs) (liftF f) p
@@ -221,11 +140,11 @@ protected lemma elocPolyF_ne_zero {ωs f : Fin m → F} :
 
 protected lemma errors_are_roots_of_elocPolyF {i : Fin n} {ωs f : Fin n → F}
   (h : f i ≠ p.eval (ωs i)) : (ElocPolyF ωs f p).eval (ωs i) = 0 := by
-  rw [←BerlekampWelch.liftF_eval (f := ωs)]
+  rw [←liftF_eval (f := ωs)]
   aesop (config := {warnOnNonterminal := false})
   rw [BerlekampWelch.errors_are_roots_of_elocPoly 
     (i.isLt) 
-    (by aesop (add simp [BerlekampWelch.liftF_eval]))]
+    (by aesop (add simp [liftF_eval]))]
 
 @[simp]
 protected lemma elocPolyF_leading_coeff_one {ωs f : Fin n → F}
@@ -236,7 +155,8 @@ end
 
 open BerlekampWelch
   (elocPolyF_eq_elocPoly' elocPoly_leftF_leftF_eq_contract
-   elocPoly_zero elocPoly_succ liftF liftF_succ elocPolyF_leading_coeff_one)
+   elocPoly_zero elocPoly_succ)
+open Fin
 
 @[simp]
 lemma elocPolyF_deg {ωs f : Fin n → F} : (ElocPolyF ωs f p).natDegree = Δ₀(f, p.eval ∘ ωs) := by
@@ -609,7 +529,7 @@ lemma E_and_Q_are_a_solution {e k : ℕ} [NeZero n]
 def solution_to_E (e k : ℕ) (v : Fin (2 * e + k) → F) : Polynomial F :=
   ⟨⟨insert e ((Finset.range e).filter (fun x => liftF v x ≠ 0)), 
     fun i => if i = e then 1 else if i < e then liftF v i else 0, by 
-      aesop (add safe forward BerlekampWelch.liftF_ne_0)
+      aesop (add safe forward liftF_ne_0)
     ⟩⟩
 
 @[simp]
@@ -809,7 +729,7 @@ lemma hamming_dist_fold {g : ℕ → F} [NeZero n] :
     (fun acc i => if ¬f i = g i then acc + 1 else acc) 
     (0 : ℕ) 
     (List.range n) 
-  = Δ₀(BerlekampWelch.liftF' (n := n) f, BerlekampWelch.liftF' g) := by
+  = Δ₀(liftF' (n := n) f, liftF' g) := by
   revert f g   
   induction' n with n ih
   · aesop (add simp hammingDist)
@@ -819,7 +739,7 @@ lemma hamming_dist_fold {g : ℕ → F} [NeZero n] :
     split_ifs with hif
     · specialize (ih (f := f) (g := g))
       simp [hammingDist] at ih 
-      simp [BerlekampWelch.liftF'] at *
+      simp [liftF'] at *
       have hcard :
         (@Finset.filter (Fin (n + 1)) (fun i ↦ ¬f ↑i = g ↑i) (fun a ↦ instDecidableNot) Finset.univ).card
         = (@Finset.filter (Fin n) (fun i ↦ ¬f ↑i = g ↑i) (fun a ↦ instDecidableNot) Finset.univ).card := by
@@ -875,7 +795,7 @@ lemma hamming_dist_fold {g : ℕ → F} [NeZero n] :
             exists ⟨b, by aesop⟩
             aesop
           })
-      simp [BerlekampWelch.liftF'] at *
+      simp [liftF'] at *
       rw [hcard] at ih
       have h_insert: 
           (@Finset.filter (Fin n.succ) (fun i ↦ ¬f ↑i = g ↑i) (fun a ↦ instDecidableNot) Finset.univ).card =
@@ -917,12 +837,12 @@ lemma decoder_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial 
     rw [←h]
     have hh : (fun a ↦ (eval a 0 : F)) ∘ ωs = (0 : Fin n → F) := by aesop 
     rw [hh]
-    have hf : f = BerlekampWelch.liftF' (BerlekampWelch.liftF f) := by
+    have hf : f = liftF' (liftF f) := by
       ext x 
-      rw [BerlekampWelch.liftF'_liftF]
+      rw [liftF'_liftF]
     rw [hf]
     have h := hamming_dist_fold (n := n) (f := liftF (n := n) f) (g := 0)
-    have hh : BerlekampWelch.liftF' (0 : ℕ → F) = (0 : Fin n → F) := by rfl
+    have hh : liftF' (0 : ℕ → F) = (0 : Fin n → F) := by rfl
     rw [hh] at h
     rw [←h]
     exact hif
@@ -936,8 +856,8 @@ lemma decoder_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial 
       (g := liftF ((fun a ↦ eval a (solution_to_Q e k solution / solution_to_E e k solution)) ∘ ωs)) 
     rw [←hp]
     simp [hammingDist] at *
-    rw [BerlekampWelch.liftF'_liftF] at h_dist
-    rw [BerlekampWelch.liftF'_liftF] at h_dist
+    rw [liftF'_liftF] at h_dist
+    rw [liftF'_liftF] at h_dist
     simp at h_dist 
     rw [←h_dist]
     aesop
@@ -955,8 +875,8 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
   · have h_dist := hamming_dist_fold (n := n) (f := liftF (n := n) f) (g := 0)
     simp [hammingDist, ] at h_dist
     rw [h_dist] at hif
-    rw [BerlekampWelch.liftF'_liftF] at hif
-    simp [BerlekampWelch.liftF'] at hif
+    rw [liftF'_liftF] at hif
+    simp [liftF'] at hif
     have h_dist : Δ₀(f, 0) ≤ e := by aesop
     have h_dist : Δ₀((fun a ↦ eval a p) ∘ ωs, 0) ≤ 2 * e := by 
       apply Nat.le_trans
@@ -1001,8 +921,8 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
         have h_eq : (fun a => (0 : F)) ∘ ωs = 0 := by rfl
         rw [h_eq] at h_dist 
         simp [hammingDist] at *
-        rw [BerlekampWelch.liftF'_liftF] at hif 
-        have h_eq : BerlekampWelch.liftF' 0 = (0 : Fin n → F) := by rfl
+        rw [liftF'_liftF] at hif 
+        have h_eq : liftF' 0 = (0 : Fin n → F) := by rfl
         rw [h_eq] at hif 
         simp at hif 
         omega
@@ -1014,7 +934,7 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
           (by {
             apply solution_to_Q_ne_0 (n := n) hk hlinsolve
             simp [hammingDist] at *
-            rw [BerlekampWelch.liftF'_liftF] at hif
+            rw [liftF'_liftF] at hif
             exact hif
             exact h_inj
           })
@@ -1030,7 +950,7 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
           (by {
             apply solution_to_Q_ne_0 (n := n) hk hlinsolve
             simp [hammingDist] at *
-            rw [BerlekampWelch.liftF'_liftF] at hif
+            rw [liftF'_liftF] at hif
             exact hif
             exact h_inj
           })
@@ -1044,7 +964,7 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
         rw [h_dist_eq]
         simp 
         simp [hammingDist] at *
-        rw [BerlekampWelch.liftF'_liftF, BerlekampWelch.liftF'_liftF]
+        rw [liftF'_liftF, liftF'_liftF]
         tauto
 
 lemma decoder_none {e k : ℕ} [NeZero n] {ωs f : Fin n → F} 
