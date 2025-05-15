@@ -2,8 +2,7 @@ import ArkLib.Data.CodingTheory.ReedSolomon
 import ArkLib.Data.CodingTheory.LinearCodes
 import Mathlib.Data.Int.Basic
 import Mathlib.Algebra.Polynomial.Eval.Defs
-
-
+import Mathlib
 
 open Classical
 open Polynomial
@@ -82,6 +81,9 @@ def polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] (coeffs : Fin deg �
                      (add simp [Fin.natCast_def, Nat.mod_eq_of_lt])
   ⟩
 
+def coeffsOfPolynomial [Semiring F] {deg : ℕ} [NeZero deg] (p : F[X]) : Fin deg → F :=
+  fun ⟨x, _⟩ ↦ p.coeff x
+
 @[simp]
 lemma natDegree_polynomialOfCoeffs_deg_lt_deg
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
@@ -101,14 +103,50 @@ lemma coeff_polynomialOfCoeffs_eq_coeffs
   (polynomialOfCoeffs coeffs).coeff ∘ Fin.val = coeffs := by -- NOTE TO SELF: `liftF' coeffs`!
   aesop (add simp polynomialOfCoeffs)
 
+lemma coeff_polynomialOfCoeffs_eq_coeffs'
+  [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  (polynomialOfCoeffs coeffs).coeff = fun x ↦ if h : x < deg then coeffs ⟨x, h⟩ else 0 := by
+  aesop (add simp polynomialOfCoeffs)
+
 @[simp]
 lemma polynomialOfCoeffs_mem_degreeLT
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
   polynomialOfCoeffs coeffs ∈ degreeLT F deg := by
   aesop (add simp Polynomial.mem_degreeLT)
 
--- lemma eval_polynomialOfCoeffs [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι] {coeffs : Fin deg → F} {α : Fin ι → F} :
- -- eval α (@polynomialOfCoeffs F inferInstance deg inferInstance coeffs) = 0 ↔ sorry := by sorry
+@[simp]
+lemma polynomialOfCoeffs_eq_zero [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  polynomialOfCoeffs coeffs = 0 ↔ ∀ (x : ℕ) (h : x < deg), coeffs ⟨x, h⟩ = 0 := by
+  simp [polynomialOfCoeffs, AddMonoidAlgebra.ext_iff]
+
+lemma polynomialOfCoeffs_coeffsOfPolynomial [Semiring F] {deg : ℕ} [NeZero deg] {p : F[X]}
+  (h : p.natDegree + 1 = deg) : polynomialOfCoeffs (coeffsOfPolynomial (deg := deg) p) = p := by
+  ext x; symm
+  aesop (add simp [polynomialOfCoeffs, coeffsOfPolynomial, coeff_polynomialOfCoeffs_eq_coeffs'])
+        (add safe apply coeff_eq_zero_of_natDegree_lt)
+        (add safe (by omega))
+
+@[simp]
+lemma coeffsOfPolynomial_polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg]
+  {coeffs : Fin deg → F} : coeffsOfPolynomial (polynomialOfCoeffs coeffs) = coeffs := by
+  ext x; symm
+  aesop (add simp [polynomialOfCoeffs, coeffsOfPolynomial, coeff_polynomialOfCoeffs_eq_coeffs'])
+        (add safe (by omega))
+
+@[simp]
+lemma support_polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  (polynomialOfCoeffs coeffs).support =
+  Finset.map ⟨Fin.val, Fin.val_injective⟩ {i | coeffs i ≠ 0} := rfl
+
+@[simp]
+lemma eval_polynomialsOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} {α : F} :
+  (polynomialOfCoeffs coeffs).eval α = ∑ x ∈ {i | coeffs i ≠ 0}, coeffs x * α ^ x.1 := by
+  simp [eval_eq_sum, sum_def, coeff_polynomialOfCoeffs_eq_coeffs']
+
+@[simp]
+lemma isRoot_polynomialsOfCoeffs
+  [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} {x : F} :
+  IsRoot (polynomialOfCoeffs coeffs) x ↔ eval x (polynomialOfCoeffs coeffs) = 0 := by rfl
 
 lemma natDegree_lt_of_mem_degreeLT
   [Semiring F] {deg : ℕ} [NeZero deg] {p : F[X]} (h : p ∈ degreeLT F deg) : p.natDegree < deg := by
@@ -147,7 +185,6 @@ lemma dim_eq_deg [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg
 lemma length_eq_domain_size [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
   LinearCode.length (ReedSolomon.code α deg) = ι := by
   rw [LinearCode.length]
-  simp
 
 lemma rate [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ ι) :
   LinearCode.rate (ReedSolomon.code α deg) = deg / ι := by
@@ -158,7 +195,6 @@ lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
     LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := by
   simp [(@length_eq_domain_size ι F _ deg α).symm]
   exact LinearCode.minDist_UB
-
 
 open Finset in
 /--
@@ -184,60 +220,135 @@ theorem minDist [Field F] [Inhabited F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero 
   case p₂ =>
     have vec : Fin deg → F := Inhabited.default
     set p := polynomialOfCoeffs vec with eq_p
-    have p_deg := natDegree_polynomialOfCoeffs_deg_lt_deg (coeffs := vec)
-    rw[← eq_p] at p_deg
-    have p_1 := Polynomial.card_roots' p
-    have p_roots : p.roots.card < deg := lt_of_le_of_lt p_1 p_deg
-    set p_eval_alpha := λ i : Fin ι => p.eval (α i) with p_alpha
-    let range : Finset F := Finset.image p_eval_alpha Finset.univ
-    have h1 : #range ≤ ι := by
-      dsimp [range, p_eval_alpha]
-      simp_rw [show ι = #(univ : Finset (Fin ι)) by simp]
-      apply card_image_le
-    let range_zeros : Finset F := range.filter (· =0)
-    have h2 : #range_zeros ≤ #range := by
-      apply card_filter_le
-    have h3 : #range_zeros ≤ deg - 1 := by
-      dsimp [range_zeros, range, p_eval_alpha]
-      rw [card_filter]
-      simp
-      split_ifs with h3
-      swap
-      simp
-      rcases h3 with ⟨i, hi⟩
-      rcases deg with _ | deg'
-      aesop
-      simp
-      rw [eq_p] at hi
-      unfold polynomialOfCoeffs at hi
-      simp at hi
+    by_cases eq : p = 0
+    · sorry
+      -- have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
+      -- rw [eq_p] at eq
+      -- simp at eq
 
+      -- done
+    · have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
+      have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
+      set eval := p.eval ∘ α with eqαs
+      set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
+      have : image.card = ι := by simp [eqαs']
+      have eq₁ : ∀ elem ∈ image, ∃ i ∈ (univ : Finset (Fin ι)), elem = p.eval (α i) := by
+        intros elem helem
+        simp [image] at *
+        rcases helem with ⟨w, hw⟩
+        use w
+        rw [←hw]
+      let zeroes := image.filter (·=0)
+      have eq₂ : zeroes ⊆ image := by simp [zeroes]
+      have eq₃ : ∀ elem, elem ∈ zeroes → elem = 0 := by simp [zeroes]
+      have eq₄ : ∀ elem, elem ∈ zeroes → IsRoot p elem := by
+        
+      by_cases eq : zeroes = 0
+      · simp [zeroes] at eq
+        rw [Multiset.filter_eq_nil] at eq
+        sorry
+      · 
+      have eq₃ : zeroes.card < deg := by
+        have : zeroes.card ≤ p.roots.card := by
 
+          -- simp [zeroes]
+          -- apply Multiset.card_le_card
+          -- rw [Multiset.le_iff_count]
+          -- intros a
+          -- have : a = 0 := sorry
+          -- subst this
 
+          -- intros a
+          -- -- have := @count_roots
+          -- rw [count_roots]
+          -- rw [Multiset.count_filter]
+          -- simp [image, αs]
+          -- split_ifs with h
+          -- swap
+          -- omega
+          -- subst h
+          -- rw [rootMulti]
+          -- -- simp [zeroes, image, αs]
+          -- -- rw [List.filter_map, eq_p]
+          -- -- simp only [ne_eq, List.length_map, zeroes, image, αs]
+          -- -- unfold Function.comp
+          -- -- rw [le_iff_subset]
+          
+        exact lt_of_le_of_lt this eq₂        
 
+        
+        -- rcases deg with _ | _ | _ <;> [aesop; skip; skip]
+        -- by_contra! contra
+        -- obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
+        -- simp only [zero_add, eval_C, exists_const, ←isConst] at contra
+        -- replace contra : x = 0 := by aesop
+        -- subst contra
+        -- simp at isConst
+        -- exact absurd isConst.symm eq
+        -- rw [List.length_filter]
+      done
 
+      -- set αs : Finset F := Finset.image (p.eval ∘ α) univ with eqαs
+      -- let zeroes := αs.filter (·=0) 
+      -- have eq₂ : #zeroes < deg := by
+      --   simp [αs, zeroes, card_filter]
+      --   rcases deg with _ | _ | _ <;> [aesop; skip; aesop]
+      --   by_contra! contra
+      --   obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
+      --   simp only [zero_add, eval_C, exists_const, ←isConst] at contra
+      --   replace contra : x = 0 := by aesop
+      --   subst contra
+      --   simp at isConst
+      --   exact absurd isConst.symm eq
+      -- let nonzeroes := αs.filter (·≠0)
+      -- have eq₃ : #(univ : Finset (Fin ι)) = ι := by simp
+      -- have eq₄ : #αs ≤ ι := by
+      --     dsimp [αs]
+      --     simp_rw [←eq₃]
+      --     apply card_image_le
+      -- have eq₅ : #nonzeroes ≤ ι := by
+      --   dsimp [nonzeroes]
+      --   simp_rw [←eq₃]
+      --   transitivity #αs
+      --   apply card_filter_le
+      --   simpa
+      -- have eq₆ : #αs ≤ ι := by aesop
+      -- have eq₇ : ι - deg + 1 ≤ #nonzeroes := by
+      --   -- rw [Nat.add_one_le_iff]
+      --   have eq₇ : αs = zeroes ∪ nonzeroes := by
+      --     dsimp [zeroes, nonzeroes]
+      --     rw [←Finset.filter_or]
+      --     ext x
+      --     rw [mem_filter]
+      --     tauto
+      --   have eq₈ : Disjoint zeroes nonzeroes := by
+      --     apply disjoint_filter_filter_neg
+      --   have eq₉ : #αs = #zeroes + #nonzeroes := by
+      --     rw [filter_card_add_filter_neg_card_eq_card]
+      --   rw [eq₉] at eq₄
+      --   rw [←Nat.add_one_le_iff] at eq₂
+      --   have p₂ : #nonzeroes = #αs - #zeroes := by omega
+      --   rw [p₂]
+      --   rw [←eq₃] at eq₄ eq₅ ⊢
 
+        
+        -- replace eq₂ : #zeroes ≤ deg - 1 := by omega
+        -- have p₁ : #zeroes ≤ ι - #nonzeroes := by omega
+        -- have p₂ : #nonzeroes = #αs - #zeroes := by omega
+        -- rw [p₂]
+        -- suffices ι - deg + #zeroes < #αs by omega
+        
 
-
-
-    -- by_cases eq : ∃ c, c ∈ ReedSolomon.code α deg
-    -- · rcases eq with ⟨c, hc⟩
-    --   set p := polynomialOfCoeffs c with eq_p
-    --   have p_deg := natDegree_polynomialOfCoeffs_deg_lt_deg (coeffs := c) --katy: we should not eval at c; need encoding map
-    --   rw[← eq_p] at p_deg
-    --   have p_roots : p.roots.card < ι := lt_of_le_of_lt (Polynomial.card_roots' _) p_deg -- katy: actually need `p.roots.card < deg`
-    --   have p_eval_alpha := λ i : Fin ι => p.eval (α i)
-
-    --   done
-    -- · sorry
-    -- --choose c hc using show ∃ c, c ∈ ReedSolomon.code α deg by
-    --   ---use fun _ ↦ 0
-
-    --   --done
-
-    -- let p := polynomialOfCoeffs c
+        -- zify [h]
+        
+        -- rw [sub_lt_iff_lt_add]
+        
+        done
     sorry
 
+-- have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
+-- have eq₃ : p.coeff = fun x ↦ if h : x < deg then vec ⟨x, h⟩ else 0 := coeff_polynomialOfCoeffs_eq_coeffs' (coeffs := vec)
+-- have eq₄ (α : F) : p.eval α = ∑ x ∈ {i | vec i ≠ 0}, vec x * α ^ x.1 := eval_polynomialsOfCoeffs
 
 end ReedSolomonCode
 end
