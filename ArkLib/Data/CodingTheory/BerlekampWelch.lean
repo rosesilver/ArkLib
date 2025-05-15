@@ -12,6 +12,7 @@ import ArkLib.Data.CodingTheory.Basic
 import ArkLib.Data.CodingTheory.BerlekampWelch.ElocPoly
 import ArkLib.Data.CodingTheory.BerlekampWelch.Sorries
 import ArkLib.Data.CodingTheory.BerlekampWelch.ToMathlib
+import ArkLib.Data.CodingTheory.HammingDistance.Lemmas
 import ArkLib.Data.Fin.Basic
 
 namespace BerlekampWelch
@@ -552,7 +553,7 @@ lemma solution_to_Q_ne_0 {e k : ℕ}
 
 noncomputable def decoder (e k : ℕ) [NeZero n] (ωs f : Fin n → F) : Option (Polynomial F) :=
   let distanceFromZero := List.foldl 
-    (fun acc i => if ¬liftF f i = 0 then acc + 1 else acc) 
+    (fun acc i => if liftF f i = 0 then acc else acc + 1) 
     (0 : ℕ) 
     (List.range n) 
   if distanceFromZero ≤ e 
@@ -567,7 +568,7 @@ noncomputable def decoder (e k : ℕ) [NeZero n] (ωs f : Fin n → F) : Option 
       if Q % E = 0 then 
         let p := Q / E 
         let distanceFromP := List.foldl 
-          (fun acc i => if ¬liftF f i = liftF (p.eval ∘ ωs) i then acc + 1 else acc) 
+          (fun acc i => if liftF f i = liftF (p.eval ∘ ωs) i then acc else acc + 1) 
           (0 : ℕ) 
           (List.range n)
         if distanceFromP ≤ e then 
@@ -576,110 +577,6 @@ noncomputable def decoder (e k : ℕ) [NeZero n] (ωs f : Fin n → F) : Option 
           none
       else
         none
-
-lemma hamming_dist_fold {f g : ℕ → F} [NeZero n] : 
-  List.foldl 
-    (fun acc i => if ¬f i = g i then acc + 1 else acc) 
-    (0 : ℕ) 
-    (List.range n) 
-  = Δ₀(liftF' (n := n) f, liftF' g) := by
-  revert f g   
-  induction' n with n ih
-  · aesop (add simp hammingDist)
-  · intros f g  
-    simp [hammingDist]
-    simp [List.range_succ] 
-    split_ifs with hif
-    · specialize (ih (f := f) (g := g))
-      simp [hammingDist] at ih 
-      simp [liftF'] at *
-      have hcard :
-        (@Finset.filter (Fin (n + 1)) (fun i ↦ ¬f ↑i = g ↑i) (fun a ↦ instDecidableNot) Finset.univ).card
-        = (@Finset.filter (Fin n) (fun i ↦ ¬f ↑i = g ↑i) (fun a ↦ instDecidableNot) Finset.univ).card := by
-        apply Finset.card_bij
-          (i := by {
-            rintro ⟨a, hfin⟩ ha 
-            simp at ha
-            by_cases hn : a = n
-            · aesop
-            · exact ⟨a, by aesop (add safe (by omega))⟩              
-          })
-          (by {
-            rintro ⟨a, hfin⟩ ha
-            simp at ha
-            by_cases hn : a = n
-            · aesop
-            · aesop 
-          })
-          (by {
-            rintro ⟨a1, hfin1⟩ ha1 ⟨a2, hfin2⟩ ha2 heq
-            apply Fin.ext
-            simp at ha1
-            simp at ha2
-            aesop
-          })
-          (by {
-            rintro ⟨b, hfin⟩ hb
-            simp at hb
-            exists ⟨b, by omega⟩
-            aesop (add safe (by omega))
-          })
-      rw [hcard]
-      exact ih
-    · specialize (ih (f := f) (g := g))
-      simp [hammingDist] at ih
-      have hcard :
-        (@Finset.filter (Fin n) (fun i ↦ ¬f ↑i = g ↑i) (fun a ↦ instDecidableNot) Finset.univ).card
-          = (@Finset.filter (Fin n.succ) (fun i ↦ ¬f ↑i = g ↑i ∧ ↑i < n) (fun a ↦ sorry) Finset.univ).card :=
-      by
-        apply Finset.card_bij
-          (i := by {
-            intro a ha
-            exact Fin.castSucc a
-          })
-          (by {
-            rintro ⟨a, hfin⟩ ha
-            aesop
-          })
-          (by aesop)
-          (by {
-            rintro ⟨b, hfin⟩ hb
-            simp at hb
-            exists ⟨b, by aesop⟩
-            aesop
-          })
-      simp [liftF'] at *
-      rw [hcard] at ih
-      have h_insert: 
-          (@Finset.filter (Fin n.succ) (fun i ↦ ¬f ↑i = g ↑i) (fun a ↦ instDecidableNot) Finset.univ).card =
-             (insert (Fin.last n) (@Finset.filter (Fin n.succ) (fun i ↦ ¬f ↑i = g ↑i ∧ ↑i < n) (fun a ↦ sorry) Finset.univ)).card :=
-      by
-        apply Finset.card_bij
-          (i := by {
-            intro a ha
-            exact a
-          })
-          (by {
-            rintro ⟨a, hfin⟩ ha
-            simp at ha
-            by_cases hn : a = n
-            · aesop 
-            · aesop (add safe (by omega))
-          })
-          (by aesop)
-          (by {
-            rintro ⟨b, hfin⟩ hb
-            exists ⟨b, by aesop⟩
-            simp
-            simp at hb
-            rcases hb with hb | hb
-            · simp [Fin.last] at hb
-              aesop
-            · aesop
-          })
-      rw [h_insert]
-      simp
-      convert ih
 
 lemma decoder_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial F}
   (hk : 1 ≤ k) (h : decoder e k ωs f = some p) 
@@ -694,10 +591,8 @@ lemma decoder_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial 
       ext x 
       rw [liftF'_liftF]
     rw [hf]
-    have h := hamming_dist_fold (n := n) (f := liftF (n := n) f) (g := 0)
     have hh : liftF' (0 : ℕ → F) = (0 : Fin n → F) := by rfl
-    rw [hh] at h
-    rw [←h]
+    rw [←hh, ←hamming_dist_eq_fold]
     exact hif
   · generalize h_linsolve:
      linsolve (BerlekampWelchMatrix e k ωs f) (Rhs e ωs f) = solution 
@@ -705,7 +600,7 @@ lemma decoder_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial 
     have h_linsolve := linsolve_some h_linsolve
     have h_linsolve := solution_E_and_Q_satisfy_the_condition (by omega) h_linsolve 
     rcases h with ⟨h_dvd, h_dist, hp⟩
-    have h_dist := hamming_dist_fold (n := n) (f := liftF (n := n) f) 
+    have h_dist := hamming_dist_eq_fold (n := n) (f := liftF (n := n) f) 
       (g := liftF ((fun a ↦ eval a (solution_to_Q e k solution / solution_to_E e k solution)) ∘ ωs)) 
     rw [←hp]
     simp [hammingDist] at *
@@ -725,7 +620,7 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
   : decoder e k ωs f = some p := by 
   simp [decoder]
   split_ifs with hif
-  · have h_dist := hamming_dist_fold (n := n) (f := liftF (n := n) f) (g := 0)
+  · have h_dist := hamming_dist_eq_fold (n := n) (f := liftF (n := n) f) (g := 0)
     simp [hammingDist, ] at h_dist
     rw [h_dist] at hif
     rw [liftF'_liftF] at hif
@@ -763,7 +658,7 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
       exists E_and_Q_to_a_solution e (E ωs f p e) (Q ωs f p e)
       rw [E_and_Q_are_a_solution h_dist hk (by omega)]
     · simp 
-      have h_dist_eq := hamming_dist_fold (n := n) (f := liftF (n := n) f) (g := 0)
+      have h_dist_eq := hamming_dist_eq_fold (n := n) (f := liftF (n := n) f) (g := 0)
       simp at h_dist_eq 
       rw [h_dist_eq] at hif
       simp at hif
@@ -812,7 +707,7 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
           (h_cond) he hn h_dist h_inj hp
         rw [h_unique]
         simp 
-        have h_dist_eq := hamming_dist_fold (n := n) (f := liftF f) (g := liftF ((fun a ↦ eval a p) ∘ ωs))
+        have h_dist_eq := hamming_dist_eq_fold (n := n) (f := liftF f) (g := liftF ((fun a ↦ eval a p) ∘ ωs))
         simp at h_dist_eq
         rw [h_dist_eq]
         simp 
