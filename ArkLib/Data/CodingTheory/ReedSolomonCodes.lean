@@ -214,15 +214,41 @@ lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
   simp [(@length_eq_domain_size ι F _ deg α).symm]
   exact LinearCode.minDist_UB
 
--- lemma abc [CommRing F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} :
---   LinearCode.minWtCodewords (ReedSolomon.code α deg) =
---   LinearCode.minWtCodewords (ReedSolomon.code α deg) -  := sorry
-  -- LinearCode.minDist (F := F)
-  --                    (Submodule.mk (R := F)
-  --                                  (M := Fin ι → F)
-  --                                  (ReedSolomon.code α deg).toAddSubmonoid
-  --                                  (fun c {x} a ↦ (ReedSolomon.code α deg).smul_mem' c a)) := sorry
-#check wt
+instance : CompleteSemilatticeInf ℕ := by
+  constructor
+  · exact fun s a a_1 ↦ Nat.sInf_le a_1
+  · sorry
+
+-- lemma dr_julians_lemma3 {α : Type*} (s : Multiset α) : s.card = Finsupp.sum ⟨sorry, s.count, sorry⟩ (λ _ x ↦ x) := by sorry
+
+-- lemma dr_julians_lemma2 {α : Type*} (s : Multiset α) : s.card = Finsupp.sum ⟨sorry, s.count, sorry⟩ (λ _ x ↦ x) := by sorry
+
+lemma dr_julians_lemma {α β : Type*} [DecidableEq α] {s : Multiset α} {s' : Multiset β} (f : α ↪ β) : (∀ a : α, s.count a ≤ s'.count (f a)) → s.card ≤ s'.card := by
+  -- have := @Multiset.card_eq_countP_add_countP
+  intros h
+  rw [←Multiset.toFinset_sum_count_eq, ←Multiset.toFinset_sum_count_eq]
+  -- apply?
+  -- have :=
+  --   @Finset.sum_of_injOn α β ℕ _ s.toFinset s'.toFinset
+  --   (λ a ↦ Multiset.count a s) (λ a ↦ Multiset.count a s')
+  --   f
+
+  -- rw [this sorry sorry sorry]
+
+
+
+
+
+
+  -- have := @Multiset.toFinset_sum_count_eq α _
+
+  -- rw [dr_julians_lemma2, dr_julians_lemma2]
+
+  -- apply Finsupp.sum_le_sum
+
+  -- have := @Multiset.card_le_card α s s'
+  sorry
+
 open Finset in
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
@@ -237,246 +263,93 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
      have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := dist_le_length
      omega
   case p₂ =>
-    have msg : Fin deg → F := Inhabited.default
-    let codeword := encode msg α
-    have : codeword ∈ ReedSolomon.code α deg := encode_mem_ReedSolomon_code
-    let codeword' : List F := univ.toList.map codeword
-    have eq₁ : codeword'.length = ι := by simp [codeword']
-    let zeroes : List F := codeword'.filter (·=0)
-    have : 
-    have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
-    have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
-    have eq₃ : zeroes.length < deg := by
-      rcases deg with _ | _ | deg
-      · rcases φ with φ
-        simp at φ
-      · sorry
-      · simp [zeroes]
-        rw [Nat.lt_add_one_iff]
-        simp only [encode, ne_eq, codeword', codeword, zeroes]
-        rw [List.filter_map]
-        simp [-eval_polynomialsOfCoeffs]
-        unfold Function.comp
-        simp [-eval_polynomialsOfCoeffs]
+    rw [LinearCode.minDist_eq_minWtCodewords]
+    apply le_sInf
+    intros b h
+    rw [Set.mem_setOf_eq] at h
+    rcases h with ⟨msg, msg_elem, msg_neq_0, wt_c_eq_b⟩
+    unfold ReedSolomon.code at msg_elem
+    rw [Submodule.mem_map] at msg_elem
+    rcases msg_elem with ⟨p, p_deg, p_eval_on_α_eq_msg⟩
+    have p_eval_on_α_eq_msg' : ∀ i, msg i = p.eval (α i) := by aesop
+    have p_neq_0 : p ≠ 0 := by aesop
+    have : p.natDegree < deg := by
+      rw [Polynomial.mem_degreeLT, Polynomial.degree_eq_natDegree p_neq_0, Nat.cast_lt] at p_deg
+      exact p_deg
+    have α_i_mem_roots_of_msg_i_eq_0 : ∀ i, msg i = 0 → α i ∈ p.roots := by aesop
+    unfold wt at wt_c_eq_b
+    have msg_zeros_lt_deg : #{i | msg i = 0} < deg := by
+      apply lt_of_le_of_lt
+      have : #{i | msg i = 0} = (({i | msg i = 0} : Finset (Fin ι)).val).card := by rfl
+      rewrite [this]
+      case b => exact p.roots.card
+      -- have : ({i | msg i = 0} : Finset _).val.card ≤ p.roots.card := by
+      --   rw [←Multiset.toFinset_sum_count_eq, ←Multiset.toFinset_sum_count_eq]
+      --   have :
+      --     ∑ a ∈ {a : p.roots.toFinset | ∃ i, α i = a },
+      --       Multiset.count a.1 p.roots ≤
+      --     ∑ a ∈ p.roots.toFinset, Multiset.count a p.roots := by
+      --     have := @Finset.sum_image_le_of_nonneg
 
+      --     sorry
+      --   have := @le_trans
+      --   apply @le_trans _ _ _
+      --     (∑ a ∈ {a : p.roots.toFinset | ∃ i, α i = a }, Multiset.count a.1 p.roots)
+      --   · have :=
+      --       @Finset.sum_of_injOn (Fin ι) { x // x ∈ p.roots.toFinset } ℕ _
+      --         ({i | msg i = 0} : Finset _).val.toFinset
+      --         {a | ∃ i, α i = ↑a}
+      --         (λ i ↦ Multiset.count i ({i | msg i = 0} : Finset _).val)
+      --         (λ a ↦ Multiset.count (↑a) p.roots)
 
-        apply le_trans (List.length_filter_le _ _)
-        simp [eq₁]
-        
-      -- rcases deg with _ | _ | _ <;> [aesop; skip; aesop]
-      --   -- by_contra! contra
-      --   -- obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
-      --   -- simp only [zero_add, eval_C, exists_const, ←isConst] at contra
-      --   -- replace contra : x = 0 := by aesop
-      --   -- subst contra
-      --   -- simp at isConst
-      --   -- exact absurd isConst.symm eq
-      --   -- rw [List.length_filter]
-  _
-  -- by_cases eq : codeword = 0
-  -- · rw [LinearCode.minDist_eq_minWtCodewords]
-  --   unfold LinearCode.minWtCodewords
-  --   by_contra! contra
-
-    
-  --   done
-
-  -- rw [LinearCode.minDist_eq_minWtCodewords]
-  -- unfold LinearCode.minWtCodewords
-
-  -- -- set p := polynomialOfCoeffs msg with eq_p
-  -- -- set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
-
-  -- by_cases eq : p = 0
-  -- · rw [eq] at eq_p; symm at eq_p; simp at eq_p
-  --   rw [LinearCode.minDist_eq_minWtCodewords]
-  --   unfold LinearCode.minWtCodewords
-    
-  -- refine le_antisymm ?p₁ ?p₂
-  -- · sorry
-  -- · rw [←genMatIsVandermonde, LinearCode.minDist_eq_minWtCodewords]
-
-  --   unfold LinearCode.minDist
-
-  -- unfold ReedSolomon.code
-
-  -- have : NeZero ι := by constructor; aesop
-  -- refine le_antisymm ?p₁ ?p₂
-  -- case p₁ =>
-  --    have distUB := LinearCode.singletonBound (ReedSolomon.code α deg)
-  --    rw [length_eq_domain_size, dim_eq_deg h] at distUB
-  --    have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := dist_le_length
-  --    omega
-  -- case p₂ =>
-  --   have vec : Fin deg → F := Inhabited.default
-  --   set p := polynomialOfCoeffs vec with eq_p
-  --   by_cases eq : p = 0
-  --   · rw [LinearCode.minDist_eq_minWtCodewords]
-  --     unfold LinearCode.minWtCodewords
-  --     apply le_sInf
-  --     have : ι - deg + 1 = 0 := by
-
-      
-  --   · set eval := p.eval ∘ α with eqαs
-  --     set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
-  --     sorry
-
-
-    -- rw [LinearCode.minDist_eq_minWtCodewords]
-    -- unfold LinearCode.minWtCodewords
-    -- have vec : Fin deg → F := Inhabited.default
-    -- set p := polynomialOfCoeffs vec with eq_p
-    -- set eval := p.eval ∘ α with eqαs
-    -- set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
-    -- let zeroes := image.filter (·=0)
-    -- have eq : zeroes.card < deg
-    -- have vec : Fin deg → F := Inhabited.default
-    -- set p := polynomialOfCoeffs vec with eq_p
-    -- by_cases eq : p = 0
-    -- · sorry
-    --   -- have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
-    --   -- rw [eq_p] at eq
-    --   -- simp at eq
-
-    --   -- done
-    -- · have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
-    --   have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
-    --   set eval := p.eval ∘ α with eqαs
-    --   set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
-    --   have : image.card = ι := by simp [eqαs']
-
-      -- have eq₁ : ∀ elem ∈ image, ∃ i ∈ (univ : Finset (Fin ι)), elem = p.eval (α i) := by
-      --   intros elem helem
-      --   simp [image] at *
-      --   rcases helem with ⟨w, hw⟩
-      --   use w
-      --   rw [←hw]
-      --   rfl
-      -- let zeroes := image.filter (·=0)
-      -- have eq₂ : zeroes ⊆ image := by simp [zeroes]
-      -- have eq₃ : ∀ elem, elem ∈ zeroes → elem = 0 := by simp [zeroes]
-      -- have eq₄ : ∀ elem, elem ∈ zeroes → IsRoot p elem := by
-      --   intros x hx
-      --   simp
-      --   specialize eq₁ x (eq₂ hx)
-      --   rcases eq₁ with \<
-      --   apply eq₃ at hx
-      --   simp [hx]
-
-      --   -- rw [eq_p]
-      --   -- simp
-      --   -- rw [Finset.sum_eq_zero]
-      --   -- intros y hy
-      --   -- simp
-      --   -- simp at hy
-        
-        
-      -- by_cases eq : zeroes = 0
-      -- · simp [zeroes] at eq
-      --   rw [Multiset.filter_eq_nil] at eq
-      --   sorry
-      -- · 
-      -- have eq₃ : zeroes.card < deg := by
-      --   have : zeroes.card ≤ p.roots.card := by
-
-      --     -- simp [zeroes]
-      --     -- apply Multiset.card_le_card
-      --     -- rw [Multiset.le_iff_count]
-      --     -- intros a
-      --     -- have : a = 0 := sorry
-      --     -- subst this
-
-      --     -- intros a
-      --     -- -- have := @count_roots
-      --     -- rw [count_roots]
-      --     -- rw [Multiset.count_filter]
-      --     -- simp [image, αs]
-      --     -- split_ifs with h
-      --     -- swap
-      --     -- omega
-      --     -- subst h
-      --     -- rw [rootMulti]
-      --     -- -- simp [zeroes, image, αs]
-      --     -- -- rw [List.filter_map, eq_p]
-      --     -- -- simp only [ne_eq, List.length_map, zeroes, image, αs]
-      --     -- -- unfold Function.comp
-      --     -- -- rw [le_iff_subset]
-          
-      --   exact lt_of_le_of_lt this eq₂        
-
-        
-      --   -- rcases deg with _ | _ | _ <;> [aesop; skip; skip]
-      --   -- by_contra! contra
-      --   -- obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
-      --   -- simp only [zero_add, eval_C, exists_const, ←isConst] at contra
-      --   -- replace contra : x = 0 := by aesop
-      --   -- subst contra
-      --   -- simp at isConst
-      --   -- exact absurd isConst.symm eq
-      --   -- rw [List.length_filter]
-      -- done
-
-      -- -- set αs : Finset F := Finset.image (p.eval ∘ α) univ with eqαs
-      -- -- let zeroes := αs.filter (·=0) 
-      -- -- have eq₂ : #zeroes < deg := by
-      -- --   simp [αs, zeroes, card_filter]
-      -- --   rcases deg with _ | _ | _ <;> [aesop; skip; aesop]
-      -- --   by_contra! contra
-      -- --   obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
-      -- --   simp only [zero_add, eval_C, exists_const, ←isConst] at contra
-      -- --   replace contra : x = 0 := by aesop
-      -- --   subst contra
-      -- --   simp at isConst
-      -- --   exact absurd isConst.symm eq
-      -- -- let nonzeroes := αs.filter (·≠0)
-      -- -- have eq₃ : #(univ : Finset (Fin ι)) = ι := by simp
-      -- -- have eq₄ : #αs ≤ ι := by
-      -- --     dsimp [αs]
-      -- --     simp_rw [←eq₃]
-      -- --     apply card_image_le
-      -- -- have eq₅ : #nonzeroes ≤ ι := by
-      -- --   dsimp [nonzeroes]
-      -- --   simp_rw [←eq₃]
-      -- --   transitivity #αs
-      -- --   apply card_filter_le
-      -- --   simpa
-      -- -- have eq₆ : #αs ≤ ι := by aesop
-      -- -- have eq₇ : ι - deg + 1 ≤ #nonzeroes := by
-      -- --   -- rw [Nat.add_one_le_iff]
-      -- --   have eq₇ : αs = zeroes ∪ nonzeroes := by
-      -- --     dsimp [zeroes, nonzeroes]
-      -- --     rw [←Finset.filter_or]
-      -- --     ext x
-      -- --     rw [mem_filter]
-      -- --     tauto
-      -- --   have eq₈ : Disjoint zeroes nonzeroes := by
-      -- --     apply disjoint_filter_filter_neg
-      -- --   have eq₉ : #αs = #zeroes + #nonzeroes := by
-      -- --     rw [filter_card_add_filter_neg_card_eq_card]
-      -- --   rw [eq₉] at eq₄
-      -- --   rw [←Nat.add_one_le_iff] at eq₂
-      -- --   have p₂ : #nonzeroes = #αs - #zeroes := by omega
-      -- --   rw [p₂]
-      -- --   rw [←eq₃] at eq₄ eq₅ ⊢
-
-        
-      --   -- replace eq₂ : #zeroes ≤ deg - 1 := by omega
-      --   -- have p₁ : #zeroes ≤ ι - #nonzeroes := by omega
-      --   -- have p₂ : #nonzeroes = #αs - #zeroes := by omega
-      --   -- rw [p₂]
-      --   -- suffices ι - deg + #zeroes < #αs by omega
-        
-
-      --   -- zify [h]
-        
-      --   -- rw [sub_lt_iff_lt_add]
-        
-        done
-    sorry
-
--- have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
--- have eq₃ : p.coeff = fun x ↦ if h : x < deg then vec ⟨x, h⟩ else 0 := coeff_polynomialOfCoeffs_eq_coeffs' (coeffs := vec)
--- have eq₄ (α : F) : p.eval α = ∑ x ∈ {i | vec i ≠ 0}, vec x * α ^ x.1 := eval_polynomialsOfCoeffs
+      --     sorry
+      --   · exact this
+      apply dr_julians_lemma α
+      intros i
+      by_cases msg_i_eq_0 : msg i = 0
+      · specialize α_i_mem_roots_of_msg_i_eq_0 _ msg_i_eq_0
+        simp only [filter_val, msg_i_eq_0, Multiset.count_filter_of_pos, Multiset.count_univ,
+          count_roots]
+        rw [Nat.succ_le, Polynomial.rootMultiplicity_pos p_neq_0]
+        rw [←Polynomial.mem_roots p_neq_0]
+        assumption
+      · simp [msg_i_eq_0]
+      apply lt_of_le_of_lt
+      · exact Polynomial.card_roots' _
+      · exact this
+    have union_eq_univ :
+      ({i | msg i = 0} : Finset (Fin ι)) ∪ ({i | msg i ≠ 0} : Finset (Fin ι)) = univ := by
+      ext i
+      simp
+      exact Classical.em _
+    have is_disj :
+      Disjoint ({i | msg i = 0} : Finset (Fin ι)) ({i | msg i ≠ 0} : Finset (Fin ι)) := by
+      apply disjoint_filter_filter_neg
+    have union_card_eq_univ_card :
+      #(({i | msg i = 0} : Finset (Fin ι)) ∪ ({i | msg i ≠ 0} : Finset (Fin ι))) =
+        #(univ : Finset (Fin ι)) := by
+      rw [union_eq_univ]
+    have : #{i | msg i = 0} + #{i | msg i ≠ 0} = ι := by
+      rw
+        [
+          Finset.card_union_of_disjoint is_disj,
+          card_univ,
+          Fintype.card_fin
+        ] at union_card_eq_univ_card
+      exact union_card_eq_univ_card
+    have : #{i | msg i ≠ 0} > ι - deg  := by
+      have : #{i | msg i ≠ 0} = ι - #{i | msg i = 0} := by
+        exact Nat.eq_sub_of_add_eq' this
+      rw [this]
+      zify [h, show #{i | msg i = 0} ≤ ι from
+        (by
+          transitivity
+          · apply Finset.card_le_card
+            exact Finset.subset_univ _
+          · simp
+        )]; linarith
+    rw [wt_c_eq_b] at this
+    linarith
 
 end ReedSolomonCode
 end
