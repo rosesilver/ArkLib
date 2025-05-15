@@ -154,6 +154,24 @@ lemma natDegree_lt_of_mem_degreeLT
   · cases deg <;> aesop
   · aesop (add simp [natDegree_lt_iff_degree_lt, mem_degreeLT])
 
+def encode [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι]
+  (msg : Fin deg → F) (domain : Fin ι ↪ F) : Fin ι → F := (polynomialOfCoeffs msg).eval ∘ ⇑domain
+
+lemma encode_mem_ReedSolomon_code
+  [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι] {msg : Fin deg → F} {domain : Fin ι ↪ F} :
+  encode msg domain ∈ ReedSolomon.code domain deg := by
+  simp [encode, ReedSolomon.code]
+  use (polynomialOfCoeffs msg)
+  simp
+  ext i
+  simp [ReedSolomon.evalOnPoints]
+
+def makeZero (ι : ℕ) (F : Type*) [Zero F] : Fin ι → F := fun _ ↦ 0
+
+@[simp]
+lemma codewordIsZero_makeZero {ι : ℕ} {F : Type*} [Zero F] :
+  makeZero ι F = 0 := by unfold makeZero; ext; rfl
+
 /--
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
@@ -196,20 +214,21 @@ lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
   simp [(@length_eq_domain_size ι F _ deg α).symm]
   exact LinearCode.minDist_UB
 
+-- lemma abc [CommRing F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} :
+--   LinearCode.minWtCodewords (ReedSolomon.code α deg) =
+--   LinearCode.minWtCodewords (ReedSolomon.code α deg) -  := sorry
+  -- LinearCode.minDist (F := F)
+  --                    (Submodule.mk (R := F)
+  --                                  (M := Fin ι → F)
+  --                                  (ReedSolomon.code α deg).toAddSubmonoid
+  --                                  (fun c {x} a ↦ (ReedSolomon.code α deg).smul_mem' c a)) := sorry
+#check wt
 open Finset in
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
-theorem minDist [Field F] [Inhabited F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero deg] (h : deg ≤ ι) :
+theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ : NeZero deg] (h : deg ≤ ι) :
   LinearCode.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
-  -- refine le_antisymm ?p₁ ?p₂
-  -- · sorry
-  -- · rw [←genMatIsVandermonde, LinearCode.minDist_eq_minWtCodewords]
-
-  --   unfold LinearCode.minDist
-
-  -- unfold ReedSolomon.code
-
   have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
@@ -218,11 +237,98 @@ theorem minDist [Field F] [Inhabited F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero 
      have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := dist_le_length
      omega
   case p₂ =>
-    have vec : Fin deg → F := Inhabited.default
-    set p := polynomialOfCoeffs vec with eq_p
-    set eval := p.eval ∘ α with eqαs
-    set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
-    let zeroes := image.filter (·=0)
+    have msg : Fin deg → F := Inhabited.default
+    let codeword := encode msg α
+    have : codeword ∈ ReedSolomon.code α deg := encode_mem_ReedSolomon_code
+    let codeword' : List F := univ.toList.map codeword
+    have eq₁ : codeword'.length = ι := by simp [codeword']
+    let zeroes : List F := codeword'.filter (·=0)
+    have : 
+    have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
+    have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
+    have eq₃ : zeroes.length < deg := by
+      rcases deg with _ | _ | deg
+      · rcases φ with φ
+        simp at φ
+      · sorry
+      · simp [zeroes]
+        rw [Nat.lt_add_one_iff]
+        simp only [encode, ne_eq, codeword', codeword, zeroes]
+        rw [List.filter_map]
+        simp [-eval_polynomialsOfCoeffs]
+        unfold Function.comp
+        simp [-eval_polynomialsOfCoeffs]
+
+
+        apply le_trans (List.length_filter_le _ _)
+        simp [eq₁]
+        
+      -- rcases deg with _ | _ | _ <;> [aesop; skip; aesop]
+      --   -- by_contra! contra
+      --   -- obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
+      --   -- simp only [zero_add, eval_C, exists_const, ←isConst] at contra
+      --   -- replace contra : x = 0 := by aesop
+      --   -- subst contra
+      --   -- simp at isConst
+      --   -- exact absurd isConst.symm eq
+      --   -- rw [List.length_filter]
+  _
+  -- by_cases eq : codeword = 0
+  -- · rw [LinearCode.minDist_eq_minWtCodewords]
+  --   unfold LinearCode.minWtCodewords
+  --   by_contra! contra
+
+    
+  --   done
+
+  -- rw [LinearCode.minDist_eq_minWtCodewords]
+  -- unfold LinearCode.minWtCodewords
+
+  -- -- set p := polynomialOfCoeffs msg with eq_p
+  -- -- set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
+
+  -- by_cases eq : p = 0
+  -- · rw [eq] at eq_p; symm at eq_p; simp at eq_p
+  --   rw [LinearCode.minDist_eq_minWtCodewords]
+  --   unfold LinearCode.minWtCodewords
+    
+  -- refine le_antisymm ?p₁ ?p₂
+  -- · sorry
+  -- · rw [←genMatIsVandermonde, LinearCode.minDist_eq_minWtCodewords]
+
+  --   unfold LinearCode.minDist
+
+  -- unfold ReedSolomon.code
+
+  -- have : NeZero ι := by constructor; aesop
+  -- refine le_antisymm ?p₁ ?p₂
+  -- case p₁ =>
+  --    have distUB := LinearCode.singletonBound (ReedSolomon.code α deg)
+  --    rw [length_eq_domain_size, dim_eq_deg h] at distUB
+  --    have : LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := dist_le_length
+  --    omega
+  -- case p₂ =>
+  --   have vec : Fin deg → F := Inhabited.default
+  --   set p := polynomialOfCoeffs vec with eq_p
+  --   by_cases eq : p = 0
+  --   · rw [LinearCode.minDist_eq_minWtCodewords]
+  --     unfold LinearCode.minWtCodewords
+  --     apply le_sInf
+  --     have : ι - deg + 1 = 0 := by
+
+      
+  --   · set eval := p.eval ∘ α with eqαs
+  --     set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
+  --     sorry
+
+
+    -- rw [LinearCode.minDist_eq_minWtCodewords]
+    -- unfold LinearCode.minWtCodewords
+    -- have vec : Fin deg → F := Inhabited.default
+    -- set p := polynomialOfCoeffs vec with eq_p
+    -- set eval := p.eval ∘ α with eqαs
+    -- set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
+    -- let zeroes := image.filter (·=0)
     -- have eq : zeroes.card < deg
     -- have vec : Fin deg → F := Inhabited.default
     -- set p := polynomialOfCoeffs vec with eq_p

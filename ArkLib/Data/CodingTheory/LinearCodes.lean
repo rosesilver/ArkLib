@@ -80,7 +80,6 @@ notation "ρ" LC => rate LC
 def minWtCodewords (LC : LinearCode ι F) : ℕ :=
   sInf { w | ∃ c ∈ LC, c ≠ 0 ∧ wt c = w }
 
-
 lemma hammingDist_eq_wt_sub {u v : Fin ι → F} : hammingDist u v = wt (u - v) := by
   aesop (add simp [hammingDist, wt, sub_eq_zero])
 
