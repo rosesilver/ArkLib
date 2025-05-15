@@ -220,128 +220,150 @@ theorem minDist [Field F] [Inhabited F] {deg : ℕ} {α : Fin ι ↪ F} [NeZero 
   case p₂ =>
     have vec : Fin deg → F := Inhabited.default
     set p := polynomialOfCoeffs vec with eq_p
-    by_cases eq : p = 0
-    · sorry
-      -- have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
-      -- rw [eq_p] at eq
-      -- simp at eq
+    set eval := p.eval ∘ α with eqαs
+    set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
+    let zeroes := image.filter (·=0)
+    -- have eq : zeroes.card < deg
+    -- have vec : Fin deg → F := Inhabited.default
+    -- set p := polynomialOfCoeffs vec with eq_p
+    -- by_cases eq : p = 0
+    -- · sorry
+    --   -- have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
+    --   -- rw [eq_p] at eq
+    --   -- simp at eq
 
-      -- done
-    · have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
-      have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
-      set eval := p.eval ∘ α with eqαs
-      set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
-      have : image.card = ι := by simp [eqαs']
-      have eq₁ : ∀ elem ∈ image, ∃ i ∈ (univ : Finset (Fin ι)), elem = p.eval (α i) := by
-        intros elem helem
-        simp [image] at *
-        rcases helem with ⟨w, hw⟩
-        use w
-        rw [←hw]
-      let zeroes := image.filter (·=0)
-      have eq₂ : zeroes ⊆ image := by simp [zeroes]
-      have eq₃ : ∀ elem, elem ∈ zeroes → elem = 0 := by simp [zeroes]
-      have eq₄ : ∀ elem, elem ∈ zeroes → IsRoot p elem := by
+    --   -- done
+    -- · have eq₁ : p.natDegree < deg := natDegree_polynomialOfCoeffs_deg_lt_deg
+    --   have eq₂ : p.roots.card < deg := lt_of_le_of_lt (card_roots' p) eq₁
+    --   set eval := p.eval ∘ α with eqαs
+    --   set image : Multiset F := Multiset.ofList (univ.toList.map eval) with eqαs'
+    --   have : image.card = ι := by simp [eqαs']
+
+      -- have eq₁ : ∀ elem ∈ image, ∃ i ∈ (univ : Finset (Fin ι)), elem = p.eval (α i) := by
+      --   intros elem helem
+      --   simp [image] at *
+      --   rcases helem with ⟨w, hw⟩
+      --   use w
+      --   rw [←hw]
+      --   rfl
+      -- let zeroes := image.filter (·=0)
+      -- have eq₂ : zeroes ⊆ image := by simp [zeroes]
+      -- have eq₃ : ∀ elem, elem ∈ zeroes → elem = 0 := by simp [zeroes]
+      -- have eq₄ : ∀ elem, elem ∈ zeroes → IsRoot p elem := by
+      --   intros x hx
+      --   simp
+      --   specialize eq₁ x (eq₂ hx)
+      --   rcases eq₁ with \<
+      --   apply eq₃ at hx
+      --   simp [hx]
+
+      --   -- rw [eq_p]
+      --   -- simp
+      --   -- rw [Finset.sum_eq_zero]
+      --   -- intros y hy
+      --   -- simp
+      --   -- simp at hy
         
-      by_cases eq : zeroes = 0
-      · simp [zeroes] at eq
-        rw [Multiset.filter_eq_nil] at eq
-        sorry
-      · 
-      have eq₃ : zeroes.card < deg := by
-        have : zeroes.card ≤ p.roots.card := by
+        
+      -- by_cases eq : zeroes = 0
+      -- · simp [zeroes] at eq
+      --   rw [Multiset.filter_eq_nil] at eq
+      --   sorry
+      -- · 
+      -- have eq₃ : zeroes.card < deg := by
+      --   have : zeroes.card ≤ p.roots.card := by
 
-          -- simp [zeroes]
-          -- apply Multiset.card_le_card
-          -- rw [Multiset.le_iff_count]
-          -- intros a
-          -- have : a = 0 := sorry
-          -- subst this
+      --     -- simp [zeroes]
+      --     -- apply Multiset.card_le_card
+      --     -- rw [Multiset.le_iff_count]
+      --     -- intros a
+      --     -- have : a = 0 := sorry
+      --     -- subst this
 
-          -- intros a
-          -- -- have := @count_roots
-          -- rw [count_roots]
-          -- rw [Multiset.count_filter]
-          -- simp [image, αs]
-          -- split_ifs with h
-          -- swap
-          -- omega
-          -- subst h
-          -- rw [rootMulti]
-          -- -- simp [zeroes, image, αs]
-          -- -- rw [List.filter_map, eq_p]
-          -- -- simp only [ne_eq, List.length_map, zeroes, image, αs]
-          -- -- unfold Function.comp
-          -- -- rw [le_iff_subset]
+      --     -- intros a
+      --     -- -- have := @count_roots
+      --     -- rw [count_roots]
+      --     -- rw [Multiset.count_filter]
+      --     -- simp [image, αs]
+      --     -- split_ifs with h
+      --     -- swap
+      --     -- omega
+      --     -- subst h
+      --     -- rw [rootMulti]
+      --     -- -- simp [zeroes, image, αs]
+      --     -- -- rw [List.filter_map, eq_p]
+      --     -- -- simp only [ne_eq, List.length_map, zeroes, image, αs]
+      --     -- -- unfold Function.comp
+      --     -- -- rw [le_iff_subset]
           
-        exact lt_of_le_of_lt this eq₂        
+      --   exact lt_of_le_of_lt this eq₂        
 
         
-        -- rcases deg with _ | _ | _ <;> [aesop; skip; skip]
-        -- by_contra! contra
-        -- obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
-        -- simp only [zero_add, eval_C, exists_const, ←isConst] at contra
-        -- replace contra : x = 0 := by aesop
-        -- subst contra
-        -- simp at isConst
-        -- exact absurd isConst.symm eq
-        -- rw [List.length_filter]
-      done
+      --   -- rcases deg with _ | _ | _ <;> [aesop; skip; skip]
+      --   -- by_contra! contra
+      --   -- obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
+      --   -- simp only [zero_add, eval_C, exists_const, ←isConst] at contra
+      --   -- replace contra : x = 0 := by aesop
+      --   -- subst contra
+      --   -- simp at isConst
+      --   -- exact absurd isConst.symm eq
+      --   -- rw [List.length_filter]
+      -- done
 
-      -- set αs : Finset F := Finset.image (p.eval ∘ α) univ with eqαs
-      -- let zeroes := αs.filter (·=0) 
-      -- have eq₂ : #zeroes < deg := by
-      --   simp [αs, zeroes, card_filter]
-      --   rcases deg with _ | _ | _ <;> [aesop; skip; aesop]
-      --   by_contra! contra
-      --   obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
-      --   simp only [zero_add, eval_C, exists_const, ←isConst] at contra
-      --   replace contra : x = 0 := by aesop
-      --   subst contra
-      --   simp at isConst
-      --   exact absurd isConst.symm eq
-      -- let nonzeroes := αs.filter (·≠0)
-      -- have eq₃ : #(univ : Finset (Fin ι)) = ι := by simp
-      -- have eq₄ : #αs ≤ ι := by
-      --     dsimp [αs]
-      --     simp_rw [←eq₃]
-      --     apply card_image_le
-      -- have eq₅ : #nonzeroes ≤ ι := by
-      --   dsimp [nonzeroes]
-      --   simp_rw [←eq₃]
-      --   transitivity #αs
-      --   apply card_filter_le
-      --   simpa
-      -- have eq₆ : #αs ≤ ι := by aesop
-      -- have eq₇ : ι - deg + 1 ≤ #nonzeroes := by
-      --   -- rw [Nat.add_one_le_iff]
-      --   have eq₇ : αs = zeroes ∪ nonzeroes := by
-      --     dsimp [zeroes, nonzeroes]
-      --     rw [←Finset.filter_or]
-      --     ext x
-      --     rw [mem_filter]
-      --     tauto
-      --   have eq₈ : Disjoint zeroes nonzeroes := by
-      --     apply disjoint_filter_filter_neg
-      --   have eq₉ : #αs = #zeroes + #nonzeroes := by
-      --     rw [filter_card_add_filter_neg_card_eq_card]
-      --   rw [eq₉] at eq₄
-      --   rw [←Nat.add_one_le_iff] at eq₂
-      --   have p₂ : #nonzeroes = #αs - #zeroes := by omega
-      --   rw [p₂]
-      --   rw [←eq₃] at eq₄ eq₅ ⊢
+      -- -- set αs : Finset F := Finset.image (p.eval ∘ α) univ with eqαs
+      -- -- let zeroes := αs.filter (·=0) 
+      -- -- have eq₂ : #zeroes < deg := by
+      -- --   simp [αs, zeroes, card_filter]
+      -- --   rcases deg with _ | _ | _ <;> [aesop; skip; aesop]
+      -- --   by_contra! contra
+      -- --   obtain ⟨x, isConst⟩ := show ∃ x, C x = p by aesop (add simp natDegree_eq_zero)
+      -- --   simp only [zero_add, eval_C, exists_const, ←isConst] at contra
+      -- --   replace contra : x = 0 := by aesop
+      -- --   subst contra
+      -- --   simp at isConst
+      -- --   exact absurd isConst.symm eq
+      -- -- let nonzeroes := αs.filter (·≠0)
+      -- -- have eq₃ : #(univ : Finset (Fin ι)) = ι := by simp
+      -- -- have eq₄ : #αs ≤ ι := by
+      -- --     dsimp [αs]
+      -- --     simp_rw [←eq₃]
+      -- --     apply card_image_le
+      -- -- have eq₅ : #nonzeroes ≤ ι := by
+      -- --   dsimp [nonzeroes]
+      -- --   simp_rw [←eq₃]
+      -- --   transitivity #αs
+      -- --   apply card_filter_le
+      -- --   simpa
+      -- -- have eq₆ : #αs ≤ ι := by aesop
+      -- -- have eq₇ : ι - deg + 1 ≤ #nonzeroes := by
+      -- --   -- rw [Nat.add_one_le_iff]
+      -- --   have eq₇ : αs = zeroes ∪ nonzeroes := by
+      -- --     dsimp [zeroes, nonzeroes]
+      -- --     rw [←Finset.filter_or]
+      -- --     ext x
+      -- --     rw [mem_filter]
+      -- --     tauto
+      -- --   have eq₈ : Disjoint zeroes nonzeroes := by
+      -- --     apply disjoint_filter_filter_neg
+      -- --   have eq₉ : #αs = #zeroes + #nonzeroes := by
+      -- --     rw [filter_card_add_filter_neg_card_eq_card]
+      -- --   rw [eq₉] at eq₄
+      -- --   rw [←Nat.add_one_le_iff] at eq₂
+      -- --   have p₂ : #nonzeroes = #αs - #zeroes := by omega
+      -- --   rw [p₂]
+      -- --   rw [←eq₃] at eq₄ eq₅ ⊢
 
         
-        -- replace eq₂ : #zeroes ≤ deg - 1 := by omega
-        -- have p₁ : #zeroes ≤ ι - #nonzeroes := by omega
-        -- have p₂ : #nonzeroes = #αs - #zeroes := by omega
-        -- rw [p₂]
-        -- suffices ι - deg + #zeroes < #αs by omega
+      --   -- replace eq₂ : #zeroes ≤ deg - 1 := by omega
+      --   -- have p₁ : #zeroes ≤ ι - #nonzeroes := by omega
+      --   -- have p₂ : #nonzeroes = #αs - #zeroes := by omega
+      --   -- rw [p₂]
+      --   -- suffices ι - deg + #zeroes < #αs by omega
         
 
-        -- zify [h]
+      --   -- zify [h]
         
-        -- rw [sub_lt_iff_lt_add]
+      --   -- rw [sub_lt_iff_lt_add]
         
         done
     sorry
