@@ -594,26 +594,11 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
   simp [decoder]
   split_ifs with hif
   · rw [←hammingDist_zero_right] at hif
-    have h_n_k_1 : n - k + 1 = n - (k - 1) := by omega
-    have h_dist_p : Δ₀((fun a => Polynomial.eval a p) ∘ ωs, 0) < n - (k - 1) := by
-      apply Nat.lt_of_le_of_lt (hammingDist_triangle _ _ (y := f))
-      rw [hammingDist_comm]
-      omega
-    simp [hammingDist] at * 
-    rw [←Finset.compl_filter, Finset.card_compl] at h_dist_p
-    simp only [Fintype.card_fin] at h_dist_p
-    rw [←Finset.card_image_of_injective _ h_inj 
-    ] at h_dist_p
-    have h_dist_p : k  ≤ 
-      (@Finset.image (Fin n) F _ ωs {i | eval (ωs i) p = 0} : Finset F).card 
-        := by omega
-    by_cases heq_0 : p = 0 <;> try simp [heq_0]
-    have h_dist := Nat.le_trans h_dist_p (by {
-      apply Polynomial.card_le_degree_of_subset_roots (p := p)
-      intro x hx 
-      aesop
-    })
-    omega
+    rw [an_implication_of_min_dist 
+        h_deg hn h_inj (by {
+         apply Nat.lt_of_le_of_lt (hammingDist_triangle _ _ (y := f))
+         rw [hammingDist_comm]
+         omega })]
   · generalize hlinsolve : linsolve (BerlekampWelchMatrix e k ωs f) (Rhs e ωs f) = l 
     rcases l with _ | x  
     · simp 
