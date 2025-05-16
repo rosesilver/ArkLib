@@ -16,7 +16,7 @@ import ArkLib.Data.CodingTheory.ReedSolomon
 import ArkLib.Data.CodingTheory.Prelims
 
 
-open Classical LinearCodes
+open Classical
 
 noncomputable section
 
@@ -96,7 +96,7 @@ def distToCode (U : Matrix (Fin κ) (Fin ι) F) (IC : MatrixSubmodule κ ι F) :
 notation "Δ(" U "," IC ")" => distToCode U IC
 
 lemma minDistL_eq_minDist {IC : LawfulInterleavedCode κ ι F} :
-  LinearCodes.minDist IC.1.LC = minDist IC.1.MF := by sorry
+  LinearCode.minDist IC.1.LC = minDist IC.1.MF := by sorry
 
 end InterleavedCodes
 
