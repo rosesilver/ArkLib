@@ -586,7 +586,6 @@ lemma decoder_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial 
 lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial F}
   (he : 2 * e < n - k + 1)
   (hn : k ≤ n)
-  (hk : 1 ≤ k) 
   (h_inj : Function.Injective ωs)
   (h_deg : p.natDegree < k)
   (h_dist : Δ₀(f, (fun a => Polynomial.eval a p) ∘ ωs) ≤ e) 
@@ -599,7 +598,8 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
          apply Nat.lt_of_le_of_lt (hammingDist_triangle _ _ (y := f))
          rw [hammingDist_comm]
          omega })]
-  · generalize hlinsolve : linsolve (BerlekampWelchMatrix e k ωs f) (Rhs e ωs f) = l 
+  · by_cases hk : 1 ≤ k <;> try omega 
+    generalize hlinsolve : linsolve (BerlekampWelchMatrix e k ωs f) (Rhs e ωs f) = l 
     rcases l with _ | x  
     · simp 
       apply linsolve_none (F := F) (A := BerlekampWelchMatrix e k ωs f)
@@ -638,7 +638,6 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
 lemma decoder_none {e k : ℕ} [NeZero n] {ωs f : Fin n → F} 
   (he : 2 * e < n - k + 1)
   (hn : k ≤ n)
-  (hk : 1 ≤ k) 
   (h_inj : Function.Injective ωs)
   (h_none : decoder e k ωs f = none)
   : ¬∃p, Δ₀(f, (fun a => Polynomial.eval a p) ∘ ωs) ≤ e ∧ p.natDegree < k := by 
