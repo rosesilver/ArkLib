@@ -214,40 +214,28 @@ lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
   simp [(@length_eq_domain_size ι F _ deg α).symm]
   exact LinearCode.minDist_UB
 
-instance : CompleteSemilatticeInf ℕ := by
-  constructor
-  · exact fun s a a_1 ↦ Nat.sInf_le a_1
-  · sorry
-
--- lemma dr_julians_lemma3 {α : Type*} (s : Multiset α) : s.card = Finsupp.sum ⟨sorry, s.count, sorry⟩ (λ _ x ↦ x) := by sorry
-
--- lemma dr_julians_lemma2 {α : Type*} (s : Multiset α) : s.card = Finsupp.sum ⟨sorry, s.count, sorry⟩ (λ _ x ↦ x) := by sorry
-
-lemma dr_julians_lemma {α β : Type*} [DecidableEq α] {s : Multiset α} {s' : Multiset β} (f : α ↪ β) : (∀ a : α, s.count a ≤ s'.count (f a)) → s.card ≤ s'.card := by
-  -- have := @Multiset.card_eq_countP_add_countP
+lemma card_le_lemma {α β : Type*} [DecidableEq α]
+  {s : Multiset α} {s' : Multiset β} (f : α ↪ β) :
+  (∀ a : α, s.count a ≤ s'.count (f a)) → s.card ≤ s'.card := by
   intros h
   rw [←Multiset.toFinset_sum_count_eq, ←Multiset.toFinset_sum_count_eq]
-  -- apply?
-  -- have :=
-  --   @Finset.sum_of_injOn α β ℕ _ s.toFinset s'.toFinset
-  --   (λ a ↦ Multiset.count a s) (λ a ↦ Multiset.count a s')
-  --   f
+  have : Finset.image f s.toFinset ⊆ s'.toFinset := by
+    intros a h'
+    simp only [Finset.mem_image, Multiset.mem_toFinset] at h'
+    rcases h' with ⟨b, b_in_s, f_b_eq_a⟩
+    specialize h b
+    rw [Multiset.mem_toFinset, ←f_b_eq_a]
+    rw [←Multiset.count_pos] at b_in_s ⊢
+    linarith
+  apply @le_trans ℕ _ _ (∑ i ∈ Finset.image (⇑f) s.toFinset, Multiset.count i s')
+  · rw [Finset.sum_image (by aesop)]
+    apply Finset.sum_le_sum
+    intros a _
+    exact h a
+  · have h' := @Finset.sum_le_sum_of_subset_of_nonneg β ℕ _ (fun a ↦ Multiset.count a s') _ _ this
+    apply h'
+    simp
 
-  -- rw [this sorry sorry sorry]
-
-
-
-
-
-
-  -- have := @Multiset.toFinset_sum_count_eq α _
-
-  -- rw [dr_julians_lemma2, dr_julians_lemma2]
-
-  -- apply Finsupp.sum_le_sum
-
-  -- have := @Multiset.card_le_card α s s'
-  sorry
 
 open Finset in
 /--
@@ -264,92 +252,96 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
      omega
   case p₂ =>
     rw [LinearCode.minDist_eq_minWtCodewords]
-    apply le_sInf
-    intros b h
-    rw [Set.mem_setOf_eq] at h
-    rcases h with ⟨msg, msg_elem, msg_neq_0, wt_c_eq_b⟩
-    unfold ReedSolomon.code at msg_elem
-    rw [Submodule.mem_map] at msg_elem
-    rcases msg_elem with ⟨p, p_deg, p_eval_on_α_eq_msg⟩
-    have p_eval_on_α_eq_msg' : ∀ i, msg i = p.eval (α i) := by aesop
-    have p_neq_0 : p ≠ 0 := by aesop
-    have : p.natDegree < deg := by
-      rw [Polynomial.mem_degreeLT, Polynomial.degree_eq_natDegree p_neq_0, Nat.cast_lt] at p_deg
-      exact p_deg
-    have α_i_mem_roots_of_msg_i_eq_0 : ∀ i, msg i = 0 → α i ∈ p.roots := by aesop
-    unfold wt at wt_c_eq_b
-    have msg_zeros_lt_deg : #{i | msg i = 0} < deg := by
-      apply lt_of_le_of_lt
-      have : #{i | msg i = 0} = (({i | msg i = 0} : Finset (Fin ι)).val).card := by rfl
-      rewrite [this]
-      case b => exact p.roots.card
-      -- have : ({i | msg i = 0} : Finset _).val.card ≤ p.roots.card := by
-      --   rw [←Multiset.toFinset_sum_count_eq, ←Multiset.toFinset_sum_count_eq]
-      --   have :
-      --     ∑ a ∈ {a : p.roots.toFinset | ∃ i, α i = a },
-      --       Multiset.count a.1 p.roots ≤
-      --     ∑ a ∈ p.roots.toFinset, Multiset.count a p.roots := by
-      --     have := @Finset.sum_image_le_of_nonneg
-
-      --     sorry
-      --   have := @le_trans
-      --   apply @le_trans _ _ _
-      --     (∑ a ∈ {a : p.roots.toFinset | ∃ i, α i = a }, Multiset.count a.1 p.roots)
-      --   · have :=
-      --       @Finset.sum_of_injOn (Fin ι) { x // x ∈ p.roots.toFinset } ℕ _
-      --         ({i | msg i = 0} : Finset _).val.toFinset
-      --         {a | ∃ i, α i = ↑a}
-      --         (λ i ↦ Multiset.count i ({i | msg i = 0} : Finset _).val)
-      --         (λ a ↦ Multiset.count (↑a) p.roots)
-
-      --     sorry
-      --   · exact this
-      apply dr_julians_lemma α
-      intros i
-      by_cases msg_i_eq_0 : msg i = 0
-      · specialize α_i_mem_roots_of_msg_i_eq_0 _ msg_i_eq_0
-        simp only [filter_val, msg_i_eq_0, Multiset.count_filter_of_pos, Multiset.count_univ,
-          count_roots]
-        rw [Nat.succ_le, Polynomial.rootMultiplicity_pos p_neq_0]
-        rw [←Polynomial.mem_roots p_neq_0]
-        assumption
-      · simp [msg_i_eq_0]
-      apply lt_of_le_of_lt
-      · exact Polynomial.card_roots' _
-      · exact this
-    have union_eq_univ :
-      ({i | msg i = 0} : Finset (Fin ι)) ∪ ({i | msg i ≠ 0} : Finset (Fin ι)) = univ := by
-      ext i
-      simp
-      exact Classical.em _
-    have is_disj :
-      Disjoint ({i | msg i = 0} : Finset (Fin ι)) ({i | msg i ≠ 0} : Finset (Fin ι)) := by
-      apply disjoint_filter_filter_neg
-    have union_card_eq_univ_card :
-      #(({i | msg i = 0} : Finset (Fin ι)) ∪ ({i | msg i ≠ 0} : Finset (Fin ι))) =
-        #(univ : Finset (Fin ι)) := by
-      rw [union_eq_univ]
-    have : #{i | msg i = 0} + #{i | msg i ≠ 0} = ι := by
-      rw
-        [
-          Finset.card_union_of_disjoint is_disj,
-          card_univ,
-          Fintype.card_fin
-        ] at union_card_eq_univ_card
-      exact union_card_eq_univ_card
-    have : #{i | msg i ≠ 0} > ι - deg  := by
-      have : #{i | msg i ≠ 0} = ι - #{i | msg i = 0} := by
-        exact Nat.eq_sub_of_add_eq' this
-      rw [this]
-      zify [h, show #{i | msg i = 0} ≤ ι from
-        (by
-          transitivity
-          · apply Finset.card_le_card
-            exact Finset.subset_univ _
-          · simp
-        )]; linarith
-    rw [wt_c_eq_b] at this
-    linarith
+    have lem1 {s : Set ℕ} (h : s.Nonempty) {a : ℕ} : (∀ b ∈ s, a ≤ b) → a ≤ sInf s := by
+      exact fun a_1 ↦ ConditionallyCompleteLattice.le_csInf s a h a_1
+    apply lem1
+    · exists ι
+      rw [Set.mem_setOf_eq]
+      unfold ReedSolomon.code
+      exists (fun _ ↦ 1)
+      refine ⟨?_, ?_, ?_⟩
+      rw [Submodule.mem_map]
+      exists (C 1)
+      apply And.intro
+      · rw [Polynomial.mem_degreeLT]
+        simp only [map_one, degree_one, Nat.cast_pos]
+        have := φ.out
+        match deg with
+        | .zero => simp at this
+        | .succ _ => simp
+      · unfold ReedSolomon.evalOnPoints
+        simp only [map_one, LinearMap.coe_mk, AddHom.coe_mk, eval_one]
+      · intros h
+        have {α : Type} {β : Type u_1} {f g : α → β} : f = g → ∀ x : α, f x = g x := by
+          aesop
+        specialize @this (Fin ι) F (fun x ↦ 1) 0 h 0
+        simp at this
+      · unfold wt
+        simp
+    · intros b h
+      rw [Set.mem_setOf_eq] at h
+      rcases h with ⟨msg, msg_elem, msg_neq_0, wt_c_eq_b⟩
+      unfold ReedSolomon.code at msg_elem
+      rw [Submodule.mem_map] at msg_elem
+      rcases msg_elem with ⟨p, p_deg, p_eval_on_α_eq_msg⟩
+      have p_eval_on_α_eq_msg' : ∀ i, msg i = p.eval (α i) := by aesop
+      have p_neq_0 : p ≠ 0 := by aesop
+      have : p.natDegree < deg := by
+        rw [Polynomial.mem_degreeLT, Polynomial.degree_eq_natDegree p_neq_0, Nat.cast_lt] at p_deg
+        exact p_deg
+      have α_i_mem_roots_of_msg_i_eq_0 : ∀ i, msg i = 0 → α i ∈ p.roots := by aesop
+      unfold wt at wt_c_eq_b
+      have msg_zeros_lt_deg : #{i | msg i = 0} < deg := by
+        apply lt_of_le_of_lt
+        have : #{i | msg i = 0} = (({i | msg i = 0} : Finset (Fin ι)).val).card := by rfl
+        rewrite [this]
+        case b => exact p.roots.card
+        apply card_le_lemma α
+        intros i
+        by_cases msg_i_eq_0 : msg i = 0
+        · specialize α_i_mem_roots_of_msg_i_eq_0 _ msg_i_eq_0
+          simp only [filter_val, msg_i_eq_0, Multiset.count_filter_of_pos, Multiset.count_univ,
+            count_roots]
+          rw [Nat.succ_le, Polynomial.rootMultiplicity_pos p_neq_0]
+          rw [←Polynomial.mem_roots p_neq_0]
+          assumption
+        · simp [msg_i_eq_0]
+        apply lt_of_le_of_lt
+        · exact Polynomial.card_roots' _
+        · exact this
+      have union_eq_univ :
+        ({i | msg i = 0} : Finset (Fin ι)) ∪ ({i | msg i ≠ 0} : Finset (Fin ι)) = univ := by
+        ext i
+        simp
+        exact Classical.em _
+      have is_disj :
+        Disjoint ({i | msg i = 0} : Finset (Fin ι)) ({i | msg i ≠ 0} : Finset (Fin ι)) := by
+        apply disjoint_filter_filter_neg
+      have union_card_eq_univ_card :
+        #(({i | msg i = 0} : Finset (Fin ι)) ∪ ({i | msg i ≠ 0} : Finset (Fin ι))) =
+          #(univ : Finset (Fin ι)) := by
+        rw [union_eq_univ]
+      have : #{i | msg i = 0} + #{i | msg i ≠ 0} = ι := by
+        rw
+          [
+            Finset.card_union_of_disjoint is_disj,
+            card_univ,
+            Fintype.card_fin
+          ] at union_card_eq_univ_card
+        exact union_card_eq_univ_card
+      have : #{i | msg i ≠ 0} > ι - deg  := by
+        have : #{i | msg i ≠ 0} = ι - #{i | msg i = 0} := by
+          exact Nat.eq_sub_of_add_eq' this
+        rw [this]
+        zify [h, show #{i | msg i = 0} ≤ ι from
+          (by
+            transitivity
+            · apply Finset.card_le_card
+              exact Finset.subset_univ _
+            · simp
+          )]; linarith
+      rw [wt_c_eq_b] at this
+      linarith
 
 end ReedSolomonCode
 end
