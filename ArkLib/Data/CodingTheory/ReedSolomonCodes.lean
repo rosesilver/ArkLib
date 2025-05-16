@@ -260,17 +260,17 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
       unfold ReedSolomon.code
       exists (fun _ ↦ 1)
       refine ⟨?_, ?_, ?_⟩
-      rw [Submodule.mem_map]
-      exists (C 1)
-      apply And.intro
-      · rw [Polynomial.mem_degreeLT]
-        simp only [map_one, degree_one, Nat.cast_pos]
-        have := φ.out
-        match deg with
-        | .zero => simp at this
-        | .succ _ => simp
-      · unfold ReedSolomon.evalOnPoints
-        simp only [map_one, LinearMap.coe_mk, AddHom.coe_mk, eval_one]
+      · rw [Submodule.mem_map]
+        exists (C 1)
+        apply And.intro
+        · rw [Polynomial.mem_degreeLT]
+          simp only [map_one, degree_one, Nat.cast_pos]
+          have := φ.out
+          match deg with
+          | .zero => simp at this
+          | .succ _ => simp
+        · unfold ReedSolomon.evalOnPoints
+          simp only [map_one, LinearMap.coe_mk, AddHom.coe_mk, eval_one]
       · intros h
         have {α : Type} {β : Type u_1} {f g : α → β} : f = g → ∀ x : α, f x = g x := by
           aesop
@@ -292,27 +292,23 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
       have α_i_mem_roots_of_msg_i_eq_0 : ∀ i, msg i = 0 → α i ∈ p.roots := by aesop
       unfold wt at wt_c_eq_b
       have msg_zeros_lt_deg : #{i | msg i = 0} < deg := by
-        apply lt_of_le_of_lt
-        have : #{i | msg i = 0} = (({i | msg i = 0} : Finset (Fin ι)).val).card := by rfl
-        rewrite [this]
-        case b => exact p.roots.card
-        apply card_le_lemma α
-        intros i
-        by_cases msg_i_eq_0 : msg i = 0
-        · specialize α_i_mem_roots_of_msg_i_eq_0 _ msg_i_eq_0
-          simp only [filter_val, msg_i_eq_0, Multiset.count_filter_of_pos, Multiset.count_univ,
-            count_roots]
-          rw [Nat.succ_le, Polynomial.rootMultiplicity_pos p_neq_0]
-          rw [←Polynomial.mem_roots p_neq_0]
-          assumption
-        · simp [msg_i_eq_0]
-        apply lt_of_le_of_lt
-        · exact Polynomial.card_roots' _
-        · exact this
+        apply @lt_of_le_of_lt ℕ _ _ p.roots.card
+        · have : #{i | msg i = 0} = (({i | msg i = 0} : Finset (Fin ι)).val).card := by rfl
+          rw [this]
+          apply card_le_lemma α
+          intros i
+          by_cases msg_i_eq_0 : msg i = 0
+          · specialize α_i_mem_roots_of_msg_i_eq_0 _ msg_i_eq_0
+            simp only [filter_val, msg_i_eq_0, Multiset.count_filter_of_pos, Multiset.count_univ,
+              count_roots]
+            rw [Nat.succ_le, Polynomial.rootMultiplicity_pos p_neq_0, ←Polynomial.mem_roots p_neq_0]
+            assumption
+          · simp [msg_i_eq_0]
+        · exact lt_of_le_of_lt (Polynomial.card_roots' _) this
       have union_eq_univ :
         ({i | msg i = 0} : Finset (Fin ι)) ∪ ({i | msg i ≠ 0} : Finset (Fin ι)) = univ := by
         ext i
-        simp
+        simp only [ne_eq, mem_union, mem_filter, mem_univ, true_and, iff_true]
         exact Classical.em _
       have is_disj :
         Disjoint ({i | msg i = 0} : Finset (Fin ι)) ({i | msg i ≠ 0} : Finset (Fin ι)) := by
@@ -330,9 +326,7 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
           ] at union_card_eq_univ_card
         exact union_card_eq_univ_card
       have : #{i | msg i ≠ 0} > ι - deg  := by
-        have : #{i | msg i ≠ 0} = ι - #{i | msg i = 0} := by
-          exact Nat.eq_sub_of_add_eq' this
-        rw [this]
+        rw [Nat.eq_sub_of_add_eq' this]
         zify [h, show #{i | msg i = 0} ≤ ι from
           (by
             transitivity
