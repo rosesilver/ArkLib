@@ -552,11 +552,7 @@ lemma solution_to_Q_ne_0 {e k : ℕ}
 
 
 noncomputable def decoder (e k : ℕ) [NeZero n] (ωs f : Fin n → F) : Option (Polynomial F) :=
-  let distanceFromZero := List.foldl 
-    (fun acc i => if liftF f i = 0 then acc else acc + 1) 
-    (0 : ℕ) 
-    (List.range n) 
-  if distanceFromZero ≤ e 
+  if Δ₀(f, 0) ≤ e 
   then some 0 
   else 
     let x := linsolve (BerlekampWelchMatrix e k ωs f) (Rhs e ωs f)
@@ -567,11 +563,7 @@ noncomputable def decoder (e k : ℕ) [NeZero n] (ωs f : Fin n → F) : Option 
       let Q := solution_to_Q e k x 
       if Q % E = 0 then 
         let p := Q / E 
-        let distanceFromP := List.foldl 
-          (fun acc i => if liftF f i = liftF (p.eval ∘ ωs) i then acc else acc + 1) 
-          (0 : ℕ) 
-          (List.range n)
-        if distanceFromP ≤ e then 
+        if Δ₀(f, p.eval ∘ ωs) ≤ e then 
           some p
         else 
           none
@@ -583,31 +575,12 @@ lemma decoder_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial 
   : Δ₀(f, p.eval ∘ ωs) ≤ e := by
   simp only [decoder] at h
   split_ifs at h with hif
-  · simp at h
-    rw [←h]
-    have hh : (fun a ↦ (eval a 0 : F)) ∘ ωs = (0 : Fin n → F) := by aesop 
-    rw [hh]
-    have hf : f = liftF' (liftF f) := by
-      ext x 
-      rw [liftF'_liftF]
-    rw [hf]
-    have hh : liftF' (0 : ℕ → F) = (0 : Fin n → F) := by rfl
-    rw [←hh, ←hamming_dist_eq_fold]
-    exact hif
+  · aesop 
   · generalize h_linsolve:
      linsolve (BerlekampWelchMatrix e k ωs f) (Rhs e ωs f) = solution 
     rcases solution with _ | solution <;> simp [h_linsolve] at h
     have h_linsolve := linsolve_some h_linsolve
     have h_linsolve := solution_E_and_Q_satisfy_the_condition (by omega) h_linsolve 
-    rcases h with ⟨h_dvd, h_dist, hp⟩
-    have h_dist := hamming_dist_eq_fold (n := n) (f := liftF (n := n) f) 
-      (g := liftF ((fun a ↦ eval a (solution_to_Q e k solution / solution_to_E e k solution)) ∘ ωs)) 
-    rw [←hp]
-    simp [hammingDist] at *
-    rw [liftF'_liftF] at h_dist
-    rw [liftF'_liftF] at h_dist
-    simp at h_dist 
-    rw [←h_dist]
     aesop
 
 lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial F}
@@ -620,31 +593,22 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
   : decoder e k ωs f = some p := by 
   simp [decoder]
   split_ifs with hif
-  · have h_dist := hamming_dist_eq_fold (n := n) (f := liftF (n := n) f) (g := 0)
-    simp [hammingDist, ] at h_dist
-    rw [h_dist] at hif
-    rw [liftF'_liftF] at hif
-    simp [liftF'] at hif
-    have h_dist : Δ₀(f, 0) ≤ e := by aesop
-    have h_dist : Δ₀((fun a ↦ eval a p) ∘ ωs, 0) ≤ 2 * e := by 
-      apply Nat.le_trans
-      apply hammingDist_triangle (y := f)
-      rw [hammingDist_comm] 
-      aesop (add safe (by omega))
-    have h_dist : Δ₀((fun a ↦ eval a p) ∘ ωs, 0) < n - k + 1 := by 
-      omega
-    simp [hammingDist] at h_dist 
-    rw [←Finset.compl_filter] at h_dist
-    rw [Finset.card_compl] at h_dist 
-    simp only [Fintype.card_fin] at h_dist 
+  · rw [←hammingDist_zero_right] at hif
     have h_n_k_1 : n - k + 1 = n - (k - 1) := by omega
-    rw [h_n_k_1] at h_dist 
-    have h_dist : k - 1 < ({i : Fin n | eval (ωs i) p = 0} : Finset (Fin n)).card  := by omega
-    simp 
+    have h_dist_p : Δ₀((fun a => Polynomial.eval a p) ∘ ωs, 0) < n - (k - 1) := by
+      apply Nat.lt_of_le_of_lt (hammingDist_triangle _ _ (y := f))
+      rw [hammingDist_comm]
+      omega
+    simp [hammingDist] at * 
+    rw [←Finset.compl_filter, Finset.card_compl] at h_dist_p
+    simp only [Fintype.card_fin] at h_dist_p
     rw [←Finset.card_image_of_injective _ h_inj 
-    ] at h_dist
+    ] at h_dist_p
+    have h_dist_p : k  ≤ 
+      (@Finset.image (Fin n) F _ ωs {i | eval (ωs i) p = 0} : Finset F).card 
+        := by omega
     by_cases heq_0 : p = 0 <;> try simp [heq_0]
-    have h_dist := Nat.le_trans h_dist (by {
+    have h_dist := Nat.le_trans h_dist_p (by {
       apply Polynomial.card_le_degree_of_subset_roots (p := p)
       intro x hx 
       aesop
@@ -658,34 +622,19 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
       exists E_and_Q_to_a_solution e (E ωs f p e) (Q ωs f p e)
       rw [E_and_Q_are_a_solution h_dist hk (by omega)]
     · simp 
-      have h_dist_eq := hamming_dist_eq_fold (n := n) (f := liftF (n := n) f) (g := 0)
-      simp at h_dist_eq 
-      rw [h_dist_eq] at hif
       simp at hif
       have hlinsolve := linsolve_some hlinsolve 
       have h_cond := solution_E_and_Q_satisfy_the_condition hk hlinsolve 
       by_cases hp : p = 0 
-      · simp [hp] at h_dist 
-        have h_eq : (fun a => (0 : F)) ∘ ωs = 0 := by rfl
-        rw [h_eq] at h_dist 
-        simp [hammingDist] at *
-        rw [liftF'_liftF] at hif 
-        have h_eq : liftF' 0 = (0 : Fin n → F) := by rfl
-        rw [h_eq] at hif 
-        simp at hif 
-        omega
+      · aesop 
+          (add simp [hammingNorm, hammingDist])
+          (add safe (by omega))
       · have h_div := E'_divides_Q' (e := e) (k := k) (ωs := ωs) (f := f)
          (Q' := solution_to_Q e k x) (E' := solution_to_E e k x) (p := p) 
           hk
           (by omega)
           (solution_to_E_ne_0)
-          (by {
-            apply solution_to_Q_ne_0 (n := n) hk hlinsolve
-            simp [hammingDist] at *
-            rw [liftF'_liftF] at hif
-            exact hif
-            exact h_inj
-          })
+          (solution_to_Q_ne_0 hk hlinsolve (by aesop) h_inj)
           (by simp)
           (solution_to_Q_natDegree)
           (h_cond) he hn h_dist h_inj hp
@@ -695,25 +644,11 @@ lemma decoder_some' {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polynomial
           hk
           (by omega)
           (solution_to_E_ne_0)
-          (by {
-            apply solution_to_Q_ne_0 (n := n) hk hlinsolve
-            simp [hammingDist] at *
-            rw [liftF'_liftF] at hif
-            exact hif
-            exact h_inj
-          })
+          (solution_to_Q_ne_0 hk hlinsolve (by aesop) h_inj)
           (by simp)
           (solution_to_Q_natDegree)
           (h_cond) he hn h_dist h_inj hp
-        rw [h_unique]
-        simp 
-        have h_dist_eq := hamming_dist_eq_fold (n := n) (f := liftF f) (g := liftF ((fun a ↦ eval a p) ∘ ωs))
-        simp at h_dist_eq
-        rw [h_dist_eq]
-        simp 
-        simp [hammingDist] at *
-        rw [liftF'_liftF, liftF'_liftF]
-        tauto
+        aesop (add simp [hammingDist, hammingNorm])
 
 lemma decoder_none {e k : ℕ} [NeZero n] {ωs f : Fin n → F} 
   (he : 2 * e < n - k + 1)
@@ -723,9 +658,7 @@ lemma decoder_none {e k : ℕ} [NeZero n] {ωs f : Fin n → F}
   (h_none : decoder e k ωs f = none)
   : ¬∃p, Δ₀(f, (fun a => Polynomial.eval a p) ∘ ωs) ≤ e ∧ p.natDegree < k := by 
   intro contr 
-  rcases contr with ⟨p, ⟨h_dist, h_deg⟩⟩ 
-  rw [decoder_some' he hn hk h_inj h_deg h_dist] at h_none
-  simp at h_none
+  aesop (add safe forward (decoder_some'))
 
 end
 
