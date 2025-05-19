@@ -158,12 +158,8 @@ def encode [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι]
 
 lemma encode_mem_ReedSolomon_code
   [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι] {msg : Fin deg → F} {domain : Fin ι ↪ F} :
-  encode msg domain ∈ ReedSolomon.code domain deg := by
-  simp [encode, ReedSolomon.code]
-  use (polynomialOfCoeffs msg)
-  simp
-  ext i
-  simp [ReedSolomon.evalOnPoints]
+  encode msg domain ∈ ReedSolomon.code domain deg :=
+  ⟨polynomialOfCoeffs msg, ⟨by simp, by ext i; simp [encode, ReedSolomon.evalOnPoints]⟩⟩
 
 def makeZero (ι : ℕ) (F : Type*) [Zero F] : Fin ι → F := fun _ ↦ 0
 
@@ -277,7 +273,7 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
     have msg_zeros_lt_deg : #zeroes < deg := by
       apply lt_of_le_of_lt (b := p.roots.card)
                             (hbc := lt_of_le_of_lt (Polynomial.card_roots' _)
-                                                  (natDegree_lt_of_mem_degreeLT p_deg))
+                                                   (natDegree_lt_of_mem_degreeLT p_deg))
       exact card_le_card_of_count_inj α α.injective fun i ↦
         if h : msg i = 0
         then suffices 0 < Multiset.count (α i) p.roots by
