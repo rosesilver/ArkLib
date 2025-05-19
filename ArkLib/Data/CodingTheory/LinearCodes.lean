@@ -29,11 +29,15 @@ variable {ι : ℕ}
 
 abbrev LinearCode.{u} (ι : ℕ) (F : Type u) [Semiring F] : Type u := Submodule F (Fin ι → F)
 
-def wt {F : Type*} [Semiring F] [Zero F] {ι : ℕ}
+def wt {F : Type*} [Semiring F] {ι : ℕ}
   (v : Fin ι → F) : ℕ := #{i | v i ≠ 0}
+
+lemma wt_eq_zero_iff {ι : ℕ} {v : Fin ι → F} : wt v = 0 ↔ ι = 0 ∨ ∀ i, v i = 0 := by
+  cases ι <;> aesop (add simp [wt, Finset.filter_eq_empty_iff])
 
 def LinearCode.minDist (LC : LinearCode ι F) : ℕ :=
   sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v = d }
+
 end
 
 namespace LinearCode
@@ -107,8 +111,8 @@ lemma minDist_UB {LC : LinearCode ι F} : minDist LC ≤ length LC := by
 /--
 Singleton Bound Theorem.
 -/
-theorem singletonBound (LC : LinearCode ι F) :
-  dim LC ≤ length LC - minDist LC + 1 := by sorry
+theorem singletonBound {LC : LinearCode ι F} :
+  dim LC ≤ ι - minDist LC + 1 := by sorry
 
 end
 end LinearCode
