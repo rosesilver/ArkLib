@@ -72,7 +72,6 @@ lemma natDegree_lt_of_lbounded_zero_coeff [Semiring F] {p : F[X]} {deg : ℕ} [N
   (h : ∀ i, deg ≤ i → p.coeff i = 0) : p.natDegree < deg := by
   aesop (add unsafe [(by by_contra), (by specialize h p.natDegree)])
 
---katy : this IS the encoding map?
 def polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] (coeffs : Fin deg → F) : F[X] :=
   ⟨
     Finset.map ⟨Fin.val, Fin.val_injective⟩ {i | coeffs i ≠ 0},
@@ -271,24 +270,24 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
   case p₂ =>
     rw [LinearCode.minDist_eq_minWtCodewords]
     apply le_csInf (by use ι, ReedSolomon.constantCode 1 ι; simp)
-    · rintro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
-      have := natDegree_lt_of_mem_degreeLT p_deg
-      let zeroes : Finset _ := {i | msg i = 0}
-      have eq₁ : zeroes.val.Nodup := by
-        aesop (add simp [Multiset.nodup_iff_count_eq_one, Multiset.count_filter])
-      have msg_zeros_lt_deg : #zeroes < deg := by
-        apply lt_of_le_of_lt (b := p.roots.card)
-                             (hbc := lt_of_le_of_lt (Polynomial.card_roots' _) this)
-        exact card_le_card_of_count_inj α α.injective fun i ↦
-          if h : msg i = 0
-          then suffices 0 < Multiset.count (α i) p.roots by
+    intro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
+    let zeroes : Finset _ := {i | msg i = 0}
+    have eq₁ : zeroes.val.Nodup := by
+      aesop (add simp [Multiset.nodup_iff_count_eq_one, Multiset.count_filter])
+    have msg_zeros_lt_deg : #zeroes < deg := by
+      apply lt_of_le_of_lt (b := p.roots.card)
+                            (hbc := lt_of_le_of_lt (Polynomial.card_roots' _)
+                                                  (natDegree_lt_of_mem_degreeLT p_deg))
+      exact card_le_card_of_count_inj α α.injective fun i ↦
+        if h : msg i = 0
+        then suffices 0 < Multiset.count (α i) p.roots by
                 rwa [@Multiset.count_eq_one_of_mem (d := eq₁) (h := by simpa [zeroes])]
-               by aesop
-          else by simp [zeroes, h]
-      have : #zeroes + wt msg = ι := by
-        simp_rw [show ι = #(univ : Finset (Fin ι)) by simp]
-        rw [wt, filter_card_add_filter_neg_card_eq_card]
-      omega
+              by aesop
+        else by simp [zeroes, h]
+    have : #zeroes + wt msg = ι := by
+      simp_rw [show ι = #(univ : Finset (Fin ι)) by simp]
+      rw [wt, filter_card_add_filter_neg_card_eq_card]
+    omega
 
 end ReedSolomonCode
 end
