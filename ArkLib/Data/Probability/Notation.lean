@@ -79,7 +79,13 @@ example :
     let x ← $ᵖ F
     let y ← $ᵖ F
     let z ← $ᵖ (F × F)
-    return z = (x, y)).val True = ((1 : ℝ≥0∞) / Fintype.card (F × F)) := by sorry
+    return z = (x, y)).val True = ((1 : ℝ≥0∞) / Fintype.card (F × F)) := by
+  classical
+  simp [Bind.bind, Pure.pure, PMF.bind]
+  simp [DFunLike.coe]
+  ring_nf
+  rw [mul_comm (_ ^ 2) _, mul_assoc, ENNReal.mul_inv_cancel, mul_one, ENNReal.inv_pow]
+  <;> aesop
 
 example :
   Pr_{ let x ←$ᵖ F; let y ←$ᵖ F; let z ←$ᵖ (F × F) }[ z = (x, y) ] =
