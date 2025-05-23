@@ -1,5 +1,5 @@
 import ArkLib.OracleReduction.Basic
-import ArkLib.Data.Math.Fin
+import ArkLib.Data.Fin.Basic
 
 /-!
   # Execution Semantics of Interactive Oracle Reductions
@@ -41,7 +41,7 @@ end loggingOracle
 
 section Execution
 
-variable {n : ℕ} {ι : Type} {pSpec : ProtocolSpec n} {oSpec : OracleSpec ι}
+variable {n : ℕ} {pSpec : ProtocolSpec n} {ι : Type} {oSpec : OracleSpec ι}
   {StmtIn WitIn StmtOut WitOut : Type}
   {ιₛᵢ : Type} {OStmtIn : ιₛᵢ → Type} [Oₛᵢ : ∀ i, OracleInterface (OStmtIn i)]
   {ιₛₒ : Type} {OStmtOut : ιₛₒ → Type}
