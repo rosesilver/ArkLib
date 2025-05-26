@@ -62,19 +62,17 @@ end Matrix
 end
 
 section
-variable {F : Type*} [Semiring F]
-         {ι : ℕ}
+variable {F : Type*}  {ι : ℕ}
 
 namespace Embedding
 
-def restrictionToFun (deg : ℕ) (α : Fin ι ↪ F) (h : deg ≤ ι) : Fin deg → F :=
-  α.toFun ∘ Fin.castLE h
+def restrictionToFun (deg : ℕ) (α : Fin ι → F) (h : deg ≤ ι) : Fin deg → F :=
+  α ∘ Fin.castLE h
 
 /--
 The composition of an embedding and the canonical embedding is injective.
 -/
-lemma restrictionToFun_injective {deg : ℕ} {α : Fin ι ↪ F}
-  (h : deg ≤ ι) :
+lemma restrictionToFun_injective {deg : ℕ} {α : Fin ι ↪ F} (h : deg ≤ ι) :
   Function.Injective (Embedding.restrictionToFun deg α h) := by
   unfold restrictionToFun
   simp only [Function.Embedding.toFun_eq_coe, EmbeddingLike.comp_injective]

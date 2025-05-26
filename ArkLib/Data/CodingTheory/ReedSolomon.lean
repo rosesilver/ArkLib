@@ -17,11 +17,12 @@ import Mathlib.Data.FinEnum
   list-decoding.
 -/
 
+
 namespace ReedSolomon
 
 open Polynomial
 
-variable (F : Type*) [Semiring F] (ι : Type*) (domain : ι ↪ F)
+variable {F : Type*} [Semiring F] {ι : Type*} (domain : ι ↪ F)
 
 /-- The evaluation of a polynomial at a set of points specified by `domain : ι ↪ F`, as a linear
   map. -/
@@ -33,11 +34,11 @@ def evalOnPoints : F[X] →ₗ[F] (ι → F) where
 /-- The Reed-Solomon code for polynomials of degree less than `deg` and evaluation points `domain`.
   -/
 def code (deg : ℕ) : Submodule F (ι → F) :=
-  (Polynomial.degreeLT F deg).map (evalOnPoints F ι domain)
+  (Polynomial.degreeLT F deg).map (evalOnPoints domain)
 
 /-- The generator matrix of the Reed-Solomon code of degree `deg` and evaluation points `domain`. -/
 def genMatrix (deg : ℕ) : Matrix (Fin deg) ι F :=
-  .of (fun i j => domain j ^ (i : ℕ))
+  .of fun i j => domain j ^ (i : ℕ)
 
 /-- The (parity)-check matrix of the Reed-Solomon code, assuming `ι` is finite. -/
 def checkMatrix (deg : ℕ) [Fintype ι] : Matrix (Fin (Fintype.card ι - deg)) ι F :=

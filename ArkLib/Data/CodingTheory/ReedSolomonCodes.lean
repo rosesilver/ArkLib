@@ -6,9 +6,8 @@ import ArkLib.Data.CodingTheory.Prelims
 open Classical
 open Polynomial
 
-variable {ι : ℕ}
-         {F : Type*}
-         {C : Set (Fin ι → F)}
+variable {F ι : Type*}
+         {C : Set (ι → F)}
 
 noncomputable section
 
@@ -17,26 +16,25 @@ namespace Vandermonde
 /--
 A non-square Vandermonde matrix.
 -/
-def nonsquare [Semiring F] (deg : ℕ) (α : Fin ι ↪ F) : Matrix (Fin ι) (Fin deg) F :=
+def nonsquare [Semiring F] (deg : ℕ) (α : ι ↪ F) : Matrix ι (Fin deg) F :=
   Matrix.of fun i j => (α i) ^ j.1
 
 lemma nonsquare_mulVecLin [CommSemiring F]
-                          {deg : ℕ} {α₁ : Fin ι ↪ F} {α₂ : Fin deg → F} {i : Fin ι} :
-  (nonsquare deg α₁).mulVecLin α₂ i = ∑ x, α₂ x * α₁ i ^ (↑x : ℕ) := by
+                          {deg : ℕ} {α₁ : ι ↪ F} {α₂ : Fin deg → F} {i : ι} :
+  (nonsquare deg α₁).mulVecLin α₂ i = ∑ x, α₂ x * α₁ i ^ x.1 := by
   simp [nonsquare, Matrix.mulVecLin_apply, Matrix.mulVec_eq_sum]
 
 /--
 The transpose of a non-square Vandermonde matrix.
 -/
-def nonsquareTranspose [Field F] (deg : ℕ) (α : Fin ι ↪ F) :
-  Matrix (Fin deg) (Fin ι) F :=
+def nonsquareTranspose [Field F] (deg : ℕ) (α : ι ↪ F) : Matrix (Fin deg) ι F :=
   (Vandermonde.nonsquare deg α).transpose
 
 /--
 The maximal upper square submatrix of a Vandermonde matrix is a Vandermonde matrix.
 -/
-lemma subUpFull_of_vandermonde_is_vandermonde [CommRing F] {deg : ℕ} {α : Fin ι ↪ F} (h : deg ≤ ι)
-  :
+lemma subUpFull_of_vandermonde_is_vandermonde {ι : ℕ} [CommRing F] {deg : ℕ} {α : Fin ι ↪ F}
+  (h : deg ≤ ι) :
   Matrix.vandermonde (Embedding.restrictionToFun deg α h) =
   Matrix.subUpFull (nonsquare deg α) h := by
   unfold Matrix.subUpFull nonsquare Matrix.vandermonde
@@ -45,15 +43,15 @@ lemma subUpFull_of_vandermonde_is_vandermonde [CommRing F] {deg : ℕ} {α : Fin
 /--
 The maximal left square submatrix of a Vandermonde matrix is a Vandermonde matrix.
 -/
-lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] {deg : ℕ} {α : Fin ι ↪ F} (h : ι ≤ deg)
-  : Matrix.vandermonde α = Matrix.subLeftFull (nonsquare deg α) h := by
+lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] {deg ι : ℕ} {α : Fin ι ↪ F}
+  (h : ι ≤ deg) : Matrix.vandermonde α = Matrix.subLeftFull (nonsquare deg α) h := by
   unfold Matrix.subLeftFull nonsquare Matrix.vandermonde
   aesop
 
 /--
 The rank of a non-square Vandermonde matrix with more rows than columns is the number of columns.
 -/
-lemma rank_nonsquare_eq_deg_of_deg_le [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F}
+lemma rank_nonsquare_eq_deg_of_deg_le {ι : ℕ} [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F}
   (h : deg ≤ ι) :
   (Vandermonde.nonsquare deg α).rank = deg := by
     rw [
@@ -67,7 +65,7 @@ lemma rank_nonsquare_eq_deg_of_deg_le [CommRing F] [IsDomain F] {deg : ℕ} {α 
 /--
 The rank of a non-square Vandermonde matrix with more columns than rows is the number of rows.
 -/
-lemma rank_nonsquare_eq_deg_of_ι_le [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F}
+lemma rank_nonsquare_eq_deg_of_ι_le {ι : ℕ} [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F}
   (h : ι ≤ deg) :
   (Vandermonde.nonsquare deg α).rank = ι := by
   rw [
@@ -79,13 +77,13 @@ lemma rank_nonsquare_eq_deg_of_ι_le [CommRing F] [IsDomain F] {deg : ℕ} {α :
   exact α.injective
 
 @[simp]
-lemma rank_nonsquare_rows_eq_min [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F} :
+lemma rank_nonsquare_rows_eq_min {ι : ℕ} [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F} :
   (Vandermonde.nonsquare deg α).rank = min ι deg := by
   by_cases h : ι ≤ deg <;>
   aesop (add simp [rank_nonsquare_eq_deg_of_ι_le, rank_nonsquare_eq_deg_of_deg_le])
         (add safe forward le_of_lt)  
 
-theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
+theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials {ι : ℕ}
   {deg : ℕ} [NeZero deg] [CommRing F] {v : Fin ι ↪ F}
   {p : F[X]} (h_deg : p.natDegree < deg) :
     (Vandermonde.nonsquare deg v).mulVecLin (p.coeff ∘ Fin.val) = -- NOTE: Use `liftF`.
@@ -156,7 +154,7 @@ end
 
 section
 
-variable {deg : ℕ} [Field F] {α : Fin ι ↪ F}
+variable {deg ι : ℕ} [Field F] {α : Fin ι ↪ F}
 
 /--
 The generator matrix of a Reed-Solomon code is a Vandermonde matrix.
