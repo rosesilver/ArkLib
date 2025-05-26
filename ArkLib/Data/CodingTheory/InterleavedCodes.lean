@@ -16,7 +16,7 @@ import ArkLib.Data.CodingTheory.ReedSolomon
 import ArkLib.Data.CodingTheory.Prelims
 
 
-open Classical LinearCodes
+open Classical
 
 noncomputable section
 
