@@ -1,1 +1,6 @@
-vim.keymap.set("i", "<A-o>", "\\omegas <BS>")
+vim.keymap.set("i", "<M-o>", "\\omegas <BS>")
+vim.keymap.set("i", "<M-a>", "α₁")
+vim.keymap.set("i", "<M-q>", "α₂")
+vim.keymap.set("i", "<M-x>", "x₁")
+vim.keymap.set("i", "<M-s>", "x₂")
+vim.keymap.set("i", "<M-f>", "ϕ")
