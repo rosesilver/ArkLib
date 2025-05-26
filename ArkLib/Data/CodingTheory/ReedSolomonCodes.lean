@@ -8,12 +8,10 @@ import Mathlib
 
 open Classical
 open Polynomial
+open Matrix
 
-variable {ι : ℕ}
-         {F : Type*}
-         {C : Set (Fin ι → F)}
-
---abbrev LinearCode.{u} (F : Type u) [Semiring F] : Type u := Submodule F ((Fin ι) → F)
+variable {F ι ι' : Type*}
+         {C : Set (ι → F)}
 
 noncomputable section
 
@@ -22,108 +20,75 @@ namespace Vandermonde
 /--
 A non-square Vandermonde matrix.
 -/
-def nonsquare [Semiring F] (deg : ℕ) (α : ι ↪ F) : Matrix ι (Fin deg) F :=
+def nonsquare [Semiring F] {ι' : ℕ} (α : ι → F) : Matrix ι (Fin ι') F :=
   Matrix.of fun i j => (α i) ^ j.1
 
-lemma nonsquare_mulVecLin [CommSemiring F]
-                          {deg : ℕ} {α₁ : ι ↪ F} {α₂ : Fin deg → F} {i : ι} :
-  (nonsquare deg α₁).mulVecLin α₂ i = ∑ x, α₂ x * α₁ i ^ x.1 := by
-  simp [nonsquare, Matrix.mulVecLin_apply, Matrix.mulVec_eq_sum]
+lemma nonsquare_mulVecLin [CommSemiring F] {ι' : ℕ} {α₁ : ι ↪ F} {α₂ : Fin ι' → F} {i : ι} :
+  (nonsquare α₁).mulVecLin α₂ i = ∑ x, α₂ x * α₁ i ^ x.1 := by
+  simp [nonsquare, mulVecLin_apply, mulVec_eq_sum]
 
 /--
 The transpose of a non-square Vandermonde matrix.
+
+TODO(katy): Can we nuke this, or was there some requirement on this existing?
 -/
-def nonsquareTranspose [Field F] (deg : ℕ) (α : ι ↪ F) : Matrix (Fin deg) ι F :=
-  (Vandermonde.nonsquare deg α).transpose
+def nonsquareTranspose [Field F] (ι' : ℕ) (α : ι ↪ F) : Matrix (Fin ι') ι F :=
+  (Vandermonde.nonsquare α)ᵀ
+
+private lemma todoMoveOut {k : ℕ} : (List.finRange k).dedup = List.finRange k := by
+  induction k <;>
+  aesop (add simp [List.finRange_succ, List.dedup_map_of_injective, Fin.succ_injective])
 
 /--
 The maximal upper square submatrix of a Vandermonde matrix is a Vandermonde matrix.
 -/
-lemma subUpFull_of_vandermonde_is_vandermonde {ι : ℕ} [CommRing F] {deg : ℕ} {α : Fin ι ↪ F}
-  (h : deg ≤ ι) :
-  Matrix.vandermonde (Embedding.restrictionToFun deg α h) =
-  Matrix.subUpFull (nonsquare deg α) h := by
-  unfold Matrix.subUpFull nonsquare Matrix.vandermonde
-  aesop
+lemma subUpFull_of_vandermonde_is_vandermonde [CommRing F] {ι' : ℕ} {α : ι → F}
+  {r_reindex : Fin ι' → ι} :
+  Matrix.vandermonde (α ∘ r_reindex) =
+  Matrix.subUpFull (nonsquare α) r_reindex := by
+  ext r c
+  simp [Matrix.vandermonde, Matrix.subUpFull, nonsquare]
 
 /--
 The maximal left square submatrix of a Vandermonde matrix is a Vandermonde matrix.
 -/
-lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] {deg ι : ℕ} {α : Fin ι ↪ F}
-  (h : ι ≤ deg) : Matrix.vandermonde α = Matrix.subLeftFull (nonsquare deg α) h := by
-  unfold Matrix.subLeftFull nonsquare Matrix.vandermonde
-  aesop
+lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] [Fintype ι] {ι' : ℕ}
+  {α : Fin ι' → F} :
+  Matrix.vandermonde α = Matrix.subLeftFull (nonsquare α) id := by
+  ext r c
+  simp [Matrix.vandermonde, Matrix.subLeftFull, nonsquare]
 
 /--
 The rank of a non-square Vandermonde matrix with more rows than columns is the number of columns.
 -/
-lemma rank_nonsquare_eq_deg_of_deg_le {ι : ℕ} [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F}
-  (h : deg ≤ ι) :
-  (Vandermonde.nonsquare deg α).rank = deg := by
-    rw [
-      Matrix.full_col_rank_via_rank_subUpFull (h_col := h),
-      ← subUpFull_of_vandermonde_is_vandermonde,
-      Matrix.full_rank_iff_det_ne_zero,
-      Matrix.det_vandermonde_ne_zero_iff
-    ]
-    apply Embedding.restrictionToFun_injective
+lemma rank_nonsquare_eq_deg_of_deg_le [Fintype ι] [CommRing F] [IsDomain F]
+  {ι' : ℕ} {α : ι → F} (h : ι' ≤ Fintype.card ι) :
+  (Vandermonde.nonsquare (ι' := ι') α).rank = ι' := sorry
 
 /--
 The rank of a non-square Vandermonde matrix with more columns than rows is the number of rows.
 -/
-lemma rank_nonsquare_eq_deg_of_ι_le {ι : ℕ} [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F}
-  (h : ι ≤ deg) :
-  (Vandermonde.nonsquare deg α).rank = ι := by
-  rw [
-    Matrix.full_row_rank_via_rank_subLeftFull (h_row := h),
-    ← subLeftFull_of_vandermonde_is_vandermonde,
-    Matrix.full_rank_iff_det_ne_zero,
-    Matrix.det_vandermonde_ne_zero_iff
-  ]
-  exact α.injective
+lemma rank_nonsquare_eq_deg_of_ι_le [Fintype ι] [CommRing F] [IsDomain F]
+  {ι' : ℕ} {α : ι → F} (h : Fintype.card ι ≤ ι') :
+  (Vandermonde.nonsquare (ι' := ι') α).rank = Fintype.card ι := sorry
 
 @[simp]
-lemma rank_nonsquare_rows_eq_min {ι : ℕ} [CommRing F] [IsDomain F] {deg : ℕ} {α : Fin ι ↪ F} :
-  (Vandermonde.nonsquare deg α).rank = min ι deg := by
-  by_cases h : ι ≤ deg <;>
+lemma rank_nonsquare_rows_eq_min [Fintype ι] [CommRing F] [IsDomain F]
+  {ι' : ℕ} {α : ι → F} (h : Fintype.card ι ≤ ι') :
+  (Vandermonde.nonsquare (ι' := ι') α).rank = min (Fintype.card ι) ι' := by
+  by_cases h : Fintype.card ι ≤ ι' <;>
   aesop (add simp [rank_nonsquare_eq_deg_of_ι_le, rank_nonsquare_eq_deg_of_deg_le])
         (add safe forward le_of_lt)  
 
-theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials {ι : ℕ}
-  `ι x deg` Vandermonde matrix
--/
-def nonsquare [Semiring F] (deg : ℕ) (α : Fin ι ↪ F) : Matrix (Fin ι) (Fin deg) F :=
-  Matrix.of fun i j => (α i) ^ j.1
-
-lemma nonsquare_mulVecLin [CommSemiring F]
-                          {deg : ℕ} {α₁ : Fin ι ↪ F} {α₂ : Fin deg → F} {i : Fin ι} :
-  (nonsquare deg α₁).mulVecLin α₂ i = ∑ x, α₂ x * α₁ i ^ (↑x : ℕ) := by
-  simp [nonsquare, Matrix.mulVecLin_apply, Matrix.mulVec_eq_sum]
-
-/--
-  The transpose of a `ι x deg` Vandermonde matrix
--/
-def nonsquareTranspose [Field F] (deg : ℕ) (α : Fin ι ↪ F) :
-  Matrix (Fin deg) (Fin ι) F :=
-  (Vandermonde.nonsquare deg α).transpose
-
--- also requires α_i being distinct but we already have this with the embedding Fin ι ↪ F
--- and is generally true for RS codes.
--- TBD: keep α implicit or explicit
-
-lemma nonsquareRank [CommRing F] {deg : ℕ} {α : Fin ι ↪ F} :
-  (Vandermonde.nonsquare deg α).rank = min deg ι := by sorry
-
 theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
-  {deg : ℕ} [NeZero deg] [CommRing F] {v : Fin ι ↪ F}
-  {p : F[X]} (h_deg : p.natDegree < deg) :
-    (Vandermonde.nonsquare deg v).mulVecLin (p.coeff ∘ Fin.val) = -- NOTE: Use `liftF`.
-    fun i => p.eval (v i) := by
+  {ι' : ℕ} [NeZero ι'] [CommRing F] {v : ι ↪ F} {p : F[X]} (h_deg : p.natDegree < ι') :
+  (Vandermonde.nonsquare (ι' := ι') v).mulVecLin (p.coeff ∘ Fin.val) = -- NOTE: Use `liftF`.
+  fun i => p.eval (v i) := by
   ext i
   simp only [
     nonsquare_mulVecLin, Finset.sum_fin_eq_sum_range, eval_eq_sum
   ]
-  refine Eq.symm (Finset.sum_of_injOn (·%deg) ?p₁ ?p₂ (fun i _ h ↦ ?p₃) (fun i _ ↦ ?p₄))
+  refine Eq.symm (Finset.sum_of_injOn (·%ι') ?p₁ ?p₂ (fun i _ h ↦ ?p₃) (fun i _ ↦ ?p₄))
   · aesop (add simp [Set.InjOn])
           (add safe forward [le_natDegree_of_mem_supp, lt_of_le_of_lt, Nat.lt_add_one_of_le])
           (add 10% apply (show ∀ {a b c : ℕ}, a < c → b < c → a % c = b % c → a = b from
@@ -131,7 +96,7 @@ theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
           (erase simp mem_support_iff)
   · aesop (add simp Set.MapsTo) (add safe apply Nat.mod_lt) (add 1% cases Nat)
   · aesop (add safe (by specialize h i)) (add simp Nat.mod_eq_of_lt)
-  · have : i < deg := by aesop (add safe forward le_natDegree_of_mem_supp)
+  · have : i < ι' := by aesop (add safe forward le_natDegree_of_mem_supp)
                                (erase simp mem_support_iff)
                                (add safe (by omega))
     aesop (add simp Nat.mod_eq_of_lt) (add safe (by ring))
@@ -140,17 +105,6 @@ end Vandermonde
 
 namespace ReedSolomonCode
 
-section
-
-variable [Semiring F] {p : F[X]}
-         {deg : ℕ} [NeZero deg]
-         {coeffs : Fin deg → F}
-
-lemma natDegree_lt_of_lbounded_zero_coeff 
-  (h : ∀ i, deg ≤ i → p.coeff i = 0) : p.natDegree < deg := by
-  aesop (add unsafe [(by by_contra), (by specialize h p.natDegree)])
-
-def polynomialOfCoeffs (coeffs : Fin deg → F) : F[X] :=
 lemma natDegree_lt_of_lbounded_zero_coeff [Semiring F] {p : F[X]} {deg : ℕ} [NeZero deg]
   (h : ∀ i, deg ≤ i → p.coeff i = 0) : p.natDegree < deg := by
   aesop (add unsafe [(by by_contra), (by specialize h p.natDegree)])
@@ -163,8 +117,6 @@ def polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] (coeffs : Fin deg �
                      (add simp [Fin.natCast_def, Nat.mod_eq_of_lt])
   ⟩
 
-@[simp]
-lemma natDegree_polynomialOfCoeffs_deg_lt_deg : (polynomialOfCoeffs coeffs).natDegree < deg := by
 def coeffsOfPolynomial [Semiring F] {deg : ℕ} [NeZero deg] (p : F[X]) : Fin deg → F :=
   fun ⟨x, _⟩ ↦ p.coeff x
 
@@ -176,19 +128,6 @@ lemma natDegree_polynomialOfCoeffs_deg_lt_deg
         (add safe apply natDegree_lt_of_lbounded_zero_coeff)
 
 @[simp]
-lemma degree_polynomialOfCoeffs_deg_lt_deg : (polynomialOfCoeffs coeffs).degree < deg := by
-  aesop (add simp [polynomialOfCoeffs, degree_lt_iff_coeff_zero])
-
-@[simp]
-lemma coeff_polynomialOfCoeffs_eq_coeffs :
-  (polynomialOfCoeffs coeffs).coeff ∘ Fin.val = coeffs := by -- NOTE TO SELF: `liftF' coeffs`!
-  aesop (add simp polynomialOfCoeffs)
-
-@[simp]
-lemma polynomialOfCoeffs_mem_degreeLT : polynomialOfCoeffs coeffs ∈ degreeLT F deg := by
-  aesop (add simp Polynomial.mem_degreeLT)
-
-lemma natDegree_lt_of_mem_degreeLT (h : p ∈ degreeLT F deg) : p.natDegree < deg := by
 lemma degree_polynomialOfCoeffs_deg_lt_deg
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
   (polynomialOfCoeffs coeffs).degree < deg := by
@@ -251,18 +190,6 @@ lemma natDegree_lt_of_mem_degreeLT
   · cases deg <;> aesop
   · aesop (add simp [natDegree_lt_iff_degree_lt, mem_degreeLT])
 
-end
-
-section
-
-variable {deg ι : ℕ} [Field F] {α : Fin ι ↪ F}
-
-/--
-The generator matrix of a Reed-Solomon code is a Vandermonde matrix.
--/
-lemma genMatIsVandermonde [NeZero deg] :
-  LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
-  unfold LinearCodes.genMat_mul ReedSolomon.code
 def encode [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι]
   (msg : Fin deg → F) (domain : Fin ι ↪ F) : Fin ι → F := (polynomialOfCoeffs msg).eval ∘ ⇑domain
 
@@ -280,9 +207,9 @@ lemma codewordIsZero_makeZero {ι : ℕ} {F : Type*} [Zero F] :
 /--
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
-lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι ↪ F) :
-  LinearCode.mulByGenMat (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
-  unfold LinearCode.mulByGenMat ReedSolomon.code
+lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : ι ↪ F) :
+  LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
+  unfold LinearCodes.genMat_mul ReedSolomon.code
   ext x; rw [LinearMap.mem_range, Submodule.mem_map]
   refine ⟨
     fun ⟨coeffs, h⟩ ↦ ⟨polynomialOfCoeffs coeffs, h.symm ▸ ?p₁⟩,
@@ -296,54 +223,22 @@ lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : Fin ι
   · exact h.2 ▸ Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
                   (natDegree_lt_of_mem_degreeLT h.1)
 
--- for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
--- Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly. Worth mentioning??
-
-lemma dim_eq_deg [NeZero deg] (h : deg ≤ ι) :
-  LinearCodes.dim (ReedSolomon.code α deg) = deg := by
-  rw [←genMatIsVandermonde, ←LinearCodes.dimEqRankGenMat]
-  simpa
-
-@[simp]
-lemma length_eq_domain_size :
-  LinearCodes.length (ReedSolomon.code α deg) = ι := by
-  rw [LinearCodes.length]
-  simp
-
-lemma rate [NeZero deg] (h : deg ≤ ι) :
-  LinearCodes.rate (ReedSolomon.code α deg) = deg / ι := by
-  rwa [LinearCodes.rate, dim_eq_deg, length_eq_domain_size]
-
-/--
-The minimal code distance of a Reed-Solomon given by the degree and domain size.
--/
-lemma minDist [NeZero deg] (h : deg ≤ ι) :
-  LinearCodes.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
-  have : NeZero ι := by constructor; aesop
-  refine le_antisymm ?p₁ ?p₂
-  case p₁ => sorry
-  case p₂ =>
-    choose c hc using show ∃ c, c ∈ ReedSolomon.code α deg by sorry
-    let p := polynomialOfCoeffs c
-    sorry
-
-end
 /- Our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
 for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
 Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
-lemma dim_eq_deg_of_le [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ ι) :
-  LinearCode.dim (ReedSolomon.code α deg) = deg := by
-  rw [← genMatIsVandermonde, ← LinearCode.dimEqRankGenMat, Vandermonde.nonsquareRank]
+lemma dim_eq_deg_of_le [Fintype ι] [Field F] {deg : ℕ} [NeZero deg] {α : ι ↪ F} (h : deg ≤ Fintype.card ι) :
+  LinearCodes.dim (ReedSolomon.code α deg) = deg := by
+  rw [← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat, Vandermonde.rank_nonsquare_rows_eq_min]
   simp [h]
 
 @[simp]
-lemma length_eq_domain_size [Field F] {deg : ℕ} {α : Fin ι ↪ F} :
-  LinearCode.length (ReedSolomon.code α deg) = ι := rfl
+lemma length_eq_domain_size [Fintype ι] [Field F] {deg : ℕ} {α : ι ↪ F} :
+  LinearCodes.length (ReedSolomon.code α deg) = Fintype.card ι := rfl
 
-lemma rate [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} (h : deg ≤ ι) :
-  LinearCode.rate (ReedSolomon.code α deg) = deg / ι := by
-  rw [LinearCode.rate, dim_eq_deg_of_le, length_eq_domain_size]
+lemma rate [Field F] [Fintype ι] {deg : ℕ} [NeZero deg] {α : ι ↪ F} (h : deg ≤ Fintype.card ι) :
+  LinearCodes.rate (ReedSolomon.code α deg) = deg / Fintype.card ι := by
+  rw [LinearCodes.rate, dim_eq_deg_of_le, length_eq_domain_size]
   exact h
 
 @[simp]
