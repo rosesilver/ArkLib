@@ -5,6 +5,9 @@ Authors: Ilia Vlasov
 import Mathlib.Algebra.Field.Rat
 import Mathlib.Analysis.Convex.Function
 import Mathlib.Data.Real.Sqrt
+import Mathlib.Data.Set.Pairwise.Basic
+import Mathlib.Algebra.BigOperators.Field
+import Mathlib.Analysis.Convex.Jensen
 
 import ArkLib.Data.CodingTheory.Basic
 
@@ -124,6 +127,110 @@ theorem choose_2_convex :
   rw [Field.div_eq_mul_inv, Field.div_eq_mul_inv]
   rw [mul_le_mul_right (by simp)]
   apply x_sqr_minus_x_is_conv' <;> aesop
+
+section 
+
+variable {n q : ℕ}
+variable {F : Type} [Fintype F] [DecidableEq F]
+
+def Fi (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset (Fin n → F) :=
+  { x | x ∈ B ∧ x i = α } 
+
+def K (B : Finset (Fin n → F)) (i : Fin n) (α : F) : ℕ :=
+  (Fi B i α).card
+
+lemma Fis_cover_B {B : Finset (Fin n → F)} {i : Fin n} 
+  : B = Finset.univ.biUnion (Fi B i) := by 
+  aesop (add simp [Fi])
+
+lemma Fis_pairwise_disjoint {B : Finset (Fin n → F)} {i : Fin n} 
+  : Set.PairwiseDisjoint Set.univ (Fi B i) := by 
+  aesop (add simp 
+    [Set.PairwiseDisjoint
+    , Set.Pairwise
+    , Disjoint
+    , Fi
+    , Finset.Nonempty
+    , Finset.subset_iff
+    ]) 
+
+lemma K_sums_to_B_card {B : Finset (Fin n → F)} {i : Fin n}
+  : ∑ (α : F), K B i α = B.card := by 
+  conv => 
+    rhs 
+    rw [Fis_cover_B (B := B) (i := i)]
+    rfl
+  rw [Finset.card_biUnion (by simp [Fis_pairwise_disjoint])]
+  simp [K]
+
+lemma sum_choose_K [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
+  (h_card : 2 ≤ (Fintype.card F))
+  : 
+  ((Finset.univ (α := F)).card - 1 : ℚ) 
+    * choose_2 ((B.card - K B i 0)/((Finset.univ (α := F)).card-1)) 
+      ≤ ∑ (α : F) with α ≠ 0, choose_2 (K B i α) := by 
+  rw [←K_sums_to_B_card (i := i)]
+  simp 
+  have h_univ : Finset.univ = insert 0 ({x : F | x ≠ 0} : Finset F) := by
+    aesop (add safe (by tauto))
+  rw [h_univ, Finset.sum_insert (by simp)]
+  field_simp
+  have h : ((∑ x ∈ {x | ¬x = 0}, ↑(K B i x)) : ℚ) / (↑(Fintype.card F) - 1)
+    =  ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) := by 
+    rw [Finset.sum_div]
+    congr 
+    field_simp
+  rw [h]
+  let w : F → ℚ := fun _ => (1 : ℚ) / (↑(Fintype.card F) - 1)
+  let p : F → ℚ := fun x => K B i x
+  have h : ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) 
+    = ∑ x ∈ {x : F | ¬x = 0}, w x • p x := by simp [w, p]
+  rw [h]
+  rw [mul_comm]
+  apply le_trans 
+  rewrite [mul_le_mul_right (by field_simp; linarith)]
+  apply ConvexOn.map_sum_le choose_2_convex (by {
+    simp [w]
+    intro i _
+    linarith
+  })
+    (by {
+      simp [w]
+      have h : (Finset.univ (α := F)).card = Fintype.card F := by rfl
+      conv =>
+        congr 
+        congr 
+        rfl 
+        rw [←h, h_univ]
+        rfl
+        rfl
+      simp 
+      rw [Field.mul_inv_cancel]
+      simp 
+      rw [←ne_eq]
+      rw [←Finset.nonempty_iff_ne_empty]
+      simp [Finset.Nonempty]
+      -- use Finset.one_lt_card
+
+    })
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+  
+
+end
 
 end JohnsonBound
 
