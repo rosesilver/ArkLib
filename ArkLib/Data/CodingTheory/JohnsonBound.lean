@@ -184,6 +184,32 @@ lemma lt_one_of_sum_one {n : ℕ} {α : ℕ → ℚ}
       specialize (h_sum 0)
       aesop
 
+lemma push_lt_one_to_top {n : ℕ} {α : ℕ → ℚ} 
+  (h_2_le : 1 ≤ n)
+  (h_nonneg : ∀ i : Fin n.succ, 0 ≤ α i)
+  (h_sum : ∑ (i : Fin n.succ), α i = 1)
+  : ∃ f : Fin n.succ → Fin n.succ, Function.Bijective f ∧ α (f (Fin.last n)) < 1 := by
+  have h_exists := lt_one_of_sum_one (n := n.succ) (by omega) h_nonneg h_sum
+  rcases h_exists with ⟨i₀, hi⟩
+  let f := fun i => 
+    if i == i₀ then Fin.last n else 
+    if i == Fin.last n then i₀ else i
+  exists f 
+  apply And.intro 
+  · apply And.intro 
+    · aesop (add simp [Function.Injective, f])
+    · simp [Function.Surjective]
+      intro b 
+      by_cases hb : b = Fin.last n
+      · exists i₀
+        aesop (add simp [f])
+      · by_cases hb' : b = i₀
+        · exists (Fin.last n)
+          aesop (add simp [f])
+        · exists b 
+          aesop (add simp [f])
+  · aesop
+
 theorem jensen_inequalityF {n : ℕ} {α x : ℕ → ℚ} 
   {ϕ : ℚ → ℚ}
   (h_nonneg : ∀ (i : Fin n), 0 ≤ α i)
@@ -196,6 +222,45 @@ theorem jensen_inequalityF {n : ℕ} {α x : ℕ → ℚ}
   induction' n with n ih
   · simp
   · intro α x ϕ h_nonneg h_sum h_conv
+    rcases n with _ | n 
+    · aesop
+    · have h_bij := push_lt_one_to_top 
+        (n := n.succ)
+        (by omega)
+        h_nonneg
+        h_sum
+      rcases h_bij with ⟨f, ⟨h_bij, f_last⟩⟩
+      have h_f_has_inverse : ∃ finv, Function.LeftInverse finv f := by 
+        rw [Function.bijective_iff_has_inverse] at h_bij 
+        aesop 
+      rcases h_f_has_inverse with ⟨finv, h_finv⟩ 
+      rw [Finset.sum_bijective 
+        (t := Finset.univ)
+        (e := f) 
+        (g := fun i ↦ let j := finv i
+            α ↑j * (x ↑j))  
+        h_bij
+        (by simp)
+        (by 
+          aesop (add simp [Function.LeftInverse])
+        )]
+      conv =>
+        rhs
+        rw [
+          Finset.sum_bijective 
+            (t := Finset.univ)
+            (e := f) 
+            (g := fun i ↦ let j := finv i
+                α ↑j * ϕ (x ↑j))  
+            h_bij
+            (by simp)
+            (by 
+              aesop (add simp [Function.LeftInverse])
+            ),
+        ]
+        rfl
+      simp 
+      
 
 
 
