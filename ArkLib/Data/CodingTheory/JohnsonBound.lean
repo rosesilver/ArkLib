@@ -224,10 +224,61 @@ lemma hamming_weight_eq_sum [Zero F] {x : Fin n → F}
   : 
   ‖x‖₀ = ∑ i, if x i = 0 then 0 else 1 := by simp [hammingNorm, Finset.sum_ite]
 
+lemma sum_hamming_weight_sum [Zero F] {x : Fin n → F} {B : Finset (Fin n → F)}
+  :
+  ∑ x ∈ B, ( ↑‖x‖₀ : ℚ) = n * B.card - ∑ i, K B i 0 := by 
+  conv =>
+    lhs 
+    congr 
+    rfl 
+    ext x
+    rw [hamming_weight_eq_sum]
+    simp
+    rfl
+  rw [Finset.sum_comm]
+  conv =>
+    rhs 
+    simp
+    congr
+    rfl
+    congr
+    rfl
+    ext x 
+    rw [K_eq_sum]
+    rfl
+  have h : (↑n : ℚ) = ∑ i : Fin n, 1 := by simp
+  rw [h, Finset.sum_mul]
+  rw [←Finset.sum_sub_distrib]
+  congr 
+  ext i
+  rw [one_mul _]
+  have h : (↑B.card : ℚ) = ↑(∑ x ∈ B.attach, (1 : ℕ)) := by simp
+  rw [h]
+  rw [←Nat.cast_sub (by {
+    simp 
+    have h_card : (B.attach).card ≤ B.card := by simp
+    exact Nat.le_trans (Finset.card_le_univ _) h_card
+  })]
+  conv =>
+    rhs 
+    congr 
+    congr 
+    congr 
+    rw [Finset.attach_eq_univ]
+    rfl
+    rfl
+    rfl
+  rw [←Finset.sum_sub_distrib (f := fun _ => 1)]
+
+  
+
+
 
 lemma k_and_e [Zero F] {B : Finset (Fin n → F)} :
   k B = (n - e B 0)/n := by
   simp [e]
+
+  rw [hamming_weight_eq_sum]
 
 
 
