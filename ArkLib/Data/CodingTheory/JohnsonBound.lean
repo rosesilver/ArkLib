@@ -237,26 +237,13 @@ lemma sum_choose_K [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
     })]
     rw [one_mul]
     rfl
-  apply Finset.sum_le_sum_of_subset
-
-
-
-
-
-
-
-
-
-
-  
-  
-
-
-
-
-
-  
-
+  have h : ({x ∈ insert 0 ({x | ¬x = 0} : Finset F) | ¬x = 0} : Finset F) 
+    = ({ x : F | ¬ x = 0 } : Finset F) := 
+    by 
+      ext x 
+      simp
+      tauto
+  rw [h]
 end
 
 end JohnsonBound
