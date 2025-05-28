@@ -172,7 +172,9 @@ lemma sum_choose_K [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
   rw [←K_sums_to_B_card (i := i)]
   simp 
   have h_univ : Finset.univ = insert 0 ({x : F | x ≠ 0} : Finset F) := by
-    aesop (add safe (by tauto))
+    ext x 
+    simp 
+    tauto
   rw [h_univ, Finset.sum_insert (by simp)]
   field_simp
   have h : ((∑ x ∈ {x | ¬x = 0}, ↑(K B i x)) : ℚ) / (↑(Fintype.card F) - 1)
