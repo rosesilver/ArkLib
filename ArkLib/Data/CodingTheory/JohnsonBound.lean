@@ -8,6 +8,7 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Data.Set.Pairwise.Basic
 import Mathlib.Algebra.BigOperators.Field
 import Mathlib.Analysis.Convex.Jensen
+import Mathlib.Algebra.Module.LinearMap.Defs
 
 import ArkLib.Data.CodingTheory.Basic
 
@@ -224,7 +225,7 @@ lemma hamming_weight_eq_sum [Zero F] {x : Fin n → F}
   : 
   ‖x‖₀ = ∑ i, if x i = 0 then 0 else 1 := by simp [hammingNorm, Finset.sum_ite]
 
-lemma sum_hamming_weight_sum [Zero F] {x : Fin n → F} {B : Finset (Fin n → F)}
+lemma sum_hamming_weight_sum [Zero F] {B : Finset (Fin n → F)}
   :
   ∑ x ∈ B, ( ↑‖x‖₀ : ℚ) = n * B.card - ∑ i, K B i 0 := by 
   conv =>
@@ -252,36 +253,126 @@ lemma sum_hamming_weight_sum [Zero F] {x : Fin n → F} {B : Finset (Fin n → F
   congr 
   ext i
   rw [one_mul _]
-  have h : (↑B.card : ℚ) = ↑(∑ x ∈ B.attach, (1 : ℕ)) := by simp
+  simp 
+  rw [Finset.sum_ite]
+  simp 
+  have h_card : B.card = B.attach.card := by simp
+  rw [h_card]
+  have h_card 
+    : B.attach.card = {x ∈ B.attach | x.1 i = 0}.card + ({x ∈ B.attach | x.1 i = 0}ᶜ).card  := by
+    simp
+  rw [h_card]
+  rw [Nat.cast_add]
+  field_simp
+  rw [Finset.attach_eq_univ, Finset.compl_filter]
+  rw [←Finset.attach_eq_univ]
+  -- Brainrot attach
+  sorry 
+
+lemma k_and_e [Zero F] {B : Finset (Fin n → F)} 
+  (h_n : n ≠ 0)
+  (h_B : B.card ≠ 0)
+  :
+  k B = B.card * (n - e B 0)/n := by
+  simp [e, k, sum_hamming_weight_sum]
+  field_simp
+
+lemma k_choose_2 [Zero F] {B : Finset (Fin n → F)} 
+  (h_n : n ≠ 0)
+  (h_B : B.card ≠ 0)
+  :
+  n * choose_2 (k B) ≤ ∑ i, choose_2 (K B i 0) := by
+  simp [k]
+  rw [Finset.mul_sum]
+  let w : Fin n → ℚ := fun _ => (1:ℚ)/n 
+  let p : Fin n → ℚ := fun i => ↑(K B i 0)
+  have h : ∑ i, (↑n : ℚ)⁻¹ * ↑(K B i 0) = ∑ i, w i • p i := by simp [w, p] 
   rw [h]
-  rw [←Nat.cast_sub (by {
-    simp 
-    have h_card : (B.attach).card ≤ B.card := by simp
-    exact Nat.le_trans (Finset.card_le_univ _) h_card
-  })]
+  rw [mul_comm]
+  apply le_trans
+  apply (mul_le_mul_right (by simp; omega)).2
+  apply ConvexOn.map_sum_le (choose_2_convex) (by simp [w])
+    (by {
+      simp [w]
+      rw [Field.mul_inv_cancel]
+      aesop
+    })
+    (by simp)
+  simp [w, p]
+  rw [Finset.sum_mul]
   conv =>
-    rhs 
+    lhs 
     congr 
+    rfl 
+    ext i
+    rw [mul_comm]
+    rw [←mul_assoc]
+    rw [Field.mul_inv_cancel _ (by aesop)]
+    simp
+    rfl
+
+def aux_frac (B : Finset (Fin n → F)) (x : ℚ) : ℚ := 
+  ((↑B.card : ℚ) - x)/(Fintype.card F - 1)
+
+lemma sum_1_over_n_aux_frac_k_i [Zero F] {B : Finset (Fin n → F)} 
+  (h_n : 0 < n)
+  (h_card : 2 ≤ Fintype.card F) 
+  : ∑ i, (1 : ℚ)/n * aux_frac B (K B i 0) = aux_frac B (k B) := by
+  simp [aux_frac]
+  rw [←Finset.mul_sum, ←Finset.sum_div]
+  have h : (↑(Fintype.card F) : ℚ) - 1 > 0 := by
+    simp 
+    omega 
+  rw [Field.div_eq_mul_inv]
+  rw [Field.div_eq_mul_inv]
+  rw [←mul_assoc]
+  have h_ne : (↑(Fintype.card F) - (1 : ℚ))⁻¹ ≠ 0 := by field_simp
+  suffices h : ((↑n : ℚ)⁻¹ * ∑ i, ((↑B.card : ℚ) - ↑(K B i 0)))
+    = (↑B.card - k B) by rw [h] 
+  simp
+  ring_nf 
+  rw [Field.mul_inv_cancel _ (by {
+    simp 
+    omega
+  })]
+  simp [k]
+
+lemma aux_sum [Zero F] {B : Finset (Fin n → F)} 
+  (h_n : 0 < n)
+  (h_card : 2 ≤ Fintype.card F) 
+  : ↑n * choose_2 (aux_frac B (k B)) ≤ ∑ i, choose_2 (aux_frac B (K B i 0)) := by
+  rw [←sum_1_over_n_aux_frac_k_i h_n h_card]
+  let w : Fin n → ℚ := fun _ => (1 : ℚ)/n 
+  let p : Fin n → ℚ := fun i => aux_frac B ↑(K B i 0)
+  have h : (∑ i, 1 / ↑n * aux_frac B ↑(K B i 0)) = ∑ i, w i • p i := by 
+    simp [w,p]
+  rw [h]
+  rw [mul_comm]
+  apply le_trans
+  apply (mul_le_mul_right (by simp; omega)).2
+  apply ConvexOn.map_sum_le choose_2_convex (by simp [w])
+    (by {
+      simp [w]
+      rw [Field.mul_inv_cancel]
+      simp 
+      omega
+    })
+    (by simp)
+  simp [w, p]
+  rw [Finset.sum_mul]
+  conv =>
+    lhs 
     congr 
-    congr 
-    rw [Finset.attach_eq_univ]
+    rfl 
+    ext i
+    rw [mul_comm]
+    rw [←mul_assoc]
+    rw [Field.mul_inv_cancel _ (by {
+      simp 
+      omega
+    })]
+    simp 
     rfl
-    rfl
-    rfl
-  rw [←Finset.sum_sub_distrib (f := fun _ => 1)]
-
-  
-
-
-
-lemma k_and_e [Zero F] {B : Finset (Fin n → F)} :
-  k B = (n - e B 0)/n := by
-  simp [e]
-
-  rw [hamming_weight_eq_sum]
-
-
-
 
 def Fi_pairs (B : Finset (Fin n → F)) (i : Fin n) : Finset ((Fin n → F) × (Fin n → F)) :=
   { x | x.1 ∈ B ∧ x.2 ∈ B ∧ x.1 i = x.2 i } 
