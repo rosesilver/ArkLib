@@ -210,9 +210,36 @@ lemma sum_choose_K [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
       rw [←ne_eq]
       rw [←Finset.nonempty_iff_ne_empty]
       simp [Finset.Nonempty]
-      -- use Finset.one_lt_card
-
+      have h_two := (Finset.one_lt_card (s := Finset.univ (α := F))).1 (by omega)
+      rcases h_two with ⟨a, ha, b, hb, hab⟩
+      by_cases h_ne_a : a ≠ 0 <;> try tauto
+      simp at h_ne_a 
+      rw [h_ne_a] at hab 
+      tauto
     })
+    (by simp)
+  rw [mul_comm]
+  simp [w, p]
+  rw [Finset.mul_sum]
+  conv =>
+    lhs 
+    congr 
+    rfl
+    ext α
+    rw [←mul_assoc] 
+    rw [Field.mul_inv_cancel _ (by {
+     intro contr 
+     have contr : (↑(Fintype.card F) : ℚ) = 1 := by 
+      rw [←zero_add 1, ←contr]
+      field_simp
+     simp at contr 
+     omega
+    })]
+    rw [one_mul]
+    rfl
+  apply Finset.sum_le_sum_of_subset
+
+
 
 
 
