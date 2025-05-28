@@ -106,24 +106,8 @@ lemma K_sums_to_B_card {B : Finset (Fin n → F)} {i : Fin n}
 lemma K_eq_sum {B : Finset (Fin n → F)} {i : Fin n} {α : F}
   : K B i α = ∑ (x : B), if x.1 i = α then 1 else 0 := by
   simp [K, Fi]
-  apply Finset.card_eq_of_equiv
-  simp 
-  exact ⟨by {
-    rintro ⟨x, hxb, hxi⟩ 
-    exact ⟨⟨x, hxb⟩, hxi⟩ 
-  }, by {
-    rintro ⟨⟨x, hxb⟩, hxi⟩
-    simp at hxi
-    exact ⟨x, And.intro hxb hxi⟩ 
-  }, by {
-    simp [Function.LeftInverse]
-    rintro a ⟨hab, hai⟩ 
-    sorry 
-  }, by {
-    simp [Function.LeftInverse, Function.RightInverse]
-  }⟩ 
-  
-  
+  simp_rw [Finset.card_filter, Finset.sum_attach_eq_sum_dite]
+  apply Finset.sum_congr <;> aesop
 
 lemma sum_choose_K' [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
   (h_card : 2 ≤ (Fintype.card F))
@@ -263,4 +247,3 @@ lemma Fi_pairs_are_Fi_pairs {B : Finset (Fin n → F)} {i : Fin n}
 end
 
 end JohnsonBound
-
