@@ -13,66 +13,6 @@ import ArkLib.Data.CodingTheory.Basic
 
 namespace JohnsonBound
 
-structure UnderJohnsonBound (q : ℕ) (ρ δ : ℚ)  : Prop where 
-  δ_0 : 0 ≤ δ 
-  δ_u : δ ≤ 1 - 1/q 
-  q_2 : 2 ≤ q 
-  sqrt_well_def : 0 ≤ 1 - q/(q-1) * δ 
-  johnson : ↑q * (↑q - 1) * (2 * ρ - δ) < (↑q * ρ) ^ 2 
-
-noncomputable def J (q : ℕ) (δ : ℚ) : ℝ :=
-  (1 - 1/q) * (1 - √(1 - q * δ / (q - 1))) 
-
-lemma under_jonhson_bound_iff_lt_bound {q : ℕ} {ρ δ : ℚ} :
-  UnderJohnsonBound q ρ δ ↔ 0 ≤ δ ∧ δ ≤ 1 - 1/q ∧ 2 ≤ q ∧ 0 ≤ 1 - q/(q-1) * δ ∧ ρ < J q δ := by 
-  unfold J
-  apply Iff.intro
-  · rintro ⟨δ_0, δ_u, q_2, sqrt_well_def, johnson⟩
-    aesop (config := {warnOnNonterminal := false})
-    have h_q : ((1 - (↑q)⁻¹):ℝ) = (q - 1)/q := by
-      field_simp
-    rw [h_q]
-    have h_q : ((↑q - 1)/↑q : ℝ) = ((↑q : ℝ)/(↑q -1))⁻¹ := by 
-     field_simp 
-    rw [h_q]
-    have h_0_le_q : 0 < (↑q : ℝ)/(↑q -1) := by 
-      field_simp
-      apply lt_of_lt_of_le (by field_simp) q_2
-    suffices h : (q/(q-1)) * ρ < (1 - √(1 - ↑q * ↑δ / (↑q - 1))) by {
-      sorry 
-    }
-    suffices h : ↑√(1 - ↑q * ↑δ / (↑q - 1)) < 1 - (↑q : ℝ)/ (↑q - 1) * ↑ρ by {
-      sorry 
-    }
-    suffices h : (1 - (↑q * ↑δ : ℝ) / (↑q - 1)) < (1 - ↑q / (↑q - 1) * ↑ρ) ^ 2 by {
-      sorry 
-    }
-    suffices h : ((↑q - 1 - (↑q * ↑δ : ℝ)) / (↑q - 1)) < ((↑q - 1 - ↑q * ρ) / (↑q - 1)) ^ 2 by {
-      sorry 
-    }
-    suffices h : ((↑q - 1 - (↑q * ↑δ : ℝ)) * (↑q - 1)) < ((↑q - 1 - ↑q * ρ)) ^ 2 by {
-      sorry 
-    }
-    suffices h : ((↑q : ℝ)- 1)^2 - ↑q * (↑q - 1) * ↑δ < (↑q - 1)^2 
-        - 2 * ↑q * (↑q - 1) * ↑ρ + (↑q * ρ) ^ 2 by {
-      sorry
-    }
-    suffices h : - ↑q * (↑q - 1) * ↑δ < 
-        - 2 * ↑q * (↑q - 1) * ↑ρ + (↑q * ρ) ^ 2 by {
-      sorry
-    }
-    suffices h : 2 * ↑q * (↑q - 1) * ↑ρ - ↑q * (↑q - 1) * ↑δ < (↑q * ρ) ^ 2 by {
-      sorry
-    }
-    -- should follow from johnson at this point.
-    sorry
-  · rintro ⟨δ_0, δ_u, q_2, sqrt_well_def, johnson⟩  
-    exact ⟨by aesop, by aesop, by aesop,by aesop,by {
-      -- This should be obtained by reverting the steps in the previous clause
-      -- but let's see how that goes :)
-      sorry
-    }⟩
-
 def f (x : ℚ) : ℚ := x^2 - x 
 
 private lemma x_sqr_minus_x_is_conv' {x₁ x₂ : ℚ} {α₁ α₂ : ℚ} 
@@ -163,7 +103,29 @@ lemma K_sums_to_B_card {B : Finset (Fin n → F)} {i : Fin n}
   rw [Finset.card_biUnion (by simp [Fis_pairwise_disjoint])]
   simp [K]
 
-lemma sum_choose_K [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
+lemma K_eq_sum {B : Finset (Fin n → F)} {i : Fin n} {α : F}
+  : K B i α = ∑ (x : B), if x.1 i = α then 1 else 0 := by
+  simp [K, Fi]
+  apply Finset.card_eq_of_equiv
+  simp 
+  exact ⟨by {
+    rintro ⟨x, hxb, hxi⟩ 
+    exact ⟨⟨x, hxb⟩, hxi⟩ 
+  }, by {
+    rintro ⟨⟨x, hxb⟩, hxi⟩
+    simp at hxi
+    exact ⟨x, And.intro hxb hxi⟩ 
+  }, by {
+    simp [Function.LeftInverse]
+    rintro a ⟨hab, hai⟩ 
+    sorry 
+  }, by {
+    simp [Function.LeftInverse, Function.RightInverse]
+  }⟩ 
+  
+  
+
+lemma sum_choose_K' [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
   (h_card : 2 ≤ (Fintype.card F))
   : 
   ((Finset.univ (α := F)).card - 1 : ℚ) 
@@ -246,6 +208,58 @@ lemma sum_choose_K [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
       simp
       tauto
   rw [h]
+
+def sum_choose_K_i (B : Finset (Fin n → F)) (i : Fin n) : ℚ :=
+  ∑ (α : F), choose_2 (K B i α) 
+
+lemma le_sum_choose_K_i [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
+  (h_card : 2 ≤ (Fintype.card F))
+  : 
+  choose_2 (K B i 0) + ((Finset.univ (α := F)).card - 1 : ℚ) 
+    * choose_2 ((B.card - K B i 0)/((Finset.univ (α := F)).card-1)) 
+      ≤ sum_choose_K_i B i := by 
+  simp [sum_choose_K_i]
+  have h : insert 0 ({ x : F | ¬x=0} : Finset F) = Finset.univ := by 
+    ext x
+    simp
+    tauto
+  conv =>
+    rhs 
+    rw [←h]
+    rfl
+  simp [Finset.sum_insert]
+  exact sum_choose_K' h_card
+
+def e (B : Finset (Fin n → F)) (v : Fin n → F) : ℚ :=
+  (1 : ℚ)/B.card * ∑ x ∈ B, Δ₀(v, x) 
+
+def k [Zero F] (B : Finset (Fin n → F)) : ℚ := 
+  (1 : ℚ)/n * ∑ i, K B i 0
+
+lemma hamming_weight_eq_sum [Zero F] {x : Fin n → F}
+  : 
+  ‖x‖₀ = ∑ i, if x i = 0 then 0 else 1 := by simp [hammingNorm, Finset.sum_ite]
+
+
+lemma k_and_e [Zero F] {B : Finset (Fin n → F)} :
+  k B = (n - e B 0)/n := by
+  simp [e]
+
+
+
+
+def Fi_pairs (B : Finset (Fin n → F)) (i : Fin n) : Finset ((Fin n → F) × (Fin n → F)) :=
+  { x | x.1 ∈ B ∧ x.2 ∈ B ∧ x.1 i = x.2 i } 
+
+def Fi_pair (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset ((Fin n → F) × (Fin n → F)) :=
+  { x | x.1 ∈ Fi B i α ∧ x.2 ∈ Fi B i α} 
+
+lemma Fi_pairs_are_Fi_pairs {B : Finset (Fin n → F)} {i : Fin n}
+  : Fi_pairs B i
+    = (Finset.univ (α := F)).biUnion (Fi_pair B i) := by
+  aesop (add simp [Fi_pairs, Fi_pair, Fi])
+
+
 end
 
 end JohnsonBound
