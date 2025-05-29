@@ -405,6 +405,86 @@ lemma le_sum_sum_choose_K_i [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
   intro i _
   exact le_sum_choose_K_i h_card
 
+def d (B : Finset (Fin n → F)) : ℚ :=
+  (1 : ℚ)/(2 * choose_2 B.card) * ∑ x ∈ (Finset.product B B) with x.1 ≠ x.2, Δ₀(x.1, x.2) 
+
+def F2i (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset ((Fin n → F) × (Fin n → F)) :=
+  { x | x ∈ Finset.product B B ∧ x.1 i = α ∧ x.2 i = α ∧ x.1 ≠ x.2 } 
+
+def Bi (B : Finset (Fin n → F)) (i : Fin n) : Finset ((Fin n → F) × (Fin n → F)) :=
+  { x | x ∈ Finset.product B B ∧ x.1 i = x.2 i ∧ x.1 ≠ x.2 }
+
+lemma Bi_biUnion_F2i {B : Finset (Fin n → F)} {i : Fin n} :
+  Bi B i = Finset.univ.biUnion (F2i B i) := by aesop (add simp [Bi, F2i])
+
+lemma F2i_disjoint {B : Finset (Fin n → F)} {i : Fin n} :
+  Set.PairwiseDisjoint Set.univ (F2i B i) := by 
+  simp 
+    [Set.PairwiseDisjoint
+    , Set.Pairwise
+    , Disjoint
+    , F2i
+    , Finset.Nonempty
+    , Finset.subset_iff
+    ] 
+  intro α₁ α₂ h_ne x h1 h2 x₁ x₂ contr 
+  specialize (h1 x₁ x₂ contr) 
+  specialize (h2 x₁ x₂ contr) 
+  aesop
+
+lemma F2i_card {B : Finset (Fin n → F)} {i : Fin n} {α : F} :
+  (F2i B i α).card = 2 * choose_2 (K B i α) := by
+  simp [F2i]
+  have h : ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α ∧ ¬x.1 = x.2} : Finset ((Fin n → F) × (Fin n → F)))
+    = ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α } : Finset _) 
+      \ ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α ∧ x.1 = x.2} : Finset _) := by
+    aesop
+  rw [h]
+  rw [Finset.card_sdiff (by {
+    intro x hx 
+    simp at hx 
+    simp 
+    aesop
+  })]
+  have h : ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α} : Finset ((Fin n → F) × (Fin n → F)))
+    = (Finset.product (Fi B i α) (Fi B i α)) := by 
+    simp [Fi]
+    ext x 
+    simp 
+    tauto
+  rw [h]
+  simp 
+  have h : ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α ∧ x.1 = x.2} : Finset ((Fin n → F) × (Fin n → F))) 
+    = ({ x | (x.1 = x.2) ∧ x.1 ∈ Fi B i α } : Finset ((Fin n → F) × (Fin n → F))) := by
+    ext x
+    simp [Fi]
+    aesop
+  rw [h]
+  have h : ({ x | (x.1 = x.2) ∧ x.1 ∈ Fi B i α } : Finset ((Fin n → F) × (Fin n → F))).card 
+    = (Fi B i α).card := Finset.card_bij
+        (i := fun a _ => a.1)
+        (by simp)
+        (by simp)
+        (by simp [Fi])
+  rw [h]
+  simp [choose_2, K]
+  ring_nf
+  rw [Nat.cast_sub (by {
+    by_cases h0 : (Fi B i α).card = 0 
+    · simp [h0]
+    · conv =>
+        lhs 
+        rw [←one_mul (Fi B i α).card]
+        rfl
+      apply le_trans
+      apply Nat.mul_le_mul_right (m := (Fi B i α).card) (Fi B i α).card 
+      omega
+      ring_nf 
+      rfl
+  })]
+  rw [pow_two]
+  simp 
+  ring 
 
 end
 
