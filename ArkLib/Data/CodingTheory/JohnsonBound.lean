@@ -264,10 +264,9 @@ lemma sum_hamming_weight_sum [Zero F] {B : Finset (Fin n → F)}
   rw [h_card]
   rw [Nat.cast_add]
   field_simp
-  rw [Finset.attach_eq_univ, Finset.compl_filter]
-  rw [←Finset.attach_eq_univ]
-  -- Brainrot attach
-  sorry 
+  simp_rw [Finset.attach_eq_univ, Finset.compl_filter, Finset.card_filter]
+  rw [Finset.sum_bij' (i := fun a b ↦ (⟨a, b⟩ : {x : Fin n → F // x ∈ B})) (j := fun a  b ↦ a)] <;>
+  simp
 
 lemma k_and_e [Zero F] {B : Finset (Fin n → F)} 
   (h_n : n ≠ 0)
