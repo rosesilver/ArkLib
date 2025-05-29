@@ -374,16 +374,36 @@ lemma aux_sum [Zero F] {B : Finset (Fin n → F)}
     simp 
     rfl
 
-def Fi_pairs (B : Finset (Fin n → F)) (i : Fin n) : Finset ((Fin n → F) × (Fin n → F)) :=
-  { x | x.1 ∈ B ∧ x.2 ∈ B ∧ x.1 i = x.2 i } 
 
-def Fi_pair (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset ((Fin n → F) × (Fin n → F)) :=
-  { x | x.1 ∈ Fi B i α ∧ x.2 ∈ Fi B i α} 
-
-lemma Fi_pairs_are_Fi_pairs {B : Finset (Fin n → F)} {i : Fin n}
-  : Fi_pairs B i
-    = (Finset.univ (α := F)).biUnion (Fi_pair B i) := by
-  aesop (add simp [Fi_pairs, Fi_pair, Fi])
+lemma le_sum_sum_choose_K_i [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
+  (h_n : 0 < n)
+  (h_B : B.card ≠ 0)
+  (h_card : 2 ≤ (Fintype.card F))
+  : 
+  n * (choose_2 (k B) + ((Finset.univ (α := F)).card - 1 : ℚ) 
+    * choose_2 ((B.card - k B)/((Finset.univ (α := F)).card-1)))
+  ≤ ∑ i, sum_choose_K_i B i := by 
+  rw [mul_add] 
+  apply le_trans 
+  apply add_le_add_right
+  exact k_choose_2 (n := n) (by omega) h_B
+  apply le_trans 
+  apply add_le_add_left (by {
+    have h := aux_sum (B := B) h_n h_card 
+    simp [aux_frac] at h 
+    rewrite [←mul_assoc]
+    rewrite [mul_comm (↑n : ℚ)] 
+    rewrite [mul_assoc] 
+    apply le_trans 
+    apply (mul_le_mul_left (by simp; omega)).2
+    exact h 
+    rfl
+  })
+  rw [Finset.mul_sum]
+  rw [←Finset.sum_add_distrib]
+  apply Finset.sum_le_sum
+  intro i _
+  exact le_sum_choose_K_i h_card
 
 
 end
