@@ -70,7 +70,7 @@ def subUpFull (U : Matrix m n F) (r_reindex : n → m) :
   Matrix n n F := Matrix.submatrix U r_reindex id
 
 lemma rank_subUpFull_of_bij [CommRing F] {U : Matrix m n F} {r_reindex : n → m}
-  (h : Function.Bijective r_reindex):
+  (h : Function.Bijective r_reindex) :
   (subUpFull U r_reindex).rank = U.rank :=
   rank_submatrix U (Equiv.ofBijective r_reindex h)
                    (Equiv.ofBijective id Function.bijective_id)

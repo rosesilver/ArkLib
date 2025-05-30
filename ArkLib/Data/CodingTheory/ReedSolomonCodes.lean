@@ -207,8 +207,8 @@ lemma codewordIsZero_makeZero {ι : ℕ} {F : Type*} [Zero F] :
 /--
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
-lemma genMatIsVandermonde [Field F] {deg : ℕ} [inst : NeZero deg] (α : ι ↪ F) :
-  LinearCodes.genMat_mul (Vandermonde.nonsquare deg α) = ReedSolomon.code α deg := by
+lemma genMatIsVandermonde [Field F] {ι' : ℕ} [inst : NeZero ι'] (α : ι ↪ F) :
+  LinearCodes.genMat_mul (Vandermonde.nonsquare (ι' := ι')  α) = ReedSolomon.code α ι' := by
   unfold LinearCodes.genMat_mul ReedSolomon.code
   ext x; rw [LinearMap.mem_range, Submodule.mem_map]
   refine ⟨
