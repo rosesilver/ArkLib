@@ -21,7 +21,7 @@ open Classical
 noncomputable section
 
 /-!
-Definition of an interleaved code `IC` of a linear code `LC` over a semiring.
+Definition of an interleaved code of a linear code over a semiring.
 Definition of distances for interleaved codes and statement for the relation between the minimal
 distance of an interleaved code and its underlying linear code.
 Statements of proximity results for Reed Solomon codes
@@ -47,7 +47,7 @@ structure InterleavedCode (κ ι : Type*) [Fintype κ] [Fintype ι] (F : Type*) 
   LC : LinearCode ι F
 
 /--
-The condition making the InterleavedCode structure an interleaved code.
+The condition making the `InterleavedCode` structure an interleaved code.
 -/
 def InterleavedCode.isInterleaved (IC : InterleavedCode κ ι F) :=
   ∀ V ∈ IC.MF, ∀ i, V i ∈ IC.LC
@@ -56,6 +56,9 @@ def LawfulInterleavedCode (κ : Type*) [Fintype κ] (ι : Type*) [Fintype ι]
                           (F : Type*) [Semiring F] :=
   { IC : InterleavedCode κ ι F // IC.isInterleaved }
 
+/--
+The submodule of the module of matrices whose rows belong to a linear code.
+-/
 def matrixSubmoduleOfLinearCode (κ : Type*) [Fintype κ]
                                 (LC : LinearCode ι F) : MatrixSubmodule κ ι F :=
   Submodule.span F { V | ∀ i, V i ∈ LC }
@@ -150,7 +153,7 @@ def numberOfClosePts (u v : ι → F) (deg : ℕ) (α : ι ↪ F)
 
 /--
 Lemma 4.4 Ligero
-Remark: Below, can use (ReedSolomonCode.minDist deg α) instead of ι - deg + 1 once proved
+Remark: Below, can use (ReedSolomonCode.minDist deg α) instead of ι - deg + 1 once proved.
 -/
 lemma e_leq_dist_over_3 {deg : ℕ} {α : ι ↪ F} {e : ℕ} {u v : ι → F}
   (he : (e : ℚ) < (Fintype.card ι - deg + 1 / 3)) :
