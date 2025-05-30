@@ -870,7 +870,7 @@ lemma johnson_denom [Zero F] {B : Finset (Fin n → F)}
   rw [h]
   ring
 
-lemma real_johnson [Zero F] {B : Finset (Fin n → F)} 
+lemma johnson_bound₀ [Zero F] {B : Finset (Fin n → F)} 
   (h_n : 0 < n)
   (h_B : 2 ≤ B.card)
   (h_card : 2 ≤ (Fintype.card F))
@@ -883,6 +883,78 @@ lemma real_johnson [Zero F] {B : Finset (Fin n → F)}
   rw [←mul_assoc]
   exact johnson_unrefined_by_M' h_n h_B h_card
 
+lemma lin_shift_card [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
+  :
+  B.card = ({ x - v | x ∈ B} : Finset _).card := by
+  apply Finset.card_bij
+    (i := fun x _ => x - v)
+    (by aesop)
+    (by simp)
+    (by simp)
+
+@[simp]
+lemma lin_shift_hamming_distance [Field F] {x₁ x₂ v : Fin n → F}
+  :
+  Δ₀(x₁ - v, x₂ - v) = Δ₀(x₁, x₂) := by
+  simp [hammingDist]
+
+lemma lin_shift_e [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
+  (h_B : B.card ≠ 0)
+  :
+  e B v = e ({ x - v | x ∈ B} : Finset _) 0 := by
+  simp [e]
+  rw [←lin_shift_card]
+  field_simp
+  apply Finset.sum_bij (i := fun x _ => x - v) <;> try simp [hammingDist, hammingNorm] 
+  intro a ha 
+  apply Finset.card_bij (i := fun x _ => x) <;> try tauto
+  simp at *
+  intro α₁ h contr
+  rw [←zero_add (v α₁)] at h
+  rw [←contr] at h 
+  simp at h  
+  simp 
+  intro b h contr 
+  rw [contr] at h
+  simp at h
+
+lemma lin_shift_d [Field F] {B : Finset (Fin n → F)} (v : Fin n → F)
+  (h_B : 2 ≤ B.card)
+  :
+  d B = d ({ x - v | x ∈ B} : Finset _) := by
+  simp [d]
+  rw [←lin_shift_card]
+  have h : choose_2 B.card ≠ 0 := by
+    simp [choose_2]
+    apply And.intro (by aesop)
+    intro contr 
+    have h : (B.card : ℚ) = 1 := by 
+      rw [←zero_add (1 : ℚ), ←contr] 
+      simp
+    simp at h
+    omega
+  field_simp 
+  apply Finset.sum_bij (fun x _ => (x.1 - v, x.2 -v)) <;> try aesop
+
+lemma johnson_bound [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
+  (h_n : 0 < n)
+  (h_B : 2 ≤ B.card)
+  (h_card : 2 ≤ (Fintype.card F))
+  :
+  B.card * 
+    ((1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (e B v / n)) ^ 2 
+      - (1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (d B/n)))  ≤
+  ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * d B/n := by 
+  rw [lin_shift_e (B := B) (by omega)]
+  rw [lin_shift_d v h_B]
+  rw [lin_shift_card (B := B) (v := v)]
+  exact johnson_bound₀ h_n (by {
+      rw [←lin_shift_card (B := B)]
+      assumption
+    })
+    h_card
+
+  
 
 
 end
