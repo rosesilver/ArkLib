@@ -73,8 +73,7 @@ lemma rank_nonsquare_eq_deg_of_ι_le [Fintype ι] [CommRing F]
   (Vandermonde.nonsquare (ι' := ι') α).rank = Fintype.card ι := sorry
 
 @[simp]
-lemma rank_nonsquare_rows_eq_min [Fintype ι] [CommRing F] [IsDomain F]
-  {ι' : ℕ} {α : ι → F} (h : Fintype.card ι ≤ ι') :
+lemma rank_nonsquare_rows_eq_min [Fintype ι] [CommRing F] [IsDomain F] {ι' : ℕ} {α : ι → F} :
   (Vandermonde.nonsquare (ι' := ι') α).rank = min (Fintype.card ι) ι' := by
   by_cases h : Fintype.card ι ≤ ι' <;>
   aesop (add simp [rank_nonsquare_eq_deg_of_ι_le, rank_nonsquare_eq_deg_of_deg_le])
@@ -227,8 +226,8 @@ lemma genMatIsVandermonde [Field F] {ι' : ℕ} [inst : NeZero ι'] (α : ι ↪
 for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
 Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
-lemma dim_eq_deg_of_le [Fintype ι] [Field F] {deg : ℕ} [NeZero deg] {α : ι ↪ F} (h : deg ≤ Fintype.card ι) :
-  LinearCodes.dim (ReedSolomon.code α deg) = deg := by
+lemma dim_eq_deg_of_le [Fintype ι] [Field F] {ι' : ℕ} [NeZero ι'] {α : ι ↪ F} (h : ι' ≤ Fintype.card ι) :
+  LinearCodes.dim (ReedSolomon.code α ι') = ι' := by
   rw [← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat, Vandermonde.rank_nonsquare_rows_eq_min]
   simp [h]
 
