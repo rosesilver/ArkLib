@@ -11,952 +11,129 @@ import Mathlib.Analysis.Convex.Jensen
 import Mathlib.Algebra.Module.LinearMap.Defs
 
 import ArkLib.Data.CodingTheory.Basic
+import ArkLib.Data.CodingTheory.JohnsonBound.Choose2
+import ArkLib.Data.CodingTheory.JohnsonBound.Expectations
+import ArkLib.Data.CodingTheory.JohnsonBound.Lemmas
 
 namespace JohnsonBound
 
-def f (x : ℚ) : ℚ := x^2 - x 
-
-private lemma x_sqr_minus_x_is_conv' {x₁ x₂ : ℚ} {α₁ α₂ : ℚ} 
-  (h_noneg_1 : 0 ≤ α₁)
-  (h_noneg_2 : 0 ≤ α₂)
-  (h_conv : α₁ + α₂ = 1)
-  :
-  f (α₁ * x₁ + α₂ * x₂) ≤ α₁ * f x₁ + α₂ * f x₂ := by
-  unfold f 
-  have h_conv : α₂ = 1 - α₁ := by 
-    rw [←h_conv]
-    field_simp
-  rw [add_sq, mul_sub, mul_sub]
-  have h : α₁ * x₁ ^ 2 - α₁ * x₁ + (α₂ * x₂ ^ 2 - α₂ * x₂) 
-    = α₁ * x₁ ^ 2  + α₂ * x₂ ^ 2 - (α₁ * x₁ + α₂ * x₂) := by ring
-  rw [h]
-  field_simp
-  rw [h_conv]
-  have h : (α₁ * x₁) ^ 2 + 2 * (α₁ * x₁) * ((1 - α₁) * x₂) + ((1 - α₁) * x₂) ^ 2
-    = α₁^2 * x₁ ^ 2 + 2 * (α₁ * (1 - α₁) * x₁ * x₂) + (1 - α₁)^2 * x₂ ^ 2 := by ring
-  rw [h]
-  apply add_le_of_le_sub_left 
-  conv =>
-    lhs 
-    rw [←add_zero ((1 - α₁) ^ 2 * x₂ ^ 2)]
-    rfl
-  apply add_le_of_le_sub_left 
-  have h : α₁ * x₁ ^ 2 + (1 - α₁) * x₂ ^ 2 - (α₁ ^ 2 * x₁ ^ 2 + 2 * (α₁ * (1 - α₁) * x₁ * x₂)) - (1 - α₁) ^ 2 * x₂ ^ 2 
-    = α₁ * (1 - α₁) * x₁^2 - 2 * α₁ * (1 - α₁) * x₁ * x₂ + (1 - α₁) * α₁ * x₂^2 := by ring_nf 
-  rw [h]
-  have h : α₁ * (1 - α₁) * x₁ ^ 2 - 2 * α₁ * (1 - α₁) * x₁ * x₂ + (1 - α₁) * α₁ * x₂ ^ 2 
-    = α₁ * (1 - α₁) * (x₁ - x₂ ) ^ 2 := by ring
-  rw [h, ←h_conv]
-  apply mul_nonneg 
-  apply mul_nonneg h_noneg_1 h_noneg_2 
-  exact sq_nonneg _
-
-def choose_2 (x : ℚ) : ℚ := x * (x-1)/2
-
-private lemma choose_2_eq_half_f :
-  choose_2  = (1/2) * f  := by 
-  ext x
-  simp [choose_2, f]
-  ring
-
-theorem choose_2_convex :
-  ConvexOn ℚ Set.univ choose_2 := by 
-  simp [ConvexOn, Convex, StarConvex] 
-  rw [choose_2_eq_half_f]
-  field_simp
-  intro x₁ x₂ α₁ α₂ hα₁ hα₂ h_conv
-  rw [Field.div_eq_mul_inv, Field.div_eq_mul_inv]
-  rw [mul_le_mul_right (by simp)]
-  apply x_sqr_minus_x_is_conv' <;> aesop
-
-section 
-
-variable {n q : ℕ}
+variable {n : ℕ}
 variable {F : Type} [Fintype F] [DecidableEq F]
 
-def Fi (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset (Fin n → F) :=
-  { x | x ∈ B ∧ x i = α } 
+def JohnsonDenominator (B : Finset (Fin n → F)) (v : Fin n → F) : ℚ :=
+  let e := e B v 
+  let d := d B
+  let q : ℚ := Fintype.card F
+  let frac := q / (q - 1)
+  (1- frac * e/n) ^ 2 - (1 - frac * d/n)
 
-def K (B : Finset (Fin n → F)) (i : Fin n) (α : F) : ℕ :=
-  (Fi B i α).card
+lemma johnson_denominator_def {B : Finset (Fin n → F)} {v : Fin n → F} :
+  JohnsonDenominator B v = ((1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (e B v / n)) ^ 2 
+      - (1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (d B/n))) := by
+  simp [JohnsonDenominator]
+  field_simp
 
-lemma Fis_cover_B {B : Finset (Fin n → F)} {i : Fin n} 
-  : B = Finset.univ.biUnion (Fi B i) := by 
-  aesop (add simp [Fi])
+def JohnsonConditionStrong (B : Finset (Fin n → F)) (v : Fin n → F) : Prop :=
+  let e := e B v 
+  let d := d B
+  let q : ℚ := Fintype.card F
+  let frac := q / (q - 1)
+  (1 - frac * d/n) < (1- frac * e/n) ^ 2 
 
-lemma Fis_pairwise_disjoint {B : Finset (Fin n → F)} {i : Fin n} 
-  : Set.PairwiseDisjoint Set.univ (Fi B i) := by 
-  aesop (add simp 
-    [Set.PairwiseDisjoint
-    , Set.Pairwise
-    , Disjoint
-    , Fi
-    , Finset.Nonempty
-    , Finset.subset_iff
-    ]) 
+private lemma johnson_condition_strong_implies_n_pos {B : Finset (Fin n → F)} {v : Fin n → F} 
+  (h_johnson : JohnsonConditionStrong B v)
+  :
+  0 < n := by
+  cases n <;> try simp [JohnsonConditionStrong] at *
 
-lemma K_sums_to_B_card {B : Finset (Fin n → F)} {i : Fin n}
-  : ∑ (α : F), K B i α = B.card := by 
-  conv => 
-    rhs 
-    rw [Fis_cover_B (B := B) (i := i)]
-    rfl
-  rw [Finset.card_biUnion (by simp [Fis_pairwise_disjoint])]
-  simp [K]
+private lemma johnson_condition_strong_implies_2_le_F_card {B : Finset (Fin n → F)} {v : Fin n → F} 
+  (h_johnson : JohnsonConditionStrong B v)
+  :
+  2 ≤ Fintype.card F := by
+  generalize h : Fintype.card F = card 
+  rcases card with _ | card 
+  · simp [JohnsonConditionStrong] at h_johnson 
+    rw [h] at h_johnson 
+    simp at h_johnson
+  · rcases card with _ | card 
+    · simp [JohnsonConditionStrong] at h_johnson 
+      rw [h] at h_johnson
+      simp at h_johnson 
+    · omega
 
-lemma K_eq_sum {B : Finset (Fin n → F)} {i : Fin n} {α : F}
-  : K B i α = ∑ (x : B), if x.1 i = α then 1 else 0 := by
-  simp [K, Fi]
-  simp_rw [Finset.card_filter, Finset.sum_attach_eq_sum_dite]
-  apply Finset.sum_congr <;> aesop
 
-lemma sum_choose_K' [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
-  (h_card : 2 ≤ (Fintype.card F))
-  : 
-  ((Finset.univ (α := F)).card - 1 : ℚ) 
-    * choose_2 ((B.card - K B i 0)/((Finset.univ (α := F)).card-1)) 
-      ≤ ∑ (α : F) with α ≠ 0, choose_2 (K B i α) := by 
-  rw [←K_sums_to_B_card (i := i)]
+private lemma johnson_condition_strong_implies_2_le_B_card {B : Finset (Fin n → F)} {v : Fin n → F} 
+  (h_johnson : JohnsonConditionStrong B v)
+  :
+  2 ≤ B.card := by
+  generalize h : B.card = card 
+  rcases card with _ | card 
+  · simp [JohnsonConditionStrong] at *
+    simp [e, d] at *
+    subst h
+    simp at h_johnson
+  · rcases card with _ | card 
+    · simp [JohnsonConditionStrong] at *
+      simp [e, d] at *
+      rw [h] at h_johnson
+      simp [choose_2] at h_johnson
+      have h_set := Finset.card_eq_one.1 h 
+      rcases h_set with ⟨a, h_set⟩
+      rw [h_set] at h_johnson 
+      simp at h_johnson
+      generalize hq : Fintype.card F = q 
+      rcases q with _ | q
+      · simp [hq] at h_johnson 
+      · rcases q with _ | q 
+        · simp [hq] at h_johnson
+        · have h : (Fintype.card F : ℚ) /((Fintype.card F : ℚ) - 1) = 
+            (1 : ℚ) + (1:ℚ)/((Fintype.card F : ℚ) - 1) := by
+            have h : (Fintype.card F : ℚ) = ((Fintype.card F : ℚ) - 1) + 1 := by ring
+            conv =>
+              lhs 
+              congr 
+              rw [h]
+              rfl
+              rfl
+            rw [Field.div_eq_mul_inv, Field.div_eq_mul_inv]
+            rw [add_mul]
+            rw [Field.mul_inv_cancel _ (by {
+              rw [hq]
+              simp
+              aesop
+            })]
+          rw [h] at h_johnson 
+          have h' := JohnsonBound.a_lemma_im_not_proud_of (v := v) (a := a) (by omega)
+          have h : (1 :ℚ) < (1 : ℚ) := by 
+            apply lt_of_lt_of_le h_johnson 
+            assumption 
+          simp at h
+    · omega 
+
+lemma johnson_condition_strong_iff_johnson_denom_pos {B : Finset (Fin n → F)} {v : Fin n → F} :
+  JohnsonConditionStrong B v ↔ 0 < JohnsonDenominator B v := by
+  simp [JohnsonDenominator, JohnsonConditionStrong]
+
+theorem johnson_bound [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
+  (h_condition : JohnsonConditionStrong B v)
+  :
+  let d := d B
+  let q : ℚ := Fintype.card F
+  let frac := q / (q - 1)
+  B.card ≤ (frac * d/n) / JohnsonDenominator B v 
+  := by
   simp 
-  have h_univ : Finset.univ = insert 0 ({x : F | x ≠ 0} : Finset F) := by
-    ext x 
-    simp 
-    tauto
-  rw [h_univ, Finset.sum_insert (by simp)]
-  field_simp
-  have h : ((∑ x ∈ {x | ¬x = 0}, ↑(K B i x)) : ℚ) / (↑(Fintype.card F) - 1)
-    =  ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) := by 
-    rw [Finset.sum_div]
-    congr 
-    field_simp
-  rw [h]
-  let w : F → ℚ := fun _ => (1 : ℚ) / (↑(Fintype.card F) - 1)
-  let p : F → ℚ := fun x => K B i x
-  have h : ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) 
-    = ∑ x ∈ {x : F | ¬x = 0}, w x • p x := by simp [w, p]
-  rw [h]
-  rw [mul_comm]
-  apply le_trans 
-  rewrite [mul_le_mul_right (by field_simp; linarith)]
-  apply ConvexOn.map_sum_le choose_2_convex (by {
-    simp [w]
-    intro i _
-    linarith
-  })
-    (by {
-      simp [w]
-      have h : (Finset.univ (α := F)).card = Fintype.card F := by rfl
-      conv =>
-        congr 
-        congr 
-        rfl 
-        rw [←h, h_univ]
-        rfl
-        rfl
-      simp 
-      rw [Field.mul_inv_cancel]
-      simp 
-      rw [←ne_eq]
-      rw [←Finset.nonempty_iff_ne_empty]
-      simp [Finset.Nonempty]
-      have h_two := (Finset.one_lt_card (s := Finset.univ (α := F))).1 (by omega)
-      rcases h_two with ⟨a, ha, b, hb, hab⟩
-      by_cases h_ne_a : a ≠ 0 <;> try tauto
-      simp at h_ne_a 
-      rw [h_ne_a] at hab 
-      tauto
-    })
-    (by simp)
-  rw [mul_comm]
-  simp [w, p]
-  rw [Finset.mul_sum]
-  conv =>
-    lhs 
-    congr 
-    rfl
-    ext α
-    rw [←mul_assoc] 
-    rw [Field.mul_inv_cancel _ (by {
-     intro contr 
-     have contr : (↑(Fintype.card F) : ℚ) = 1 := by 
-      rw [←zero_add 1, ←contr]
-      field_simp
-     simp at contr 
-     omega
-    })]
-    rw [one_mul]
-    rfl
-  have h : ({x ∈ insert 0 ({x | ¬x = 0} : Finset F) | ¬x = 0} : Finset F) 
-    = ({ x : F | ¬ x = 0 } : Finset F) := 
-    by 
-      ext x 
-      simp
-      tauto
-  rw [h]
-
-def sum_choose_K_i (B : Finset (Fin n → F)) (i : Fin n) : ℚ :=
-  ∑ (α : F), choose_2 (K B i α) 
-
-lemma le_sum_choose_K_i [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
-  (h_card : 2 ≤ (Fintype.card F))
-  : 
-  choose_2 (K B i 0) + ((Finset.univ (α := F)).card - 1 : ℚ) 
-    * choose_2 ((B.card - K B i 0)/((Finset.univ (α := F)).card-1)) 
-      ≤ sum_choose_K_i B i := by 
-  simp [sum_choose_K_i]
-  have h : insert 0 ({ x : F | ¬x=0} : Finset F) = Finset.univ := by 
-    ext x
-    simp
-    tauto
-  conv =>
-    rhs 
-    rw [←h]
-    rfl
-  simp [Finset.sum_insert]
-  exact sum_choose_K' h_card
-
-def e (B : Finset (Fin n → F)) (v : Fin n → F) : ℚ :=
-  (1 : ℚ)/B.card * ∑ x ∈ B, Δ₀(v, x) 
-
-def k [Zero F] (B : Finset (Fin n → F)) : ℚ := 
-  (1 : ℚ)/n * ∑ i, K B i 0
-
-lemma hamming_weight_eq_sum [Zero F] {x : Fin n → F}
-  : 
-  ‖x‖₀ = ∑ i, if x i = 0 then 0 else 1 := by simp [hammingNorm, Finset.sum_ite]
-
-lemma sum_hamming_weight_sum [Zero F] {B : Finset (Fin n → F)}
-  :
-  ∑ x ∈ B, ( ↑‖x‖₀ : ℚ) = n * B.card - ∑ i, K B i 0 := by 
-  conv =>
-    lhs 
-    congr 
-    rfl 
-    ext x
-    rw [hamming_weight_eq_sum]
-    simp
-    rfl
-  rw [Finset.sum_comm]
-  conv =>
-    rhs 
-    simp
-    congr
-    rfl
-    congr
-    rfl
-    ext x 
-    rw [K_eq_sum]
-    rfl
-  have h : (↑n : ℚ) = ∑ i : Fin n, 1 := by simp
-  rw [h, Finset.sum_mul]
-  rw [←Finset.sum_sub_distrib]
-  congr 
-  ext i
-  rw [one_mul _]
-  simp 
-  rw [Finset.sum_ite]
-  simp 
-  have h_card : B.card = B.attach.card := by simp
-  rw [h_card]
-  have h_card 
-    : B.attach.card = {x ∈ B.attach | x.1 i = 0}.card + ({x ∈ B.attach | x.1 i = 0}ᶜ).card  := by
-    simp
-  rw [h_card]
-  rw [Nat.cast_add]
-  field_simp
-  simp_rw [Finset.attach_eq_univ, Finset.compl_filter, Finset.card_filter]
-  rw [Finset.sum_bij' (i := fun a b ↦ (⟨a, b⟩ : {x : Fin n → F // x ∈ B})) (j := fun a  b ↦ a)] <;>
-  simp
-
-lemma k_and_e [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : n ≠ 0)
-  (h_B : B.card ≠ 0)
-  :
-  k B = B.card * (n - e B 0)/n := by
-  simp [e, k, sum_hamming_weight_sum]
-  field_simp
-
-lemma k_and_e' [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : n ≠ 0)
-  (h_B : B.card ≠ 0)
-  :
-  k B / B.card = (n - e B 0)/n := by
-  rw [k_and_e h_n h_B]
-  field_simp
-  ring
-
-lemma k_choose_2 [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : n ≠ 0)
-  (h_B : B.card ≠ 0)
-  :
-  n * choose_2 (k B) ≤ ∑ i, choose_2 (K B i 0) := by
-  simp [k]
-  rw [Finset.mul_sum]
-  let w : Fin n → ℚ := fun _ => (1:ℚ)/n 
-  let p : Fin n → ℚ := fun i => ↑(K B i 0)
-  have h : ∑ i, (↑n : ℚ)⁻¹ * ↑(K B i 0) = ∑ i, w i • p i := by simp [w, p] 
-  rw [h]
-  rw [mul_comm]
-  apply le_trans
-  apply (mul_le_mul_right (by simp; omega)).2
-  apply ConvexOn.map_sum_le (choose_2_convex) (by simp [w])
-    (by {
-      simp [w]
-      rw [Field.mul_inv_cancel]
-      aesop
-    })
-    (by simp)
-  simp [w, p]
-  rw [Finset.sum_mul]
-  conv =>
-    lhs 
-    congr 
-    rfl 
-    ext i
-    rw [mul_comm]
-    rw [←mul_assoc]
-    rw [Field.mul_inv_cancel _ (by aesop)]
-    simp
-    rfl
-
-def aux_frac (B : Finset (Fin n → F)) (x : ℚ) : ℚ := 
-  ((↑B.card : ℚ) - x)/(Fintype.card F - 1)
-
-lemma sum_1_over_n_aux_frac_k_i [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_card : 2 ≤ Fintype.card F) 
-  : ∑ i, (1 : ℚ)/n * aux_frac B (K B i 0) = aux_frac B (k B) := by
-  simp [aux_frac]
-  rw [←Finset.mul_sum, ←Finset.sum_div]
-  have h : (↑(Fintype.card F) : ℚ) - 1 > 0 := by
-    simp 
-    omega 
+  have h_condition' := h_condition
+  rw [johnson_condition_strong_iff_johnson_denom_pos] at h_condition
   rw [Field.div_eq_mul_inv]
-  rw [Field.div_eq_mul_inv]
-  rw [←mul_assoc]
-  have h_ne : (↑(Fintype.card F) - (1 : ℚ))⁻¹ ≠ 0 := by field_simp
-  suffices h : ((↑n : ℚ)⁻¹ * ∑ i, ((↑B.card : ℚ) - ↑(K B i 0)))
-    = (↑B.card - k B) by rw [h] 
-  simp
-  ring_nf 
-  rw [Field.mul_inv_cancel _ (by {
-    simp 
-    omega
-  })]
-  simp [k]
-
-lemma aux_sum [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_card : 2 ≤ Fintype.card F) 
-  : ↑n * choose_2 (aux_frac B (k B)) ≤ ∑ i, choose_2 (aux_frac B (K B i 0)) := by
-  rw [←sum_1_over_n_aux_frac_k_i h_n h_card]
-  let w : Fin n → ℚ := fun _ => (1 : ℚ)/n 
-  let p : Fin n → ℚ := fun i => aux_frac B ↑(K B i 0)
-  have h : (∑ i, 1 / ↑n * aux_frac B ↑(K B i 0)) = ∑ i, w i • p i := by 
-    simp [w,p]
-  rw [h]
-  rw [mul_comm]
-  apply le_trans
-  apply (mul_le_mul_right (by simp; omega)).2
-  apply ConvexOn.map_sum_le choose_2_convex (by simp [w])
-    (by {
-      simp [w]
-      rw [Field.mul_inv_cancel]
-      simp 
-      omega
-    })
-    (by simp)
-  simp [w, p]
-  rw [Finset.sum_mul]
-  conv =>
-    lhs 
-    congr 
-    rfl 
-    ext i
-    rw [mul_comm]
-    rw [←mul_assoc]
-    rw [Field.mul_inv_cancel _ (by {
-      simp 
-      omega
-    })]
-    simp 
-    rfl
-
-
-lemma le_sum_sum_choose_K_i [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : B.card ≠ 0)
-  (h_card : 2 ≤ (Fintype.card F))
-  : 
-  n * (choose_2 (k B) + ((Finset.univ (α := F)).card - 1 : ℚ) 
-    * choose_2 ((B.card - k B)/((Finset.univ (α := F)).card-1)))
-  ≤ ∑ i, sum_choose_K_i B i := by 
-  rw [mul_add] 
-  apply le_trans 
-  apply add_le_add_right
-  exact k_choose_2 (n := n) (by omega) h_B
-  apply le_trans 
-  apply add_le_add_left (by {
-    have h := aux_sum (B := B) h_n h_card 
-    simp [aux_frac] at h 
-    rewrite [←mul_assoc]
-    rewrite [mul_comm (↑n : ℚ)] 
-    rewrite [mul_assoc] 
-    apply le_trans 
-    apply (mul_le_mul_left (by simp; omega)).2
-    exact h 
-    rfl
-  })
-  rw [Finset.mul_sum]
-  rw [←Finset.sum_add_distrib]
-  apply Finset.sum_le_sum
-  intro i _
-  exact le_sum_choose_K_i h_card
-
-def d (B : Finset (Fin n → F)) : ℚ :=
-  (1 : ℚ)/(2 * choose_2 B.card) * ∑ x ∈ (Finset.product B B) with x.1 ≠ x.2, Δ₀(x.1, x.2) 
-
-def F2i (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset ((Fin n → F) × (Fin n → F)) :=
-  { x | x ∈ Finset.product B B ∧ x.1 i = α ∧ x.2 i = α ∧ x.1 ≠ x.2 } 
-
-def Bi (B : Finset (Fin n → F)) (i : Fin n) : Finset ((Fin n → F) × (Fin n → F)) :=
-  { x | x ∈ Finset.product B B ∧ x.1 i = x.2 i ∧ x.1 ≠ x.2 }
-
-lemma Bi_biUnion_F2i {B : Finset (Fin n → F)} {i : Fin n} :
-  Bi B i = Finset.univ.biUnion (F2i B i) := by aesop (add simp [Bi, F2i])
-
-lemma F2i_disjoint {B : Finset (Fin n → F)} {i : Fin n} :
-  Set.PairwiseDisjoint Set.univ (F2i B i) := by 
+  apply le_of_mul_le_mul_right (a0 := h_condition)
+  rw [mul_assoc, mul_comm ((_)⁻¹) _, Field.mul_inv_cancel _ (by linarith)]
   simp 
-    [Set.PairwiseDisjoint
-    , Set.Pairwise
-    , Disjoint
-    , F2i
-    , Finset.Nonempty
-    , Finset.subset_iff
-    ] 
-  intro α₁ α₂ h_ne x h1 h2 x₁ x₂ contr 
-  specialize (h1 x₁ x₂ contr) 
-  specialize (h2 x₁ x₂ contr) 
-  aesop
-
-lemma F2i_card {B : Finset (Fin n → F)} {i : Fin n} {α : F} :
-  (F2i B i α).card = 2 * choose_2 (K B i α) := by
-  simp [F2i]
-  have h : ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α ∧ ¬x.1 = x.2} : Finset ((Fin n → F) × (Fin n → F)))
-    = ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α } : Finset _) 
-      \ ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α ∧ x.1 = x.2} : Finset _) := by
-    aesop
-  rw [h]
-  rw [Finset.card_sdiff (by {
-    intro x hx 
-    simp at hx 
-    simp 
-    aesop
-  })]
-  have h : ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α} : Finset ((Fin n → F) × (Fin n → F)))
-    = (Finset.product (Fi B i α) (Fi B i α)) := by 
-    simp [Fi]
-    ext x 
-    simp 
-    tauto
-  rw [h]
-  simp 
-  have h : ({x | (x.1 ∈ B ∧ x.2 ∈ B) ∧ x.1 i = α ∧ x.2 i = α ∧ x.1 = x.2} : Finset ((Fin n → F) × (Fin n → F))) 
-    = ({ x | (x.1 = x.2) ∧ x.1 ∈ Fi B i α } : Finset ((Fin n → F) × (Fin n → F))) := by
-    ext x
-    simp [Fi]
-    aesop
-  rw [h]
-  have h : ({ x | (x.1 = x.2) ∧ x.1 ∈ Fi B i α } : Finset ((Fin n → F) × (Fin n → F))).card 
-    = (Fi B i α).card := Finset.card_bij
-        (i := fun a _ => a.1)
-        (by simp)
-        (by simp)
-        (by simp [Fi])
-  rw [h]
-  simp [choose_2, K]
-  ring_nf
-  rw [Nat.cast_sub (by {
-    by_cases h0 : (Fi B i α).card = 0 
-    · simp [h0]
-    · conv =>
-        lhs 
-        rw [←one_mul (Fi B i α).card]
-        rfl
-      apply le_trans
-      apply Nat.mul_le_mul_right (m := (Fi B i α).card) (Fi B i α).card 
-      omega
-      ring_nf 
-      rfl
-  })]
-  rw [pow_two]
-  simp 
-  ring 
-
-lemma sum_of_not_equals {B : Finset (Fin n → F)} {i : Fin n} :
-  ∑ x ∈ (Finset.product B B) with x.1 ≠ x.2, (if x.1 i ≠ x.2 i then 1 else 0) 
-  = 
-  2 * choose_2 B.card - 2 * ∑ α, choose_2 (K B i α) 
-  := by 
-  have h : (∑ x ∈ {x ∈ B.product B | x.1 ≠ x.2}, if x.1 i ≠ x.2 i then (1 : ℚ) else 0)
-    = (∑ x ∈ ({x ∈ B.product B | x.1 ≠ x.2}), ((1 : ℚ) - if x.1 i = x.2 i then 1 else 0)) := by
-    congr 
-    ext x 
-    simp 
-    aesop
-  rw [h]
-  rw [Finset.sum_sub_distrib]
-  simp
-  have h : {x ∈ B ×ˢ B | ¬x.1 = x.2} = (B ×ˢ B) \ {x ∈ B ×ˢ B | x.1 = x.2} := by
-    ext x 
-    simp 
-    tauto
-  conv =>
-    lhs 
-    congr 
-    rw [h]
-    simp
-    rw [Finset.card_sdiff (by aesop)]
-    simp 
-    congr 
-    congr 
-    rfl 
-    rw [Finset.card_bij (t := B)
-      (i := fun a _ => a.1)
-      (by aesop)
-      (by {
-        simp 
-        intro a b ha hb heq
-        subst heq
-        intro α₁ b hα₁ hb heq 
-        subst heq 
-        tauto
-      })
-      (by simp)
-    ]
-    rfl
-  suffices h : (↑{x ∈ {x ∈ B ×ˢ B | ¬x.1 = x.2} | x.1 i = x.2 i}.card : ℚ)
-    = 2 * ∑ α, choose_2 ↑(K B i α) by {
-    rw [h]
-    simp [choose_2]
-    field_simp
-    rw [Nat.cast_sub (by {
-      by_cases h0 : B.card = 0 
-      · simp [h0]
-      · conv =>
-          lhs 
-          rw [←one_mul B.card]
-          rfl
-        apply le_trans
-        apply Nat.mul_le_mul_right (m := B.card) B.card 
-        omega
-        ring_nf 
-        rfl
-    })]
-    simp 
-    ring_nf 
-  }
-  have h : ({x ∈ {x ∈ B ×ˢ B | ¬x.1 = x.2} | x.1 i = x.2 i} : Finset _)
-    = Bi B i := by 
-    ext x
-    simp [Bi]
-    tauto
-  rw [h]
-  rw [Bi_biUnion_F2i]
-  rw [Finset.card_biUnion (by simp [F2i_disjoint])]
-  simp
-  conv =>
-    lhs 
-    congr 
-    rfl
-    ext α
-    rw [F2i_card]
-    rfl
-  rw [Finset.mul_sum]
-
-lemma hamming_dist_eq_sum {x y : Fin n → F} :
-  ↑Δ₀(x, y) = ∑ i, if x i = y i then 0 else 1 := by
-  simp [hammingDist, Finset.sum_ite] 
-
-lemma d_eq_sum {B : Finset (Fin n → F)} 
-  (h_B : 2 ≤ B.card)
-  :
-  2 * choose_2 B.card * d B = ∑ i, ∑ x ∈ (Finset.product B B) with x.1 ≠ x.2, (if x.1 i ≠ x.2 i then 1 else 0) := by
-  simp [d]
-  rw [mul_assoc]
-  rw [←mul_assoc (choose_2 (↑B.card))]
-  rw [←mul_assoc (choose_2 (↑B.card)), Field.mul_inv_cancel _ (by {
-    simp [choose_2]
-    apply And.intro 
-    aesop
-    intro contr 
-    have h : ↑B.card = (1 : ℚ) := by
-      rw [←zero_add (1 : ℚ)]  
-      rw [←contr]
-      simp
-    simp at h
-    omega
-  })]
-  field_simp
-  rw [Finset.sum_comm]
-  congr 
-  ext x 
-  rw [hamming_dist_eq_sum]
-  simp
-
-lemma sum_sum_K_i_eq_n_sub_d {B : Finset (Fin n → F)} 
-  (h_B : 2 ≤ B.card)
-  :
-  ∑ i, sum_choose_K_i B i = choose_2 B.card * (n - d B) := by
-  rw [mul_sub]
-  have h : choose_2 B.card = ((1 : ℚ)/2) * (2 * choose_2 B.card) := by
-    field_simp
-  rw [h, mul_assoc (1/2), mul_assoc (1/2), ←mul_sub (1/2)] 
-  rw [d_eq_sum h_B]
-  conv =>
-    rhs 
-    congr 
-    rfl 
-    congr 
-    rfl 
-    congr 
-    rfl
-    ext i
-    rw [sum_of_not_equals]
-    rfl
-  simp 
-  ring_nf
-  simp [sum_choose_K_i]
-  rw [Finset.sum_mul]
-  field_simp
-
-lemma almost_johnson [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  n * (choose_2 (k B) + ((Finset.univ (α := F)).card - 1 : ℚ) 
-    * choose_2 ((B.card - k B)/((Finset.univ (α := F)).card-1)))
-  ≤
-  choose_2 B.card * (n - d B) := by
-  apply le_trans 
-  exact le_sum_sum_choose_K_i h_n (by aesop) h_card 
-  rw [sum_sum_K_i_eq_n_sub_d h_B]
-
-lemma almost_johnson_choose_2_elimed [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  (k B * (k B - 1)  +  
-    (B.card - k B) * ((B.card - k B)/((Finset.univ (α := F)).card-1) - 1))
-  ≤
-  B.card * (B.card - 1) * (n - d B)/n := by
-  have h := almost_johnson h_n h_B h_card 
-  have h_den_ne_0 : (↑(Fintype.card F) - (1 : ℚ)) ≠ 0 := by
-    intro contr 
-    have h : ↑(Fintype.card F) = (1 : ℚ) := by
-      rw [←zero_add 1, ← contr]
-      simp
-    simp at h
-    omega
-  have h_lhs : 
-    n * ((1:ℚ)/2) * ((k B) * (k B - 1) + ((Finset.univ (α := F)).card - 1 : ℚ) 
-    * ((B.card - k B)/((Finset.univ (α := F)).card-1)) * ((B.card - k B)/((Finset.univ (α := F)).card-1) - 1))
-    =
-    n * (choose_2 (k B) + ((Finset.univ (α := F)).card - 1 : ℚ) 
-      * choose_2 ((B.card - k B)/((Finset.univ (α := F)).card-1))) := by
-    simp [choose_2]
-    ring_nf
-  rw [←h_lhs] at h
-  simp [choose_2] at h 
-  have h_rhs : ↑B.card * (↑B.card - 1) / 2 * (↑n - d B)
-    = ↑n * 2⁻¹ * (↑n)⁻¹ * ↑B.card * (↑B.card - 1) * (↑n - d B) := by 
-    rw [mul_comm (↑n : ℚ)]
-    rw [mul_assoc, mul_assoc (2⁻¹)]
-    rw [Field.mul_inv_cancel _ (by simp; omega)]
-    field_simp
-    ring
-  rw [h_rhs] at h 
-  apply le_of_mul_le_mul_left (a := (↑n : ℚ) * (2⁻¹))
-  have h_rhs : ↑n * 2⁻¹ * (↑n)⁻¹ * ↑B.card * (↑B.card - 1) * (↑n - d B)
-    = ↑n * 2⁻¹ * (↑B.card * (↑B.card - 1) * (↑n - d B) / ↑n)  := by
-    ring
-  rw [h_rhs] at h
-  apply le_trans' h
-  simp 
-  conv =>
-    rhs 
-    congr 
-    congr 
-    congr 
-    rfl 
-    rfl 
-    congr 
-    rfl
-    congr 
-    rw [Field.div_eq_mul_inv, mul_comm, mul_assoc]
-    congr 
-    rfl
-    rw [mul_comm, Field.mul_inv_cancel _ (by aesop)]
-    rfl
-    rfl
-  simp
-  simp
-  assumption
-
-lemma almost_johnson_lhs_div_B_card [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  :
-  (k B * (k B - 1)  +  
-    (B.card - k B) * ((B.card - k B)/((Finset.univ (α := F)).card-1) - 1)) / B.card 
-  = 
-  (1 - e B 0 / n) ^ 2 * B.card + B.card * (e B 0) ^ 2 / ((Fintype.card F - 1) * n^2) - 1 := by
-  rw [add_div]
-  conv => 
-    lhs 
-    congr 
-    rw [mul_comm, ←mul_div]
-    rw [k_and_e' (by omega) (by omega)]
-    rw [k_and_e (by omega) (by omega)]
-    rfl
-    rw [mul_comm, ←mul_div, sub_div (c := (B.card : ℚ))]
-    rw [k_and_e' (by omega) (by omega)]
-    rw [Field.div_eq_mul_inv _ (B.card : ℚ)]
-    rw [Field.mul_inv_cancel _ (by {
-      simp
-      aesop
-    })]
-    rw [k_and_e (by omega) (by omega)]
-    rfl
-  have hn : (↑n : ℚ) / ↑n = 1 := by field_simp
-  conv =>
-    lhs
-    congr 
-    rw [sub_mul]
-    rw [←mul_div, mul_assoc, ←pow_two, one_mul]
-    rw [sub_div, hn]
-    rfl
-    rw [←mul_div]
-    rw [sub_div (c := (↑n : ℚ)), hn]
-    simp 
-    rw [sub_mul]
-    simp
-    rw [←mul_one (B.card : ℚ)]
-    rw [mul_assoc]
-    rw [←mul_sub (B.card : ℚ)]
-    simp 
-    rw [mul_comm, mul_div, mul_div]
-    rfl
-  have h : (e B 0 / ↑n * (↑B.card * e B 0 / ↑n) / (↑(Fintype.card F) - 1) - e B 0 / ↑n)
-    = ↑B.card * (e B 0)^2/ (↑n^2 *  (↑(Fintype.card F) - 1)) - e B 0 / ↑n:= by
-    field_simp
-    ring_nf 
-  rw [h]
-  ring_nf
-
-lemma johnson_unrefined [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  (1 - e B 0 / n) ^ 2 * B.card + B.card * (e B 0) ^ 2 / ((Fintype.card F - 1) * n^2) - 1 
-  ≤
-  (B.card - 1) * (1 - d B/n) := by
-  have h : ((1 : ℚ) - d B / ↑n) = (↑n - d B) / ↑n := by
-    field_simp
-  rw [h]
-  rw [←almost_johnson_lhs_div_B_card h_n h_B]
-  apply le_of_mul_le_mul_left (a := (B.card : ℚ)) 
-  rw [Field.div_eq_mul_inv _ (↑B.card : ℚ)]
-  rw [mul_comm]
-  rw [mul_assoc, mul_comm _ ((↑B.card) : ℚ), Field.mul_inv_cancel _ (by aesop)]
-  simp 
-  rw [←mul_assoc]
-  apply le_trans 
-  apply almost_johnson_choose_2_elimed h_n h_B h_card
-  field_simp 
-  simp
-  rw [Finset.nonempty_iff_ne_empty]
-  aesop
-
-lemma johnson_unrefined_by_M [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  B.card * ((1 - e B 0 / n) ^ 2  + (e B 0) ^ 2 / ((Fintype.card F - 1) * n^2) - 1 + d B/n)
-  ≤
-  d B/n := by 
-  rw [mul_add, mul_sub]
-  rw [sub_add]
-  have hh : (↑B.card * 1 - ↑B.card * (d B / ↑n)) = ↑B.card * (1 - (d B/↑n)) := by
-    rw [mul_sub]
-  rw [hh]
-  apply le_of_add_le_add_right (a := -1)
-  apply le_of_add_le_add_right (a := ↑B.card * (1 - d B / ↑n))
-  have hh : d B / ↑n + -1 + ↑B.card * (1 - d B / ↑n)
-    = (↑B.card - 1) * (1 - d B / ↑n) := by ring
-  rw [hh]
-  apply le_trans' (johnson_unrefined h_n h_B h_card)
-  conv =>
-    lhs 
-    rw [add_comm, ←add_assoc, add_comm, add_sub]
-    congr 
-    rfl 
-    rw [add_comm, ←add_sub]
-    simp
-    rfl
-  simp 
-  rw [mul_add, mul_comm, ←mul_div]
-  
-lemma johnson_unrefined_by_M' [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  B.card * ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * ((1 - e B 0 / n) ^ 2  + (e B 0) ^ 2 / ((Fintype.card F - 1) * n^2) - 1 + d B/n)
-  ≤
-  ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * d B/n := by 
-  rw [mul_comm (B.card : ℚ)]
-  rw [mul_assoc, ←mul_div]
-  apply (mul_le_mul_left (by {
-    field_simp
-    omega
-  })).2
-  exact johnson_unrefined_by_M h_n h_B h_card
-  
-lemma johnson_denom [Zero F] {B : Finset (Fin n → F)} 
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * ((1 - e B 0 / n) ^ 2  + (e B 0) ^ 2 / ((Fintype.card F - 1) * n^2) - 1 + d B/n)
-  = 
-  (1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (e B 0 / n)) ^ 2 - (1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (d B/n))  := by 
-  have h : (((1:ℚ)- e B 0 / (↑n : ℚ)) ^ 2 + e B 0 ^ 2 / ((↑(Fintype.card F) - 1) * ↑n ^ 2) - 1 + d B / ↑n)
-    = d B / (↑n : ℚ) - 2 * e B 0 / (↑n : ℚ) + ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (e B 0)^2/n^2 := by 
-    have h : e B 0 ^ 2 / ((↑(Fintype.card F) - 1) * ↑n ^ 2) = (((Fintype.card F : ℚ) / (Fintype.card F - 1))- 1) * e B 0 ^ 2 / ↑n ^ 2 := by
-     have h : ((Fintype.card F : ℚ) / (↑(Fintype.card F) - 1) - 1) = 1 / (↑(Fintype.card F) - 1) := by
-       have h : (Fintype.card F : ℚ) / (Fintype.card F - 1) = ((Fintype.card F : ℚ) - 1 + 1) / (Fintype.card F - 1) := by
-         field_simp
-       rw [h]
-       rw [add_div]
-       rw [Field.div_eq_mul_inv]
-       rw [Field.mul_inv_cancel _ (by {
-          intro contr 
-          have h : (Fintype.card F : ℚ) = 1 := by 
-            rw [←add_zero 1]
-            rw [←contr]
-            simp
-          simp at h 
-          omega
-        })]
-       field_simp
-     rw [h]
-     field_simp
-    rw [h]
-    ring_nf 
-  rw [h]
-  conv =>
-    lhs 
-    rw [mul_add, mul_sub, sub_add]
-    rfl
-  have h : (↑(Fintype.card F) / (↑(Fintype.card F) - 1) * (2 * e B 0 / ↑n) -
-    ↑(Fintype.card F) / (↑(Fintype.card F) - 1) *
-      (↑(Fintype.card F) / (↑(Fintype.card F) - 1) * e B 0 ^ 2 / ↑n ^ 2)) =
-        (1 - (1 - (↑(Fintype.card F) / (↑(Fintype.card F) - 1) * e B 0 / ↑n ))^2) := by 
-      ring_nf
-  rw [h]
-  ring
-
-lemma johnson_bound₀ [Zero F] {B : Finset (Fin n → F)} 
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  B.card * 
-    ((1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (e B 0 / n)) ^ 2 
-      - (1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (d B/n)))  ≤
-  ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * d B/n := by 
-  rw [←johnson_denom h_card]
-  rw [←mul_assoc]
-  exact johnson_unrefined_by_M' h_n h_B h_card
-
-lemma lin_shift_card [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
-  :
-  B.card = ({ x - v | x ∈ B} : Finset _).card := by
-  apply Finset.card_bij
-    (i := fun x _ => x - v)
-    (by aesop)
-    (by simp)
-    (by simp)
-
-@[simp]
-lemma lin_shift_hamming_distance [Field F] {x₁ x₂ v : Fin n → F}
-  :
-  Δ₀(x₁ - v, x₂ - v) = Δ₀(x₁, x₂) := by
-  simp [hammingDist]
-
-lemma lin_shift_e [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
-  (h_B : B.card ≠ 0)
-  :
-  e B v = e ({ x - v | x ∈ B} : Finset _) 0 := by
-  simp [e]
-  rw [←lin_shift_card]
-  field_simp
-  apply Finset.sum_bij (i := fun x _ => x - v) <;> try simp [hammingDist, hammingNorm] 
-  intro a ha 
-  apply Finset.card_bij (i := fun x _ => x) <;> try tauto
-  simp at *
-  intro α₁ h contr
-  rw [←zero_add (v α₁)] at h
-  rw [←contr] at h 
-  simp at h  
-  simp 
-  intro b h contr 
-  rw [contr] at h
-  simp at h
-
-lemma lin_shift_d [Field F] {B : Finset (Fin n → F)} (v : Fin n → F)
-  (h_B : 2 ≤ B.card)
-  :
-  d B = d ({ x - v | x ∈ B} : Finset _) := by
-  simp [d]
-  rw [←lin_shift_card]
-  have h : choose_2 B.card ≠ 0 := by
-    simp [choose_2]
-    apply And.intro (by aesop)
-    intro contr 
-    have h : (B.card : ℚ) = 1 := by 
-      rw [←zero_add (1 : ℚ), ←contr] 
-      simp
-    simp at h
-    omega
-  field_simp 
-  apply Finset.sum_bij (fun x _ => (x.1 - v, x.2 -v)) <;> try aesop
-
-lemma johnson_bound [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
-  (h_n : 0 < n)
-  (h_B : 2 ≤ B.card)
-  (h_card : 2 ≤ (Fintype.card F))
-  :
-  B.card * 
-    ((1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (e B v / n)) ^ 2 
-      - (1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (d B/n)))  ≤
-  ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * d B/n := by 
-  rw [lin_shift_e (B := B) (by omega)]
-  rw [lin_shift_d v h_B]
-  rw [lin_shift_card (B := B) (v := v)]
-  exact johnson_bound₀ h_n (by {
-      rw [←lin_shift_card (B := B)]
-      assumption
-    })
-    h_card
-
-  
-
-
-end
+  rw [johnson_denominator_def]
+  apply JohnsonBound.johnson_bound_lemma 
+    (johnson_condition_strong_implies_n_pos h_condition') 
+    (johnson_condition_strong_implies_2_le_B_card h_condition') 
+    (johnson_condition_strong_implies_2_le_F_card h_condition')
+    
 
 end JohnsonBound
