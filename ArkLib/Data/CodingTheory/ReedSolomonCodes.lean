@@ -61,14 +61,14 @@ lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] [Fintype ι] {ι' :
 /--
 The rank of a non-square Vandermonde matrix with more rows than columns is the number of columns.
 -/
-lemma rank_nonsquare_eq_deg_of_deg_le [Fintype ι] [CommRing F] [IsDomain F]
+lemma rank_nonsquare_eq_deg_of_deg_le [Fintype ι] [CommRing F]
   {ι' : ℕ} {α : ι → F} (h : ι' ≤ Fintype.card ι) :
   (Vandermonde.nonsquare (ι' := ι') α).rank = ι' := sorry
 
 /--
 The rank of a non-square Vandermonde matrix with more columns than rows is the number of rows.
 -/
-lemma rank_nonsquare_eq_deg_of_ι_le [Fintype ι] [CommRing F] [IsDomain F]
+lemma rank_nonsquare_eq_deg_of_ι_le [Fintype ι] [CommRing F]
   {ι' : ℕ} {α : ι → F} (h : Fintype.card ι ≤ ι') :
   (Vandermonde.nonsquare (ι' := ι') α).rank = Fintype.card ι := sorry
 
