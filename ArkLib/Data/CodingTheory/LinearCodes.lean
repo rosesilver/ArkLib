@@ -10,6 +10,8 @@ import Mathlib.LinearAlgebra.Matrix.ToLin
 import Mathlib.Algebra.Module.Submodule.Range
 import Mathlib.Algebra.Module.Submodule.Defs
 
+import ArkLib.Data.CodingTheory.Prelims
+
 /-!
   Definition of a linear code, minimal distance of a linear code, length, dimension and rate.
   Linear codes defined by a generator matrices and rephrase of dimension in this framework.
@@ -22,6 +24,12 @@ open Finset
 
 noncomputable def wt {F : Type*} [Semiring F] [Zero F] {ι : Type*} [Fintype ι]
   (v : ι → F) : ℕ := #{i | v i ≠ 0}
+
+lemma wt_eq_zero_iff {F : Type*} [Semiring F] [Zero F]
+                     {ι : Type*} [Fintype ι] {v : ι → F} :
+  wt v = 0 ↔ Fintype.card ι = 0 ∨ ∀ i, v i = 0 := by
+  by_cases IsEmpty ι <;>
+  aesop (add simp [wt, Finset.filter_eq_empty_iff])
 
 namespace LinearCodes
 
@@ -88,6 +96,18 @@ lemma minDist_eq_minWtCodewords {LC : LinearCode ι F} : minDist LC = minWtCodew
   unfold minDist minWtCodewords
   refine congrArg _ (Set.ext fun _ ↦ ⟨fun ⟨u, _, v, _⟩ ↦ ⟨u - v, ?p₁⟩, fun _ ↦ ⟨0, ?p₂⟩⟩) <;>
   aesop (add simp [hammingDist_eq_wt_sub, sub_eq_zero])
+
+lemma minDist_UB {LC : LinearCode ι F} : minDist LC ≤ length LC := by
+  rw [minDist_eq_minWtCodewords, minWtCodewords]
+  apply sInf.sInf_UB_of_le_UB
+  intro s h
+  rw [Set.mem_setOf_eq] at h
+  rcases h with ⟨c, c_in_code, _, s_def⟩
+  rw [←s_def]
+  transitivity
+  apply Finset.card_le_card
+  exact Finset.subset_univ _
+  rfl
 
 /--
 Singleton Bound Theorem.

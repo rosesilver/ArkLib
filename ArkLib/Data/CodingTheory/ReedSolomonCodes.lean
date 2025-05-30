@@ -226,8 +226,8 @@ lemma genMatIsVandermonde [Field F] {ι' : ℕ} [inst : NeZero ι'] (α : ι ↪
 for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
 Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
-lemma dim_eq_deg_of_le [Fintype ι] [Field F] {ι' : ℕ} [NeZero ι'] {α : ι ↪ F} (h : ι' ≤ Fintype.card ι) :
-  LinearCodes.dim (ReedSolomon.code α ι') = ι' := by
+lemma dim_eq_deg_of_le [Fintype ι] [Field F] {ι' : ℕ} [NeZero ι'] {α : ι ↪ F}
+  (h : ι' ≤ Fintype.card ι) : LinearCodes.dim (ReedSolomon.code α ι') = ι' := by
   rw [← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat, Vandermonde.rank_nonsquare_rows_eq_min]
   simp [h]
 
@@ -241,9 +241,9 @@ lemma rate [Field F] [Fintype ι] {deg : ℕ} [NeZero deg] {α : ι ↪ F} (h : 
   exact h
 
 @[simp]
-lemma dist_le_length [Field F] {deg : ℕ} [NeZero deg] {α : Fin ι ↪ F} :
-    LinearCode.minDist (ReedSolomon.code α deg) ≤ ι := by
-  convert LinearCode.minDist_UB
+lemma dist_le_length [Fintype ι] [Field F] {ι' : ℕ} [NeZero ι'] {α : ι ↪ F} :
+    LinearCodes.minDist (ReedSolomon.code α ι') ≤ Fintype.card ι := by
+  convert LinearCodes.minDist_UB
 
 lemma card_le_card_of_count_inj {α β : Type*} {s : Multiset α} {s' : Multiset β}
   (f : α → β) (inj : Function.Injective f)
@@ -262,51 +262,54 @@ lemma card_le_card_of_count_inj {α β : Type*} {s : Multiset α} {s' : Multiset
 
   Is this named appropriately?
 -/
-def ReedSolomon.constantCode {α : Type*} (x : α) (deg : ℕ) : Fin deg → α := fun _ ↦ x
+def ReedSolomon.constantCode {α : Type*} (x : α) (ι' : Type*) [Fintype ι'] : ι' → α := fun _ ↦ x
 
 @[simp]
-lemma ReedSolomon.weight_constantCode [Semiring F] {deg : ℕ} {x : F} :
-  wt (ReedSolomon.constantCode x deg) = 0 ↔ deg = 0 ∨ x = 0 := by
-  rw [wt_eq_zero_iff]; rcases deg <;> simp [constantCode]
+lemma ReedSolomon.weight_constantCode [Semiring F] {ι' : Type*} [Fintype ι'] {x : F} :
+  wt (ReedSolomon.constantCode x ι') = 0 ↔ IsEmpty ι' ∨ x = 0 := by
+  by_cases eq : IsEmpty ι' <;> aesop (add simp [constantCode, wt_eq_zero_iff])
 
 @[simp]
-lemma ReedSolomon.constantCode_mem_code
-  [Semiring F] {α : Fin ι ↪ F} {x : F} {deg : ℕ} [NeZero deg] :
-  ReedSolomon.constantCode x ι ∈ ReedSolomon.code α deg := by
+lemma ReedSolomon.constantCode_mem_code [Semiring F] [Fintype ι]
+                                        {α : ι ↪ F} {x : F} {ι' : ℕ} [NeZero ι']:
+  ReedSolomon.constantCode x ι ∈ ReedSolomon.code α ι' := by
   use C x
   aesop (add simp [ReedSolomon.evalOnPoints, coeff_C, degreeLT])
 
 @[simp]
-lemma ReedSolomon.constantCode_eq_ofNat_zero_iff [Semiring F] {x : F} [NeZero ι] :
+lemma ReedSolomon.constantCode_eq_ofNat_zero_iff [Fintype ι] [Nonempty ι] [Semiring F] {x : F} :
   ReedSolomon.constantCode x ι = 0 ↔ x = 0 := by
   unfold constantCode
   exact ⟨fun x ↦ Eq.mp (by simp) (congrFun x), (· ▸ rfl)⟩
 
 @[simp]
-lemma ReedSolomon.wt_constantCode [Semiring F] {x : F} [NeZero x] :
-  wt (ReedSolomon.constantCode x ι) = ι := by unfold constantCode wt; aesop
+lemma ReedSolomon.wt_constantCode [Fintype ι] [Semiring F] {x : F} [NeZero x] :
+  wt (ReedSolomon.constantCode x ι) = Fintype.card ι := by unfold constantCode wt; aesop
 
 open Finset in
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
-theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ : NeZero deg] (h : deg ≤ ι) :
-  LinearCode.minDist (ReedSolomon.code α deg) = ι - deg + 1 := by
-  have : NeZero ι := by constructor; aesop
+theorem minDist [Field F] [Inhabited F] {ι' : Type*} [Fintype ι] [Fintype ι'] {α : ι ↪ F} [φ : Nonempty ι']
+  (h : Fintype.card ι' ≤ Fintype.card ι) :
+  LinearCodes.minDist (ReedSolomon.code α (Fintype.card ι')) =
+  Fintype.card ι - Fintype.card ι' + 1 := by
+  have : Nonempty ι := sorry
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
-    have distUB := LinearCode.singletonBound (LC := ReedSolomon.code α deg)
+    have distUB := LinearCodes.singletonBound (LC := ReedSolomon.code α (Fintype.card ι'))
     rw [dim_eq_deg_of_le h] at distUB
     zify [dist_le_length] at distUB
+    simp only [length_eq_domain_size, dist_le_length, Nat.cast_sub] at distUB
     omega
   case p₂ =>
-    rw [LinearCode.minDist_eq_minWtCodewords]
-    apply le_csInf (by use ι, ReedSolomon.constantCode 1 ι; simp)
+    rw [LinearCodes.minDist_eq_minWtCodewords]
+    apply le_csInf (by use (Fintype.card ι), ReedSolomon.constantCode 1 _; simp)
     intro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
     let zeroes : Finset _ := {i | msg i = 0}
     have eq₁ : zeroes.val.Nodup := by
       aesop (add simp [Multiset.nodup_iff_count_eq_one, Multiset.count_filter])
-    have msg_zeros_lt_deg : #zeroes < deg := by
+    have msg_zeros_lt_deg : #zeroes < Fintype.card ι' := by
       apply lt_of_le_of_lt (b := p.roots.card)
                             (hbc := lt_of_le_of_lt (Polynomial.card_roots' _)
                                                    (natDegree_lt_of_mem_degreeLT p_deg))
@@ -316,9 +319,9 @@ theorem minDist [Field F] [Inhabited F] {deg ι : ℕ} {α : Fin ι ↪ F} [φ :
                 rwa [@Multiset.count_eq_one_of_mem (d := eq₁) (h := by simpa [zeroes])]
               by aesop
         else by simp [zeroes, h]
-    have : #zeroes + wt msg = ι := by
-      simp_rw [show ι = #(univ : Finset (Fin ι)) by simp]
+    have : #zeroes + wt msg = Fintype.card ι := by
       rw [wt, filter_card_add_filter_neg_card_eq_card]
+      simp
     omega
 
 end ReedSolomonCode

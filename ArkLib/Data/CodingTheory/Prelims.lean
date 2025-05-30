@@ -17,6 +17,8 @@ import Mathlib.Data.Fin.Basic
 import Mathlib.Logic.Function.Defs
 import Mathlib.LinearAlgebra.AffineSpace.AffineSubspace.Defs
 
+open Classical
+
 namespace Wheels
 
 class abbrev FinOrder (α : Type*) := Fintype α, Preorder α
@@ -102,5 +104,22 @@ def line {F : Type*} {ι : Type*} [Ring F] (u v : ι → F) : Submodule F (ι �
   vectorSpan _ {u, v} 
 
 end Affine
+
+namespace sInf
+
+lemma sInf_UB_of_le_UB {S : Set ℕ} {i : ℕ} : (∀ s ∈ S, s ≤ i) → sInf S ≤ i := by
+  intro h
+  by_cases S_empty : S.Nonempty
+  · rw [Nat.sInf_def S_empty, Nat.find_le_iff]
+    rcases S_empty with ⟨s, S_empty⟩
+    exists s
+    refine ⟨h s S_empty, S_empty⟩
+  · have : S = ∅ := by
+      unfold Set.Nonempty at S_empty
+      aesop
+    rw [this]
+    simp
+
+end sInf
 
 end
