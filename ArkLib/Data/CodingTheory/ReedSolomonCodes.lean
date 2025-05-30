@@ -290,11 +290,13 @@ open Finset in
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
-theorem minDist [Field F] [Inhabited F] {ι' : Type*} [Fintype ι] [Fintype ι'] {α : ι ↪ F} [φ : Nonempty ι']
+theorem minDist [Field F] [Inhabited F] {ι' : Type*}
+                [Fintype ι] [Fintype ι'] {α : ι ↪ F} [φ : Nonempty ι']
   (h : Fintype.card ι' ≤ Fintype.card ι) :
   LinearCodes.minDist (ReedSolomon.code α (Fintype.card ι')) =
   Fintype.card ι - Fintype.card ι' + 1 := by
-  have : Nonempty ι := sorry
+  have : Nonempty ι := by
+    by_cases Fintype.card ι = 0 <;> aesop (add simp Fintype.card_eq_zero_iff)
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
     have distUB := LinearCodes.singletonBound (LC := ReedSolomon.code α (Fintype.card ι'))
