@@ -37,57 +37,49 @@ end FinEnum
 noncomputable section
 
 variable {F : Type*}
-variable {m n : Type*} [Fintype n]
+variable {m n : ℕ}
 
 namespace Matrix
 
-def neqCols [Fintype m] [DecidableEq F] (U V : Matrix m n F) : Finset n :=
-  {j | ∃ i : m, V i j ≠ U i j}
+def neqCols [DecidableEq F] (U V : Matrix (Fin m) (Fin n) F) : Finset (Fin n) :=
+  {j | ∃ i : Fin m, V i j ≠ U i j}
 
 section
 
 variable [Semiring F]
 
-def rowSpan (U : Matrix m n F) : Submodule F (n → F) :=
-  Submodule.span F {U i | i : m}
+def rowSpan (U : Matrix (Fin m) (Fin n) F) : Submodule F (Fin n → F) :=
+  Submodule.span F {U i | i : Fin m}
 
-def rowRank (U : Matrix m n F) : ℕ :=
+def rowRank (U : Matrix (Fin m) (Fin n) F) : ℕ :=
   Module.finrank F (rowSpan U)
 
-def colSpan (U : Matrix m n F) : Submodule F (m → F) :=
-  Submodule.span F {Matrix.transpose U i | i : n}
+def colSpan (U : Matrix (Fin m) (Fin n) F) : Submodule F (Fin m → F) :=
+  Submodule.span F {Matrix.transpose U i | i : Fin n}
 
-def colRank (U : Matrix m n F) : ℕ :=
+def colRank (U : Matrix (Fin m) (Fin n) F) : ℕ :=
   Module.finrank F (colSpan U)
 
 end
 
-lemma rank_eq_min_row_col_rank [CommRing F] {U : Matrix m n F} :
+lemma rank_eq_min_row_col_rank [CommRing F] {U : Matrix (Fin m) (Fin n) F} :
   U.rank = min (rowRank U) (colRank U) := by sorry
 
-lemma full_rank_iff_det_ne_zero [CommRing F] [DecidableEq n] {U : Matrix n n F} :
-  U.rank = Fintype.card n ↔ Matrix.det U ≠ 0 := by sorry
+lemma full_rank_iff_det_ne_zero [CommRing F] {U : Matrix (Fin n) (Fin n) F} :
+  U.rank = n ↔ Matrix.det U ≠ 0 := by sorry
 
-def subUpFull (U : Matrix m n F) (r_reindex : n → m) :
-  Matrix n n F := Matrix.submatrix U r_reindex id
+def subUpFull (U : Matrix (Fin m) (Fin n) F) (r_reindex : Fin n → Fin m) :
+  Matrix (Fin n) (Fin n) F := Matrix.submatrix U r_reindex id
 
-lemma rank_subUpFull_of_bij [CommRing F] {U : Matrix m n F} {r_reindex : n → m}
-  (h : Function.Bijective r_reindex) :
-  (subUpFull U r_reindex).rank = U.rank :=
-  rank_submatrix U (Equiv.ofBijective r_reindex h)
-                   (Equiv.ofBijective id Function.bijective_id)
+lemma full_col_rank_via_rank_subUpFull [CommRing F] {U : Matrix (Fin m) (Fin n) F} (h : n ≤ m) :
+  U.rank = n ↔ (subUpFull U (Fin.castLE h)).rank = n := sorry
 
-lemma full_col_rank_via_rank_subUpFull [Fintype m] [CommRing F]
-                                       {U : Matrix m n F} {r_reindex : n → m}
-  (h : Fintype.card n ≤ Fintype.card m) :
-  U.rank = Fintype.card n ↔ (subUpFull U r_reindex).rank = Fintype.card n := sorry
+def subLeftFull (U : Matrix (Fin m) (Fin n) F) (c_reindex : Fin m → Fin n) :
+  Matrix (Fin m) (Fin m) F := Matrix.submatrix U id c_reindex
 
-def subLeftFull (U : Matrix m n F) (c_reindex : m → n) :
-  Matrix m m F := Matrix.submatrix U id c_reindex
-
-lemma full_row_rank_via_rank_subLeftFull [Fintype m] [CommRing F]
-  {U : Matrix m n F} {c_reindex : m → n} (h : Fintype.card m ≤ Fintype.card n) :
-  U.rank = Fintype.card m ↔ (subLeftFull U c_reindex).rank = Fintype.card m := by sorry
+lemma full_row_rank_via_rank_subLeftFull [CommRing F]
+  {U : Matrix (Fin m) (Fin n) F} (h : m ≤ n) :
+  U.rank = m ↔ (subLeftFull U (Fin.castLE h)).rank = m := by sorry
 
 end Matrix
 
