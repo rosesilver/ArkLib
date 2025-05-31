@@ -41,15 +41,10 @@ variable {F : Type*} [Semiring F]
 abbrev LinearCode.{u, v} (ι : Type u) [Fintype ι] (F : Type v) [Semiring F] : Type (max u v) :=
   Submodule F (ι → F)
 
-def wt {F : Type*} [Semiring F] [Zero F] {ι : ℕ}
-  (v : Fin ι → F) : ℕ := #{i | v i ≠ 0}
-
-def LinearCode.minDist (LC : LinearCode ι F) : ℕ :=
+def minDist (LC : LinearCode ι F) : ℕ :=
   sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v = d }
 
 end
-
-namespace LinearCode
 
 noncomputable section
 
@@ -130,4 +125,4 @@ theorem singletonBound (LC : LinearCode ι F) :
   dim LC ≤ length LC - minDist LC + 1 := by sorry
 
 end
-end LinearCode
+end LinearCodes

@@ -17,12 +17,6 @@ import Mathlib.Data.Fin.Basic
 import Mathlib.Logic.Function.Defs
 import Mathlib.LinearAlgebra.AffineSpace.AffineSubspace.Defs
 
-namespace Wheels
-
-class abbrev FinOrder (α : Type*) := Fintype α, Preorder α
-
-end Wheels
-
 namespace FinEnum
 
 @[simp]
