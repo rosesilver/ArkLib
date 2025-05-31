@@ -41,10 +41,15 @@ variable {F : Type*} [Semiring F]
 abbrev LinearCode.{u, v} (ι : Type u) [Fintype ι] (F : Type v) [Semiring F] : Type (max u v) :=
   Submodule F (ι → F)
 
-def minDist (LC : LinearCode ι F) : ℕ :=
+def wt {F : Type*} [Semiring F] [Zero F] {ι : ℕ}
+  (v : Fin ι → F) : ℕ := #{i | v i ≠ 0}
+
+def LinearCode.minDist (LC : LinearCode ι F) : ℕ :=
   sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v = d }
 
 end
+
+namespace LinearCode
 
 noncomputable section
 
@@ -53,13 +58,13 @@ variable {ι : Type*} [Fintype ι]
          {F : Type*} [CommRing F]
 
 /--
-A linear code of length `ι` defined by right multiplication by a `κ x ι` generator matrix `G`.
+a linear code defined by left multiplication by its generator matrix.
 -/
 def mul_GenMat (G : Matrix κ ι F) : LinearCode ι F :=
   LinearMap.range G.vecMulLinear
 
 /--
-A linear code of length `ι` defined by left multiplication by a `ι x κ` generator matrix `G`.
+A linear code defined by right multiplication by a generator matrix.
 -/
 def genMat_mul (G : Matrix ι κ F) : Submodule F (ι → F) :=
   LinearMap.range G.mulVecLin
@@ -75,6 +80,9 @@ lemma dimEqRankGenMat {G : Matrix κ ι F} :
 
 def length (LC : LinearCode ι F) := Fintype.card ι
 
+/--
+Rate of a linear code.
+-/
 def rate (LC : LinearCode ι F) : ℚ :=
   (dim LC : ℚ) / (length LC : ℚ)
 
@@ -83,14 +91,20 @@ def rate (LC : LinearCode ι F) : ℚ :=
 -/
 notation "ρ" LC => rate LC
 
+/--
+The minimum taken over the weight of codewords in a linear code.
+-/
 def minWtCodewords (LC : LinearCode ι F) : ℕ :=
   sInf {w | ∃ c ∈ LC, c ≠ 0 ∧ wt c = w}
 
+/--
+The Hamming distance between codewords equals to the weight of their difference.
+-/
 lemma hammingDist_eq_wt_sub {u v : ι → F} : hammingDist u v = wt (u - v) := by
   aesop (add simp [hammingDist, wt, sub_eq_zero])
 
 /--
-The min distance of a linear code `LC` equals to the minimum of the weights of non-zero codewords.
+The min distance of a linear code equals to the minimum of the weights of non-zero codewords.
 -/
 lemma minDist_eq_minWtCodewords {LC : LinearCode ι F} : minDist LC = minWtCodewords LC := by
   unfold minDist minWtCodewords
@@ -116,4 +130,4 @@ theorem singletonBound (LC : LinearCode ι F) :
   dim LC ≤ length LC - minDist LC + 1 := by sorry
 
 end
-end LinearCodes
+end LinearCode

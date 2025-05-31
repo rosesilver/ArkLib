@@ -52,9 +52,9 @@ lemma subUpFull_of_vandermonde_is_vandermonde [CommRing F] {ι : ℕ} {ι' : ℕ
 /--
 The maximal left square submatrix of a Vandermonde matrix is a Vandermonde matrix.
 -/
-lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] {ι' : ℕ}
-  {α : Fin ι' → F} :
-  Matrix.vandermonde α = Matrix.subLeftFull (nonsquare ι' α) id := by
+lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] {ι ι' : ℕ}
+  {α : Fin ι → F} (h : ι ≤ ι') :
+  Matrix.vandermonde α = Matrix.subLeftFull (nonsquare ι' α) (Fin.castLE h) := by
   ext r c
   simp [Matrix.vandermonde, Matrix.subLeftFull, nonsquare]
 
@@ -64,7 +64,6 @@ The rank of a non-square Vandermonde matrix with more rows than columns is the n
 lemma rank_nonsquare_eq_deg_of_deg_le {ι : ℕ} [CommRing F] [IsDomain F]
   {ι' : ℕ} {α : Fin ι → F} (inj : Function.Injective α) (h : ι' ≤ ι) :
   (Vandermonde.nonsquare (ι' := ι') α).rank = ι' := by
-  -- have := (@subUpFull_of_vandermonde_is_vandermonde (h := h) (α := α)).symm
   rw [
     Matrix.full_col_rank_via_rank_subUpFull h,
     ←subUpFull_of_vandermonde_is_vandermonde,
@@ -76,16 +75,24 @@ lemma rank_nonsquare_eq_deg_of_deg_le {ι : ℕ} [CommRing F] [IsDomain F]
 /--
 The rank of a non-square Vandermonde matrix with more columns than rows is the number of rows.
 -/
-lemma rank_nonsquare_eq_deg_of_ι_le [Fintype ι] [CommRing F]
-  {ι' : ℕ} {α : ι → F} (h : Fintype.card ι ≤ ι') :
-  (Vandermonde.nonsquare (ι' := ι') α).rank = Fintype.card ι := sorry
+lemma rank_nonsquare_eq_deg_of_ι_le {ι : ℕ} [CommRing F] [IsDomain F]
+  {ι' : ℕ} {α : Fin ι → F} (inj : Function.Injective α) (h : ι ≤ ι') :
+  (Vandermonde.nonsquare (ι' := ι') α).rank = ι := by
+  rw [
+    Matrix.full_row_rank_via_rank_subLeftFull h,
+    ← subLeftFull_of_vandermonde_is_vandermonde,
+    Matrix.full_rank_iff_det_ne_zero,
+    Matrix.det_vandermonde_ne_zero_iff
+  ]
+  exact inj
 
 @[simp]
-lemma rank_nonsquare_rows_eq_min [Fintype ι] [CommRing F] [IsDomain F] {ι' : ℕ} {α : ι → F} :
-  (Vandermonde.nonsquare (ι' := ι') α).rank = min (Fintype.card ι) ι' := by
-  by_cases h : Fintype.card ι ≤ ι' <;>
-  aesop (add simp [rank_nonsquare_eq_deg_of_ι_le, rank_nonsquare_eq_deg_of_deg_le])
-        (add safe forward le_of_lt)  
+lemma rank_nonsquare_rows_eq_min [CommRing F] [IsDomain F] {ι ι' : ℕ}
+  {α : Fin ι → F} (inj : Function.Injective α) :
+  (Vandermonde.nonsquare (ι' := ι') α).rank = min ι ι' := by
+  by_cases h : ι ≤ ι'
+  · rw [rank_nonsquare_eq_deg_of_ι_le inj h]; simp [h]
+  · rw [rank_nonsquare_eq_deg_of_deg_le inj] <;> omega
 
 theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
   {ι' : ℕ} [NeZero ι'] [CommRing F] {v : ι ↪ F} {p : F[X]} (h_deg : p.natDegree < ι') :
@@ -234,24 +241,26 @@ lemma genMatIsVandermonde [Field F] {ι' : ℕ} [inst : NeZero ι'] (α : ι ↪
 for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
 Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
-lemma dim_eq_deg_of_le [Fintype ι] [Field F] {ι' : ℕ} [NeZero ι'] {α : ι ↪ F}
-  (h : ι' ≤ Fintype.card ι) : LinearCodes.dim (ReedSolomon.code α ι') = ι' := by
-  rw [← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat, Vandermonde.rank_nonsquare_rows_eq_min]
-  simp [h]
+lemma dim_eq_deg_of_le [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
+  (inj : Function.Injective α) (h : ι' ≤ ι) : LinearCodes.dim (ReedSolomon.code ⟨α, inj⟩ ι') = ι' :=
+  by rw [
+       ← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat, Vandermonde.rank_nonsquare_rows_eq_min
+     ] <;> simp [inj, h]
 
 @[simp]
-lemma length_eq_domain_size [Fintype ι] [Field F] {deg : ℕ} {α : ι ↪ F} :
-  LinearCodes.length (ReedSolomon.code α deg) = Fintype.card ι := rfl
+lemma length_eq_domain_size [Field F] {deg ι : ℕ} {α : Fin ι → F}
+  (inj : Function.Injective α) : LinearCodes.length (ReedSolomon.code ⟨α, inj⟩ deg) = ι := by
+  simp [LinearCodes.length]
 
-lemma rate [Field F] [Fintype ι] {deg : ℕ} [NeZero deg] {α : ι ↪ F} (h : deg ≤ Fintype.card ι) :
-  LinearCodes.rate (ReedSolomon.code α deg) = deg / Fintype.card ι := by
-  rw [LinearCodes.rate, dim_eq_deg_of_le, length_eq_domain_size]
-  exact h
+lemma rate [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι ↪ F} (h : ι' ≤ ι) :
+  LinearCodes.rate (ReedSolomon.code α ι') = ι' / ι := by
+  rwa [LinearCodes.rate, dim_eq_deg_of_le, length_eq_domain_size]
 
 @[simp]
-lemma dist_le_length [Fintype ι] [Field F] {ι' : ℕ} [NeZero ι'] {α : ι ↪ F} :
-    LinearCodes.minDist (ReedSolomon.code α ι') ≤ Fintype.card ι := by
+lemma dist_le_length [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
+  (inj : Function.Injective α) : LinearCodes.minDist (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
   convert LinearCodes.minDist_UB
+  simp
 
 lemma card_le_card_of_count_inj {α β : Type*} {s : Multiset α} {s' : Multiset β}
   (f : α → β) (inj : Function.Injective f)
@@ -298,38 +307,36 @@ open Finset in
 /--
   The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
 -/
-theorem minDist [Field F] [Inhabited F] {ι' : Type*}
-                [Fintype ι] [Fintype ι'] {α : ι ↪ F} [φ : Nonempty ι']
-  (h : Fintype.card ι' ≤ Fintype.card ι) :
-  LinearCodes.minDist (ReedSolomon.code α (Fintype.card ι')) =
-  Fintype.card ι - Fintype.card ι' + 1 := by
-  have : Nonempty ι := by
-    by_cases Fintype.card ι = 0 <;> aesop (add simp Fintype.card_eq_zero_iff)
+theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
+                {α : Fin ι → F} (inj : Function.Injective α) [φ : NeZero ι']
+  (h : ι' ≤ ι) :
+  LinearCodes.minDist (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
+  have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
-    have distUB := LinearCodes.singletonBound (LC := ReedSolomon.code α (Fintype.card ι'))
-    rw [dim_eq_deg_of_le h] at distUB
+    have distUB := LinearCodes.singletonBound (LC := ReedSolomon.code ⟨α, inj⟩ ι')
+    rw [dim_eq_deg_of_le inj h] at distUB
+    simp at distUB
     zify [dist_le_length] at distUB
-    simp only [length_eq_domain_size, dist_le_length, Nat.cast_sub] at distUB
     omega
   case p₂ =>
     rw [LinearCodes.minDist_eq_minWtCodewords]
-    apply le_csInf (by use (Fintype.card ι), ReedSolomon.constantCode 1 _; simp)
+    apply le_csInf (by use ι, ReedSolomon.constantCode 1 _; simp)
     intro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
     let zeroes : Finset _ := {i | msg i = 0}
     have eq₁ : zeroes.val.Nodup := by
       aesop (add simp [Multiset.nodup_iff_count_eq_one, Multiset.count_filter])
-    have msg_zeros_lt_deg : #zeroes < Fintype.card ι' := by
+    have msg_zeros_lt_deg : #zeroes < ι' := by
       apply lt_of_le_of_lt (b := p.roots.card)
-                            (hbc := lt_of_le_of_lt (Polynomial.card_roots' _)
-                                                   (natDegree_lt_of_mem_degreeLT p_deg))
-      exact card_le_card_of_count_inj α α.injective fun i ↦
+                           (hbc := lt_of_le_of_lt (Polynomial.card_roots' _)
+                                                  (natDegree_lt_of_mem_degreeLT p_deg))
+      exact card_le_card_of_count_inj α inj fun i ↦
         if h : msg i = 0
         then suffices 0 < Multiset.count (α i) p.roots by
                 rwa [@Multiset.count_eq_one_of_mem (d := eq₁) (h := by simpa [zeroes])]
               by aesop
         else by simp [zeroes, h]
-    have : #zeroes + wt msg = Fintype.card ι := by
+    have : #zeroes + wt msg = ι := by
       rw [wt, filter_card_add_filter_neg_card_eq_card]
       simp
     omega

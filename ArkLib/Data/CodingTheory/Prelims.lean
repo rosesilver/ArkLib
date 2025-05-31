@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2024-2025 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Katerina Hristova, František Silváši
+Authors: Katerina Hristova, František Silváši, Julian Sutherland
 -/
 
 import Mathlib.Algebra.Module.Submodule.Defs
@@ -16,8 +16,6 @@ import Mathlib.Data.Matrix.Rank
 import Mathlib.Data.Fin.Basic
 import Mathlib.Logic.Function.Defs
 import Mathlib.LinearAlgebra.AffineSpace.AffineSubspace.Defs
-
-open Classical
 
 namespace Wheels
 
@@ -41,23 +39,23 @@ variable {m n : ℕ}
 
 namespace Matrix
 
-def neqCols [DecidableEq F] (U V : Matrix (Fin m) (Fin n) F) : Finset (Fin n) :=
-  {j | ∃ i : Fin m, V i j ≠ U i j}
+def neqCols [DecidableEq F] {m n : Type*} [Fintype m] [Fintype n] (U V : Matrix m n F) : Finset n :=
+  {j | ∃ i : m, V i j ≠ U i j}
 
 section
 
-variable [Semiring F]
+variable [Semiring F] {m n : Type*} [Fintype m] [Fintype n] 
 
-def rowSpan (U : Matrix (Fin m) (Fin n) F) : Submodule F (Fin n → F) :=
-  Submodule.span F {U i | i : Fin m}
+def rowSpan (U : Matrix m n F) : Submodule F (n → F) :=
+  Submodule.span F {U i | i : m}
 
-def rowRank (U : Matrix (Fin m) (Fin n) F) : ℕ :=
+def rowRank (U : Matrix m n F) : ℕ :=
   Module.finrank F (rowSpan U)
 
-def colSpan (U : Matrix (Fin m) (Fin n) F) : Submodule F (Fin m → F) :=
-  Submodule.span F {Matrix.transpose U i | i : Fin n}
+def colSpan (U : Matrix m n F) : Submodule F (m → F) :=
+  Submodule.span F {Matrix.transpose U i | i : n}
 
-def colRank (U : Matrix (Fin m) (Fin n) F) : ℕ :=
+def colRank (U : Matrix m n F) : ℕ :=
   Module.finrank F (colSpan U)
 
 end
@@ -90,7 +88,7 @@ section
 namespace Affine
 
 /--
-  affine line between vectors `u` and `v`.
+Affine line between two vectors with coefficients in a semiring.
 -/
 def line {F : Type*} {ι : Type*} [Ring F] (u v : ι → F) : Submodule F (ι → F) :=
   vectorSpan _ {u, v} 
@@ -100,6 +98,7 @@ end Affine
 namespace sInf
 
 lemma sInf_UB_of_le_UB {S : Set ℕ} {i : ℕ} : (∀ s ∈ S, s ≤ i) → sInf S ≤ i := by
+  classical
   intro h
   by_cases S_empty : S.Nonempty
   · rw [Nat.sInf_def S_empty, Nat.find_le_iff]
