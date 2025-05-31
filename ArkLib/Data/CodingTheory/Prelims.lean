@@ -85,3 +85,7 @@ lemma sInf_UB_of_le_UB {S : Set ℕ} {i : ℕ} : (∀ s ∈ S, s ≤ i) → sInf
   · aesop (add simp (show S = ∅ by aesop (add simp Set.Nonempty)))
 
 end sInf
+
+@[simp]
+lemma Fintype.zero_lt_card {ι : Type*} [Fintype ι] [Nonempty ι] : 0 < Fintype.card ι := by
+  have := Fintype.card_ne_zero (α := ι); omega

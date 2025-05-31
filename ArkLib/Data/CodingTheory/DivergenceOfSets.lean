@@ -42,7 +42,7 @@ lemma finite_possibleDeltas : (possibleDeltas U V).Finite :=
   Set.Finite.subset finite_relHammingDistRange possibleDeltas_subset_relHammingDistRange
 
 def divergence (U V : Set (ι → F)) : ℚ :=
-  have : Fintype (possibleDeltas U V) := @Fintype.ofFinite _ finite_possibleDeltas
+  haveI : Fintype (possibleDeltas U V) := @Fintype.ofFinite _ finite_possibleDeltas
   if h : (possibleDeltas U V).Nonempty
   then (possibleDeltas U V).toFinset.max' (Set.toFinset_nonempty.2 h)
   else 0
