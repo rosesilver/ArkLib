@@ -65,9 +65,9 @@ lemma rank_nonsquare_eq_deg_of_deg_le {ι : ℕ} [CommRing F] [IsDomain F]
   {ι' : ℕ} {α : Fin ι → F} (inj : Function.Injective α) (h : ι' ≤ ι) :
   (Vandermonde.nonsquare (ι' := ι') α).rank = ι' := by
   rw [
-    Matrix.full_col_rank_via_rank_subUpFull h,
+    Matrix.rank_eq_iff_subUpFull_eq h,
     ←subUpFull_of_vandermonde_is_vandermonde,
-    Matrix.full_rank_iff_det_ne_zero,
+    Matrix.rank_eq_iff_det_ne_zero,
     Matrix.det_vandermonde_ne_zero_iff
   ]
   apply Function.Injective.comp <;> aesop (add simp Fin.castLE_injective)
@@ -81,7 +81,7 @@ lemma rank_nonsquare_eq_deg_of_ι_le {ι : ℕ} [CommRing F] [IsDomain F]
   rw [
     Matrix.full_row_rank_via_rank_subLeftFull h,
     ← subLeftFull_of_vandermonde_is_vandermonde,
-    Matrix.full_rank_iff_det_ne_zero,
+    Matrix.rank_eq_iff_det_ne_zero,
     Matrix.det_vandermonde_ne_zero_iff
   ]
   exact inj
