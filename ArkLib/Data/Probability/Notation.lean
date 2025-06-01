@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2024 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Quang Dao
+Authors: Quang Dao, František Silváši
 -/
 
 import Mathlib.Probability.Notation
@@ -31,42 +31,69 @@ import Mathlib.Probability.Distributions.Uniform
 
 open scoped ProbabilityTheory NNReal ENNReal
 
-open Lean Elab Term Meta PMF
+open Lean Elab Parser Term Meta PMF
 
--- #check Lean.Parser.doElemParser
-
--- #check Lean.Parser.Term.doExpr
+namespace ProbabilityTheory
 
 /-- Notation for uniform sampling from a finite, non-empty type. Just converts to
   `PMF.uniformOfFintype`. -/
-scoped[ProbabilityTheory] notation "$ᵖ" => PMF.uniformOfFintype
+scoped notation "$ᵖ" => PMF.uniformOfFintype
 
--- Define `probStmts` to capture a sequence of `doElem`s.
--- `doElem*` means zero or more `doElem`
--- `doElem` covers `let x ← ...`, `let y := ...`, pure actions, etc.
--- syntax probStmts := many(Lean.Parser.Term.doSeq)
+/--
+  Syntax for `Pr_{ init }[ last ]` expressions.
+  - Pr_{e₁; e₂; ...; e₃}[eᵣ]
+-/
+syntax (name := prStx) "Pr_{" doSeq "}[" term "]" : term
 
--- notation "Pr_{" probStmts "}[" term "]" =>
---   `(ensure_suffices% {
---       open PMF -- Ensure PMF is in scope for .val and for the do block itself
---       (do $probStmts  -- Use $stmts directly, it's a doSeq
---           return ($term : Prop) -- The final return of the boolean condition
---       ).val True
---     } : ENNReal)
+/--
+  Elaboration into `term` of the `prStx`.
 
--- notation "Pr_{" probStmts "}[" term "]" =>
---   `(do $probStmts; `(return $term)).val True
+  We handle both `doSeqBracketed` and `doSeqIndent` in isolation, as per `doSeq`.
+  Currently the implementations coincide.
 
--- syntax (name := probThing)
---   "[" term " | " sepBy((sepBy(ident, ",") " ← " term),";") "]" : term
+  - Pr_{e₁; e₂; ...; e₃}[eᵣ] = (do e₁; e₂; ...; e₃; return eᵣ).val True
+-/
+scoped macro_rules (kind := prStx)
+  -- `doSeqBracketed`
+  | `(Pr_{{$items*}}[$t]) => `((((do $items:doSeqItem*
+                                     return $t:term).val True) : ENNReal))
+  -- `doSeqIndent`
+  | `(Pr_{$items*}[$t]) => `((((do $items:doSeqItem*
+                                     return $t:term).val True) : ENNReal))
+
+end ProbabilityTheory
+
+example {F} [Fintype F] [Nonempty F] :
+  Pr_{ let x ←$ᵖ F; let y ←$ᵖ F; let z ←$ᵖ (F × F) }[z = (x, y)] =
+  (do let x ← PMF.uniformOfFintype F
+      let y ← PMF.uniformOfFintype F
+      let z ← PMF.uniformOfFintype (F × F)
+      return z = (x, y)).val True := rfl
+
+section
 
 variable {F : Type} [Nonempty F] [Fintype F]
 
-noncomputable example :
+example :
   (do
     let x ← $ᵖ F
     let y ← $ᵖ F
     let z ← $ᵖ (F × F)
-    return z = (x, y)).val True = ((1 : ℝ≥0∞) / Fintype.card (F × F)) := by sorry
+    return z = (x, y)).val True = ((1 : ℝ≥0∞) / Fintype.card (F × F)) := by
+  classical
+  simp [Bind.bind, Pure.pure, PMF.bind]
+  simp [DFunLike.coe]
+  ring_nf
+  rw [mul_comm (_ ^ 2) _, mul_assoc, ENNReal.mul_inv_cancel, mul_one, ENNReal.inv_pow]
+  <;> aesop
 
--- Pr_{ let x ←$ᵖ F; let y ←$ᵖ F; let z ←$ᵖ F × F }[ z = (x, y) ]
+example :
+  Pr_{ let x ←$ᵖ F; let y ←$ᵖ F; let z ←$ᵖ (F × F) }[ z = (x, y) ] =
+  ((1 : ℝ≥0∞) / Fintype.card (F × F)) ↔
+  (do
+    let x ← $ᵖ F
+    let y ← $ᵖ F
+    let z ← $ᵖ (F × F)
+    return z = (x, y)).val True = ((1 : ℝ≥0∞) / Fintype.card (F × F)) := by rfl
+
+end

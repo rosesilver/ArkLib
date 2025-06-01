@@ -19,9 +19,10 @@ import ArkLib.Data.FieldTheory.NonBinaryField.Basic
 import ArkLib.Data.FieldTheory.NonBinaryField.Goldilocks
 import ArkLib.Data.FieldTheory.NonBinaryField.Mersenne
 import ArkLib.Data.FieldTheory.NonBinaryField.Secp256k1
-import ArkLib.Data.Math.Fin
+import ArkLib.Data.Fin.Basic
+import ArkLib.Data.Math.Basic
+import ArkLib.Data.Math.DepCast
 import ArkLib.Data.Math.HList
-import ArkLib.Data.Math.Operations
 import ArkLib.Data.MlPoly.Basic
 import ArkLib.Data.MlPoly.Equiv
 import ArkLib.Data.MvPolynomial.Degrees
@@ -36,7 +37,8 @@ import ArkLib.Data.UniPoly.Basic
 import ArkLib.Data.UniPoly.BasicOld
 import ArkLib.Data.UniPoly.PolynomialReflection
 import ArkLib.OracleReduction.Basic
-import ArkLib.OracleReduction.Composition.Sequential
+import ArkLib.OracleReduction.Composition.Sequential.Basic
+import ArkLib.OracleReduction.Composition.Sequential.ProtocolSpec
 import ArkLib.OracleReduction.Composition.Virtual
 import ArkLib.OracleReduction.Equiv
 import ArkLib.OracleReduction.Execution
@@ -53,6 +55,7 @@ import ArkLib.ProofSystem.Fri.RoundConsistency
 import ArkLib.ProofSystem.Plonk.Basic
 import ArkLib.ProofSystem.Spartan.Basic
 import ArkLib.ProofSystem.Sumcheck.Basic
+import ArkLib.ToMathlib.BigOperators.Fin
 import ArkLib.ToMathlib.Finset.Basic
 import ArkLib.ToMathlib.Finsupp.Fin
 import ArkLib.ToMathlib.MvPolynomial.Equiv
