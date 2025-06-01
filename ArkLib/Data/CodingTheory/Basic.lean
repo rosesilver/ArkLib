@@ -27,7 +27,7 @@ import Mathlib.Topology.MetricSpace.Infsep
 
   - `codeDist' C`: A computable version of `codeDist C`, assuming `C` is a `Fintype`.
 
-  We define the block length, rate, and distance of `C`. We prove simple properties of linear codes
+  We define the block length, rateOfLinearCode, and distance of `C`. We prove simple properties of linear codes
   such as the singleton bound.
 -/
 
@@ -447,8 +447,6 @@ end
 -/
 notation "δᵣ" C => minRelHammingDistCode C
 
-namespace RelativeHammingDistance
-
 /--
   The range set of possible relative Hamming distances from a vector to a code is a subset
   of the range of the relative Hamming distance function.
@@ -512,8 +510,110 @@ lemma relHammingDistToCode_mem_relHammingDistRange [Nonempty ι] [DecidableEq F]
                 simpa)
   · simp
 
-end RelativeHammingDistance
-
 end
 
 end RelativeHammingDistance
+
+section LinearCode
+
+open Finset
+
+variable {F : Type*}
+         {ι : Type*} [Fintype ι]
+
+noncomputable def wt [DecidableEq F] [Zero F]
+  (v : ι → F) : ℕ := #{i | v i ≠ 0}
+
+lemma wt_eq_zero_iff [DecidableEq F] [Zero F] {v : ι → F} :
+  wt v = 0 ↔ Fintype.card ι = 0 ∨ ∀ i, v i = 0 := by
+  by_cases IsEmpty ι <;>
+  aesop (add simp [wt, Finset.filter_eq_empty_iff])
+
+abbrev LinearCode.{u, v} (ι : Type u) [Fintype ι] (F : Type v) [Semiring F] : Type (max u v) :=
+  Submodule F (ι → F)
+
+section
+
+variable [CommRing F]
+         {ι : Type*} [Fintype ι]
+         {κ  : Type*} [Fintype κ]
+
+noncomputable def minDist [DecidableEq F] (LC : LinearCode ι F) : ℕ :=
+  sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v = d }
+
+/--
+  Linear code defined by left multiplication by its generator matrix.
+-/
+def fromRowGenMat (G : Matrix κ ι F) : LinearCode ι F :=
+  LinearMap.range G.vecMulLinear
+
+/--
+  Linear code defined by right multiplication by a generator matrix.
+-/
+def fromColGenMat (G : Matrix ι κ F) : LinearCode ι F :=
+  LinearMap.range G.mulVecLin
+
+noncomputable def dim (LC : LinearCode ι F) : ℕ :=
+  Module.finrank F LC
+
+/--
+  The dimension of a linear code equals the rank of its associated generator matrix.
+-/
+lemma rank_eq_dim_fromColGenMat {G : Matrix κ ι F} :
+  G.rank = dim (fromColGenMat G) := rfl
+
+def length (_ : LinearCode ι F) : ℕ := Fintype.card ι
+
+noncomputable def rateOfLinearCode (LC : LinearCode ι F) : ℚ :=
+  (dim LC : ℚ) / (length LC : ℚ)
+
+/--
+  `ρ LC` is the ratre of the linear code `LC`.
+-/
+notation "ρ" LC => rateOfLinearCode LC
+
+section
+
+variable [DecidableEq F] {LC : LinearCode ι F}
+
+/--
+  The minimum taken over the weight of codewords in a linear code.
+-/
+noncomputable def minWtCodewords (LC : LinearCode ι F) : ℕ :=
+  sInf {w | ∃ c ∈ LC, c ≠ 0 ∧ wt c = w}
+
+/--
+The Hamming distance between codewords equals to the weight of their difference.
+-/
+lemma hammingDist_eq_wt_sub {u v : ι → F} : hammingDist u v = wt (u - v) := by
+  aesop (add simp [hammingDist, wt, sub_eq_zero])
+
+/--
+  The min distance of a linear code equals to the minimum of the weights of non-zero codewords.
+-/
+lemma minDist_eq_minWtCodewords :
+  minDist LC = minWtCodewords LC := by
+    unfold minDist minWtCodewords
+    refine congrArg _ (Set.ext fun _ ↦ ⟨fun ⟨u, _, v, _⟩ ↦ ⟨u - v, ?p₁⟩, fun _ ↦ ⟨0, ?p₂⟩⟩) <;>
+    aesop (add simp [hammingDist_eq_wt_sub, sub_eq_zero])
+
+lemma minDist_UB : minDist LC ≤ length LC := by
+  rw [minDist_eq_minWtCodewords, minWtCodewords]
+  apply sInf.sInf_UB_of_le_UB
+  intro s h
+  rw [Set.mem_setOf_eq] at h
+  rcases h with ⟨c, c_in_code, _, s_def⟩
+  rw [←s_def]
+  transitivity
+  apply Finset.card_le_card
+  exact Finset.subset_univ _
+  rfl
+
+theorem singletonBound (LC : LinearCode ι F) :
+  dim LC ≤ length LC - minDist LC + 1 := by sorry
+
+end
+
+end
+
+end LinearCode

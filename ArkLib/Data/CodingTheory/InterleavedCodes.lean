@@ -11,12 +11,12 @@ import Mathlib.Order.CompletePartialOrder
 import Mathlib.Algebra.Lie.OfAssociative
 import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.Probability.Distributions.Uniform
-import ArkLib.Data.CodingTheory.LinearCodes
+import ArkLib.Data.CodingTheory.LinearCode
 import ArkLib.Data.CodingTheory.ReedSolomon
 import ArkLib.Data.CodingTheory.Prelims
 
 
-open Classical LinearCodes
+open Classical LinearCode
 
 noncomputable section
 
@@ -112,7 +112,7 @@ The minimal distance of an interleaved code is the same as
 the minimal distance of its underlying linear code.
 -/
 lemma minDistL_eq_minDist {IC : LawfulInterleavedCode κ ι F} :
-  LinearCodes.minDist IC.1.LC = minDist IC.1.MF := by sorry
+  LinearCode.minDist IC.1.LC = minDist IC.1.MF := by sorry
 
 end InterleavedCodes
 

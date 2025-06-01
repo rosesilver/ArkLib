@@ -1,5 +1,4 @@
 import ArkLib.Data.CodingTheory.ReedSolomon
-import ArkLib.Data.CodingTheory.LinearCodes
 import Mathlib.Data.Matrix.Defs
 import ArkLib.Data.CodingTheory.Prelims
 import Mathlib.Data.Int.Basic
@@ -222,8 +221,8 @@ lemma codewordIsZero_makeZero {ι : ℕ} {F : Type*} [Zero F] :
 The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
 lemma genMatIsVandermonde [Field F] {ι' : ℕ} [inst : NeZero ι'] (α : ι ↪ F) :
-  LinearCodes.genMat_mul (Vandermonde.nonsquare (ι' := ι')  α) = ReedSolomon.code α ι' := by
-  unfold LinearCodes.genMat_mul ReedSolomon.code
+  LinearCode.fromColGenMat (Vandermonde.nonsquare (ι' := ι')  α) = ReedSolomon.code α ι' := by
+  unfold LinearCode.fromColGenMat ReedSolomon.code
   ext x; rw [LinearMap.mem_range, Submodule.mem_map]
   refine ⟨
     fun ⟨coeffs, h⟩ ↦ ⟨polynomialOfCoeffs coeffs, h.symm ▸ ?p₁⟩,
@@ -242,24 +241,24 @@ for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embed
 Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
 lemma dim_eq_deg_of_le [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
-  (inj : Function.Injective α) (h : ι' ≤ ι) : LinearCodes.dim (ReedSolomon.code ⟨α, inj⟩ ι') = ι' :=
+  (inj : Function.Injective α) (h : ι' ≤ ι) : LinearCode.dim (ReedSolomon.code ⟨α, inj⟩ ι') = ι' :=
   by rw [
-       ← genMatIsVandermonde, ← LinearCodes.dimEqRankGenMat, Vandermonde.rank_nonsquare_rows_eq_min
+       ← genMatIsVandermonde, ← LinearCode.rank_eq_dim_fromColGenMat, Vandermonde.rank_nonsquare_rows_eq_min
      ] <;> simp [inj, h]
 
 @[simp]
 lemma length_eq_domain_size [Field F] {deg ι : ℕ} {α : Fin ι → F}
-  (inj : Function.Injective α) : LinearCodes.length (ReedSolomon.code ⟨α, inj⟩ deg) = ι := by
-  simp [LinearCodes.length]
+  (inj : Function.Injective α) : LinearCode.length (ReedSolomon.code ⟨α, inj⟩ deg) = ι := by
+  simp [LinearCode.length]
 
-lemma rate [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι ↪ F} (h : ι' ≤ ι) :
-  LinearCodes.rate (ReedSolomon.code α ι') = ι' / ι := by
-  rwa [LinearCodes.rate, dim_eq_deg_of_le, length_eq_domain_size]
+lemma rateOfLinearCode [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι ↪ F} (h : ι' ≤ ι) :
+  LinearCode.rateOfLinearCode (ReedSolomon.code α ι') = ι' / ι := by
+  rwa [LinearCode.rateOfLinearCode, dim_eq_deg_of_le, length_eq_domain_size]
 
 @[simp]
 lemma dist_le_length [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
-  (inj : Function.Injective α) : LinearCodes.minDist (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
-  convert LinearCodes.minDist_UB
+  (inj : Function.Injective α) : LinearCode.minDist (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
+  convert LinearCode.minDist_UB
   simp
 
 lemma card_le_card_of_count_inj {α β : Type*} {s : Multiset α} {s' : Multiset β}
@@ -310,17 +309,17 @@ open Finset in
 theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
                 {α : Fin ι → F} (inj : Function.Injective α) [φ : NeZero ι']
   (h : ι' ≤ ι) :
-  LinearCodes.minDist (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
+  LinearCode.minDist (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
   have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
-    have distUB := LinearCodes.singletonBound (LC := ReedSolomon.code ⟨α, inj⟩ ι')
+    have distUB := LinearCode.singletonBound (LC := ReedSolomon.code ⟨α, inj⟩ ι')
     rw [dim_eq_deg_of_le inj h] at distUB
     simp at distUB
     zify [dist_le_length] at distUB
     omega
   case p₂ =>
-    rw [LinearCodes.minDist_eq_minWtCodewords]
+    rw [LinearCode.minDist_eq_minWtCodewords]
     apply le_csInf (by use ι, ReedSolomon.constantCode 1 _; simp)
     intro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
     let zeroes : Finset _ := {i | msg i = 0}
