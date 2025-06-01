@@ -510,7 +510,7 @@ lemma finite_relHammingDistRange [Nonempty ι] : (relHammingDistRange ι).Finite
       ⟨Fintype.card ι + 1,
         ⟨⟨
         fun ⟨s, _⟩ ↦ ⟨(s * Fintype.card ι).num.toNat, by aesop (add safe (by omega))⟩,
-        fun n ↦ ⟨n / Fintype.card ι, by use n; simp; omega⟩,
+        fun n ↦ ⟨n / Fintype.card ι, by use n; simp [Nat.le_of_lt_add_one n.2]⟩,
         fun ⟨_, _, _, h₂⟩ ↦ by field_simp [h₂],
         fun _ ↦ by simp
         ⟩⟩

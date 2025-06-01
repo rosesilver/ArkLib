@@ -17,7 +17,6 @@ variable {α : Type} {F : Type} [Field F]
          {n : ℕ} {p : Polynomial F}
 variable [DecidableEq F]
 
-open ElocPoly
 open Polynomial
 
 private noncomputable def E {n : ℕ} (ωs : Fin n → F) 
@@ -102,19 +101,25 @@ private lemma solution_to_E_from_E {e k : ℕ} {ωs f : Fin n → F}
   (h_p_deg : p.natDegree < k)
   (h_dist : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) 
   : solution_to_E e k (E_and_Q_to_a_solution e (E ωs f p e) (Q ωs f p e)) = E ωs f p e := by
-  apply Polynomial.ext 
-  intro i 
-  simp 
-  split_ifs with hif hif2 <;> 
-    try aesop (config := {warnOnNonterminal := false})  
-              (add simp [Fin.liftF, E_leading_coeff'])
-              (add safe (by omega))
-  by_contra he
-  have hdeg := Polynomial.le_degree_of_ne_zero (n := i) (p := E ωs f p e) (by aesop)
-  aesop 
-    (add safe forward E_natDegree)
-    (add simp [E_ne_0, Polynomial.degree_eq_natDegree])
-    (add safe (by omega))
+  sorry
+  -- TODO: The proof below relies heavily on `aesop` which is bugged in `leanprover/lean4:v4.19.0`
+  -- due to a race condition on choosing fresh names.
+  -- There is a fix available:
+  -- https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/aesop.20and.20bv_decide/near/519713897
+
+  -- apply Polynomial.ext 
+  -- intro i 
+  -- simp 
+  -- split_ifs with hif hif2 <;> 
+  --   try aesop (config := {warnOnNonterminal := false})  
+  --             (add simp [Fin.liftF, E_leading_coeff'])
+  --             (add safe (by omega))
+  -- by_contra he
+  -- have hdeg := Polynomial.le_degree_of_ne_zero (n := i) (p := E ωs f p e) (by aesop)
+  -- aesop 
+  --   (add safe forward E_natDegree)
+  --   (add simp [E_ne_0, Polynomial.degree_eq_natDegree])
+  --   (add safe (by omega))
 
 private lemma E_and_Q_BerlekampWelch_condition {e k : ℕ} {ωs f : Fin n → F}
   (h_p_deg : p.natDegree < k)
