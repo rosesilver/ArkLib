@@ -4,13 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao, Katerina Hristova, František Silváši, Julian Sutherland
 -/
 
-import Mathlib.InformationTheory.Hamming
-import Mathlib.LinearAlgebra.Lagrange
-import Mathlib.Data.Set.Finite.Lattice
-import Mathlib.Topology.MetricSpace.Infsep
-import Mathlib.Data.ENat.Lattice
+import ArkLib.Data.CodingTheory.Prelims
 import Mathlib.Analysis.Normed.Field.Lemmas
-import ArkLib.Data.CodingTheory.Prelims 
+import Mathlib.Data.ENat.Lattice
+import Mathlib.InformationTheory.Hamming
+import Mathlib.Topology.MetricSpace.Infsep
 
 /-!
   # Basics of Coding Theory
