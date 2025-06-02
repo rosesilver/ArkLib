@@ -192,7 +192,7 @@ theorem codeDist'_eq_codeDist : ‖C‖₀'.toNat = ‖C‖₀ := by
 section
 
 /-
-  - TODO: We current do not use `(E)Dist` as it forces the distance(s) into `ℝ`.
+  - TODO: We currently do not use `(E)Dist` as it forces the distance(s) into `ℝ`.
           Instead, we take some explicit notion of distance `δf`.
           Let us give this some thought.
 -/

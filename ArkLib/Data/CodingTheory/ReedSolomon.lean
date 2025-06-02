@@ -348,7 +348,7 @@ lemma ReedSolomon.wt_constantCode [Fintype ι] [Semiring F] {x : F} [NeZero x] :
 
 open Finset in
 /--
-  The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
+  The minimal code distance of an RS code of length `ι` and dimension `deg` is `ι - deg + 1`
 -/
 theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
                 {α : Fin ι → F} (inj : Function.Injective α) [φ : NeZero ι']
