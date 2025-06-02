@@ -10,7 +10,6 @@ import ArkLib.Data.CodingTheory.HammingDistance.Lemmas -- Temporary.
 import ArkLib.Data.EllipticCurve.BN254
 import ArkLib.Data.FieldTheory.BinaryTowerField.Basic
 import ArkLib.Data.FieldTheory.BinaryTowerField.Prelude
-import ArkLib.Data.FieldTheory.FFT
 import ArkLib.Data.FieldTheory.NonBinaryField.BLS12_377
 import ArkLib.Data.FieldTheory.NonBinaryField.BLS12_381
 import ArkLib.Data.FieldTheory.NonBinaryField.BN254
@@ -37,9 +36,9 @@ import ArkLib.Data.UniPoly.Basic
 import ArkLib.Data.UniPoly.BasicOld
 import ArkLib.Data.UniPoly.PolynomialReflection
 import ArkLib.OracleReduction.Basic
+import ArkLib.OracleReduction.Composition.LiftContext
 import ArkLib.OracleReduction.Composition.Sequential.Basic
 import ArkLib.OracleReduction.Composition.Sequential.ProtocolSpec
-import ArkLib.OracleReduction.Composition.Virtual
 import ArkLib.OracleReduction.Equiv
 import ArkLib.OracleReduction.Execution
 import ArkLib.OracleReduction.OracleInterface
@@ -55,6 +54,7 @@ import ArkLib.ProofSystem.Fri.RoundConsistency
 import ArkLib.ProofSystem.Plonk.Basic
 import ArkLib.ProofSystem.Spartan.Basic
 import ArkLib.ProofSystem.Sumcheck.Basic
+import ArkLib.ProofSystem.Sumcheck.SingleRound
 import ArkLib.ToMathlib.BigOperators.Fin
 import ArkLib.ToMathlib.Finset.Basic
 import ArkLib.ToMathlib.Finsupp.Fin

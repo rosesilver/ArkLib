@@ -175,7 +175,8 @@ open OracleInterface
 /-!
 3. - There is no witness nor public statement. There are two `OStatement`s, `a` and `b`,
      of the same type. The relation is `a = b`.
-   - The verifier samples random `q : OracleInterface.Query` for that type and sends it to the prover.
+   - The verifier samples random `q : OracleInterface.Query` for that type
+   and sends it to the prover.
    - The verifier does not do any checks.
    - The final relation is that `a` and `b` are equal at that query.
 -/
@@ -264,24 +265,23 @@ theorem completeness : OracleReduction.perfectCompleteness
 -- def langOut : Set ((Query OStatement) × (∀ _ : Fin 2, OStatement)) := setOf fun ⟨q, oracles⟩ =>
 --   OracleInterface.oracle (oracles 0) q = OracleInterface.oracle (oracles 1) q
 
-def stateFunction : Reduction.StateFunction
-    (relIn OStatement).language (relOut OStatement).language
-    (verifier oSpec OStatement).toVerifier where
-  fn
+def stateFunction : (verifier oSpec OStatement).StateFunction (pSpec OStatement) oSpec
+    (relIn OStatement).language (relOut OStatement).language where
+  toFun
   | 0 => fun ⟨_, oracles⟩ _ => oracles 0 = oracles 1
   | 1 => fun ⟨_, oracles⟩ chal =>
     let q : Query OStatement := by simpa [pSpec] using chal ⟨0, by aesop⟩
     OracleInterface.oracle (oracles 0) q = OracleInterface.oracle (oracles 1) q
-  fn_empty := fun stmt hStmt => by simp_all [relIn, Function.language]
-  fn_next := fun i hDir ⟨stmt, oStmt⟩ tr h => by simp_all
-  fn_full := fun ⟨stmt, oStmt⟩ tr h => by
+  toFun_empty := fun stmt hStmt => by simp_all [relIn, Function.language]
+  toFun_next := fun i hDir ⟨stmt, oStmt⟩ tr h => by simp_all
+  toFun_full := fun ⟨stmt, oStmt⟩ tr h => by
     simp_all [relOut, Function.language]
     intro a b hSupp
     simp [Verifier.run, OracleVerifier.toVerifier, verifier] at hSupp
     simp [hSupp.1, hSupp.2, h]
 
 /-- The extractor is trivial since the output witness is `Unit`. -/
-def extractor : (i : Fin 2) → @Reduction.RBRExtractor _ (pSpec OStatement) _ oSpec
+def extractor : (i : Fin 2) → RBRExtractor (pSpec OStatement) oSpec
     (Unit × ((i : Fin 2) → (fun _ ↦ OStatement) i)) Unit i :=
   fun _ _ _ _ => ()
 
@@ -297,12 +297,11 @@ instance : Fintype ((pSpec OStatement).Challenge ⟨0, by simp⟩) := by
 open NNReal
 
 theorem rbr_knowledge_soundness {d : ℕ} (h : OracleInterface.distanceLE OStatement d) :
-    OracleReduction.rbrKnowledgeSoundness
+    (verifier oSpec OStatement).rbrKnowledgeSoundness
       (relIn OStatement)
       (relOut OStatement)
-      (verifier oSpec OStatement)
       (fun _ => (d : ℝ≥0) / (Fintype.card (Query OStatement) : ℝ≥0)) := by
-  unfold OracleReduction.rbrKnowledgeSoundness Reduction.rbrKnowledgeSoundness
+  unfold OracleVerifier.rbrKnowledgeSoundness Verifier.rbrKnowledgeSoundness
   refine ⟨stateFunction oSpec OStatement, extractor oSpec OStatement, ?_⟩
   intro ⟨_, oracles⟩ _ rbrP i
   have : i = ⟨0, by simp⟩ := by aesop
