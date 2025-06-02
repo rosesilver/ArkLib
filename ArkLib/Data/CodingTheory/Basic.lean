@@ -27,7 +27,7 @@ import Mathlib.Topology.MetricSpace.Infsep
 
   - `codeDist' C`: A computable version of `codeDist C`, assuming `C` is a `Fintype`.
 
-  We define the block length, rateOfLinearCode, and distance of `C`. We prove simple properties of linear codes
+  We define the block length, rate, and distance of `C`. We prove simple properties of linear codes
   such as the singleton bound.
 -/
 
@@ -445,7 +445,7 @@ theorem singleton_bound_linear (C : Submodule R (n → R)) :
     Module.finrank R C ≤ card n - (codeDist C.carrier) + 1 := by sorry
   -- have : (ofFinite C).card = (ofFinite R).card ^ (Module.finrank R C) := by
 
-section RelativeHammingDistance
+namespace RelativeHamming
 
 variable {ι : Type*} [Fintype ι]
          {F : Type*}
@@ -458,20 +458,20 @@ section
 
 variable [Nonempty ι] [DecidableEq F]
 
-def relHammingDist (u v : ι → F) : ℚ :=
+def dist (u v : ι → F) : ℚ :=
   (hammingDist u v : ℚ) / (Fintype.card ι : ℚ)
 
 /--
   `δᵣ(u,v)` denotes the relative Hamming distance between vectors `u` and `v`.
 -/
-notation "δᵣ(" u ", " v ")" => relHammingDist u v
+notation "δᵣ(" u ", " v ")" => dist u v
 
 /--
   The relative Hamming distance between two vectors is at most `1`.
 -/
 @[simp]
 lemma relHammingDist_le_one : δᵣ(u, v) ≤ 1 := by
-  unfold relHammingDist
+  unfold dist
   rw [div_le_iff₀ (by simp)]
   simp [hammingDist_le_card_fintype]
 
@@ -480,7 +480,7 @@ lemma relHammingDist_le_one : δᵣ(u, v) ≤ 1 := by
 -/
 @[simp]
 lemma zero_le_relHammingDist : 0 ≤ δᵣ(u, v) := by
-  unfold relHammingDist
+  unfold dist
   rw [le_div_iff₀ (by simp)]
   simp
 
@@ -529,8 +529,8 @@ variable [DecidableEq F]
 /--
   The set of possible distances between distinct codewords in a code.
 -/
-def possibleDistsRel (C : Set (ι → F)) : Set ℚ :=
-  possibleDists C relHammingDist
+def possibleDists (C : Set (ι → F)) : Set ℚ :=
+  _root_.possibleDists C dist
 
 /--
   The set of possible distances between distinct codewords in a code is a subset of the range of the
@@ -538,8 +538,8 @@ def possibleDistsRel (C : Set (ι → F)) : Set ℚ :=
 -/
 @[simp]
 lemma possibleDists_subset_relHammingDistRange :
-  possibleDistsRel C ⊆ relHammingDistRange ι := fun _ ↦ by
-    aesop (add simp [possibleDistsRel, possibleDists])
+  possibleDists C ⊆ relHammingDistRange ι := fun _ ↦ by
+    aesop (add simp [possibleDists, _root_.possibleDists])
 
 variable [Nonempty ι]
 
@@ -547,7 +547,7 @@ variable [Nonempty ι]
   The set of possible distances between distinct codewords in a code is a finite set.
 -/
 @[simp]
-lemma finite_possibleDists : (possibleDistsRel C).Finite :=
+lemma finite_possibleDists : (possibleDists C).Finite :=
   Set.Finite.subset finite_relHammingDistRange possibleDists_subset_relHammingDistRange
 
 open Classical in
@@ -555,9 +555,9 @@ open Classical in
   The minimum relative Hamming distance of a code.
 -/
 def minRelHammingDistCode (C : Set (ι → F)) : ℚ :=
-  haveI : Fintype (possibleDistsRel C) := @Fintype.ofFinite _ finite_possibleDists
-  if h : (possibleDistsRel C).Nonempty
-  then (possibleDistsRel C).toFinset.min' (Set.toFinset_nonempty.2 h)
+  haveI : Fintype (possibleDists C) := @Fintype.ofFinite _ finite_possibleDists
+  if h : (possibleDists C).Nonempty
+  then (possibleDists C).toFinset.min' (Set.toFinset_nonempty.2 h)
   else 0
 
 end
@@ -573,7 +573,7 @@ notation "δᵣ" C => minRelHammingDistCode C
 -/
 @[simp]
 lemma possibleDistsToC_subset_relHammingDistRange [DecidableEq F] :
-  possibleDistsToC w C relHammingDist ⊆ relHammingDistRange ι := fun _ ↦ by
+  possibleDistsToC w C dist ⊆ relHammingDistRange ι := fun _ ↦ by
     aesop (add simp possibleDistsToC)
 
 /--
@@ -581,10 +581,10 @@ lemma possibleDistsToC_subset_relHammingDistRange [DecidableEq F] :
 -/
 @[simp]
 lemma finite_possibleDistsToC [Nonempty ι] [DecidableEq F] :
-  (possibleDistsToC w C relHammingDist).Finite :=
+  (possibleDistsToC w C dist).Finite :=
   Set.Finite.subset finite_relHammingDistRange possibleDistsToC_subset_relHammingDistRange
 
-instance [Nonempty ι] [DecidableEq F] : Fintype (possibleDistsToC w C relHammingDist)
+instance [Nonempty ι] [DecidableEq F] : Fintype (possibleDistsToC w C dist)
   := @Fintype.ofFinite _ finite_possibleDistsToC
 
 open Classical in
@@ -592,10 +592,10 @@ open Classical in
   The relative Hamming distance from a vector to a code.
 -/
 def relHammingDistToCode [Nonempty ι] [DecidableEq F] (w : ι → F) (C : Set (ι → F)) : ℚ :=
-  if h : (possibleDistsToC w C relHammingDist).Nonempty
-  then distToCode w C relHammingDist finite_possibleDistsToC |>.get (p h)
+  if h : (possibleDistsToC w C dist).Nonempty
+  then distToCode w C dist finite_possibleDistsToC |>.get (p h)
   else 0
-  where p (h : (possibleDistsToC w C relHammingDist).Nonempty) := by
+  where p (h : (possibleDistsToC w C dist).Nonempty) := by
           by_contra c
           simp [distToCode] at c ⊢
           rw [WithTop.none_eq_top, Finset.min_eq_top, Set.toFinset_eq_empty] at c
@@ -619,22 +619,26 @@ lemma relHammingDistToCode_mem_relHammingDistRange [Nonempty ι] [DecidableEq F]
   unfold relHammingDistToCode
   split_ifs with h
   · exact Set.mem_of_subset_of_mem
-            (s₁ := (possibleDistsToC c C relHammingDist).toFinset)
+            (s₁ := (possibleDistsToC c C dist).toFinset)
             (by simp)
             (by simp_rw [distToCode_of_nonempty (h₁ := by simp) (h₂ := h)]
                 simp [←WithTop.some_eq_coe]
                 have := Finset.min'_mem
                           (α := ℚ)
-                          (s := (possibleDistsToC c C relHammingDist).toFinset)
+                          (s := (possibleDistsToC c C dist).toFinset)
                           (H := by simpa)
                 simpa)
   · simp
 
 end
 
-end RelativeHammingDistance
+end RelativeHamming
 
-section LinearCode
+
+abbrev LinearCode.{u, v} (ι : Type u) [Fintype ι] (F : Type v) [Semiring F] : Type (max u v) :=
+  Submodule F (ι → F)
+
+namespace LinearCode
 
 open Finset
 
@@ -649,15 +653,12 @@ lemma wt_eq_zero_iff [DecidableEq F] [Zero F] {v : ι → F} :
   by_cases IsEmpty ι <;>
   aesop (add simp [wt, Finset.filter_eq_empty_iff])
 
-abbrev LinearCode.{u, v} (ι : Type u) [Fintype ι] (F : Type v) [Semiring F] : Type (max u v) :=
-  Submodule F (ι → F)
-
 section
 
 variable {ι : Type*} [Fintype ι]
          {κ  : Type*} [Fintype κ]
 
-noncomputable def minDistOfLC [Semiring F] [DecidableEq F] (LC : LinearCode ι F) : ℕ :=
+noncomputable def minDist [Semiring F] [DecidableEq F] (LC : LinearCode ι F) : ℕ :=
   sInf { d | ∃ u ∈ LC, ∃ v ∈ LC, u ≠ v ∧ hammingDist u v = d }
 
 /--
@@ -683,13 +684,13 @@ lemma rank_eq_dim_fromColGenMat [CommRing F] {G : Matrix κ ι F} :
 
 def length [Semiring F] (_ : LinearCode ι F) : ℕ := Fintype.card ι
 
-noncomputable def rateOfLinearCode [Semiring F] (LC : LinearCode ι F) : ℚ :=
+noncomputable def rate [Semiring F] (LC : LinearCode ι F) : ℚ :=
   (dim LC : ℚ) / (length LC : ℚ)
 
 /--
-  `ρ LC` is the ratre of the linear code `LC`.
+  `ρ LC` is the rate of the linear code `LC`.
 -/
-notation "ρ" LC => rateOfLinearCode LC
+notation "ρ" LC => rate LC
 
 section
 
@@ -710,20 +711,20 @@ lemma hammingDist_eq_wt_sub [CommRing F] {u v : ι → F} : hammingDist u v = wt
 /--
   The min distance of a linear code equals to the minimum of the weights of non-zero codewords.
 -/
-lemma minDistOfLC_eq_minWtCodewords [CommRing F] {LC : LinearCode ι F} :
-  minDistOfLC LC = minWtCodewords LC := by
-    unfold minDistOfLC minWtCodewords
+lemma minDist_eq_minWtCodewords [CommRing F] {LC : LinearCode ι F} :
+  minDist LC = minWtCodewords LC := by
+    unfold minDist minWtCodewords
     refine congrArg _ (Set.ext fun _ ↦ ⟨fun ⟨u, _, v, _⟩ ↦ ⟨u - v, ?p₁⟩, fun _ ↦ ⟨0, ?p₂⟩⟩) <;>
     aesop (add simp [hammingDist_eq_wt_sub, sub_eq_zero])
 
 open Finset in
-lemma minDist_UB [CommRing F] {LC : LinearCode ι F} : minDistOfLC LC ≤ length LC := by
-  rw [minDistOfLC_eq_minWtCodewords, minWtCodewords]
+lemma minDist_UB [CommRing F] {LC : LinearCode ι F} : minDist LC ≤ length LC := by
+  rw [minDist_eq_minWtCodewords, minWtCodewords]
   exact sInf.sInf_UB_of_le_UB fun s ⟨_, _, _, s_def⟩ ↦
           s_def ▸ le_trans (card_le_card (subset_univ _)) (le_refl _)  
 
 theorem singletonBound [Semiring F] (LC : LinearCode ι F) :
-  dim LC ≤ length LC - minDistOfLC LC + 1 := by sorry
+  dim LC ≤ length LC - minDist LC + 1 := by sorry
 
 end
 

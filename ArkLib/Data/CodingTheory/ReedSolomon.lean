@@ -266,6 +266,8 @@ def makeZero (ι : ℕ) (F : Type*) [Zero F] : Fin ι → F := fun _ ↦ 0
 lemma codewordIsZero_makeZero {ι : ℕ} {F : Type*} [Zero F] :
   makeZero ι F = 0 := by unfold makeZero; ext; rfl
 
+open LinearCode
+
 /--
   The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
@@ -301,12 +303,12 @@ lemma length_eq_domain_size [Field F] {deg ι : ℕ} {α : Fin ι → F}
   simp [length]
 
 lemma rateOfLinearCode_eq_div [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι ↪ F} (h : ι' ≤ ι) :
-  rateOfLinearCode (ReedSolomon.code α ι') = ι' / ι := by
-  rwa [rateOfLinearCode, dim_eq_deg_of_le, length_eq_domain_size]
+  rate (ReedSolomon.code α ι') = ι' / ι := by
+  rwa [rate, dim_eq_deg_of_le, length_eq_domain_size]
 
 @[simp]
 lemma dist_le_length [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
-  (inj : Function.Injective α) : minDistOfLC (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
+  (inj : Function.Injective α) : minDist (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
   convert minDist_UB
   simp
 
@@ -353,7 +355,7 @@ open Finset in
 theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
                 {α : Fin ι → F} (inj : Function.Injective α) [φ : NeZero ι']
   (h : ι' ≤ ι) :
-  minDistOfLC (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
+  minDist (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
   have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
@@ -363,7 +365,7 @@ theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
     zify [dist_le_length] at distUB
     omega
   case p₂ =>
-    rw [minDistOfLC_eq_minWtCodewords]
+    rw [minDist_eq_minWtCodewords]
     apply le_csInf (by use ι, ReedSolomon.constantCode 1 _; simp)
     intro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
     let zeroes : Finset _ := {i | msg i = 0}

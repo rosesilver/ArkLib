@@ -29,7 +29,7 @@ def hammingBall (C : Code ι F) (y : Fin ι → F) (r : ℕ) : Code ι F :=
 Ball of radius `r` centred at a word `y` with respect to the relative Hamming distance.
 -/
 def relHammingBall (C : Code ι F) (y : Fin ι → F) (r : ℝ)  : Code ι F :=
-  { c | c ∈ C ∧ relHammingDist y c ≤ r }
+  { c | c ∈ C ∧ dist y c ≤ r }
 
 /--
 The number of close codewords to a given word `y` with respect to the Hamming distance metric.
