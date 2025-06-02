@@ -6,8 +6,7 @@ Authors: Katerina Hristova, František Silváši, Julian Sutherland
 
 import Mathlib.InformationTheory.Hamming
 import Mathlib.Analysis.Normed.Field.Lemmas
-import ArkLib.Data.CodingTheory.LinearCodes
-import ArkLib.Data.CodingTheory.RelativeHammingDistance
+import ArkLib.Data.CodingTheory.Basic
 
 open Classical
 
