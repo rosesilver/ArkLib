@@ -23,8 +23,6 @@ variable {F : Type*} [Semiring F]
          {κ ι : Type*} [Fintype κ] [Fintype ι]
          {LC : LinearCode ι F}
 
-namespace InterleavedCodes
-
 abbrev MatrixSubmodule.{u, v, w} (κ : Type u) [Fintype κ] (ι : Type v) [Fintype ι]
                                  (F : Type w) [Semiring F] : Type (max u v w) :=
   Submodule F (Matrix κ ι F)
@@ -36,10 +34,12 @@ structure InterleavedCode (κ ι : Type*) [Fintype κ] [Fintype ι] (F : Type*) 
   MF : MatrixSubmodule κ ι F
   LC : LinearCode ι F
 
+namespace InterleavedCode
+
 /--
   The condition making the `InterleavedCode` structure an interleaved code.
 -/
-def InterleavedCode.isInterleaved (IC : InterleavedCode κ ι F) :=
+def isInterleaved (IC : InterleavedCode κ ι F) :=
   ∀ V ∈ IC.MF, ∀ i, V i ∈ IC.LC
 
 def LawfulInterleavedCode (κ : Type*) [Fintype κ] (ι : Type*) [Fintype ι]
@@ -101,14 +101,14 @@ notation "Δ(" U "," IC ")" => distToCode U IC
   The minimal distance of an interleaved code is the same as
   the minimal distance of its underlying linear code.
 -/
-lemma minDistOfLC_eq_minDist [DecidableEq F] {IC : LawfulInterleavedCode κ ι F} :
-  minDistOfLC (F := F) IC.1.LC = minDist IC.1.MF := by sorry
+lemma minDist_eq_minDist [DecidableEq F] {IC : LawfulInterleavedCode κ ι F} :
+  LinearCode.minDist (F := F) IC.1.LC = minDist IC.1.MF := by sorry
 
-end InterleavedCodes
+end InterleavedCode
 
 noncomputable section
 
-open InterleavedCodes
+open InterleavedCode
 
 variable {F : Type*} [Field F] [Finite F] [DecidableEq F]
          {κ : Type*} [Fintype κ] {ι : Type*} [Fintype ι]

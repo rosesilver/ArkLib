@@ -7,6 +7,7 @@ Authors: Quang Dao
 import ArkLib.Data.CodingTheory.Basic
 import Mathlib.LinearAlgebra.Lagrange
 import Mathlib.RingTheory.Henselian
+import ArkLib.Data.Fin.Basic
 
 /-!
   # Reed-Solomon Codes
@@ -137,7 +138,7 @@ lemma rank_nonsquare_rows_eq_min [CommRing F] [IsDomain F] {ι ι' : ℕ}
 
 theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
   {ι' : ℕ} [NeZero ι'] [CommRing F] {v : ι ↪ F} {p : F[X]} (h_deg : p.natDegree < ι') :
-  (Vandermonde.nonsquare (ι' := ι') v).mulVecLin (p.coeff ∘ Fin.val) = -- NOTE: Use `liftF`.
+  (Vandermonde.nonsquare (ι' := ι') v).mulVecLin (Fin.liftF' p.coeff) =
   fun i => p.eval (v i) := by
   ext i
   simp only [
@@ -150,10 +151,10 @@ theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
                                  fun h₁ h₂ ↦ by aesop (add simp Nat.mod_eq_of_lt)))
           (erase simp mem_support_iff)
   · aesop (add simp Set.MapsTo) (add safe apply Nat.mod_lt) (add 1% cases Nat)
-  · aesop (add safe (by specialize h i)) (add simp Nat.mod_eq_of_lt)
+  · aesop (add safe (by specialize h i)) (add simp [Nat.mod_eq_of_lt])
   · have : i < ι' := by aesop (add safe forward le_natDegree_of_mem_supp)
-                               (erase simp mem_support_iff)
-                               (add safe (by omega))
+                              (erase simp mem_support_iff)
+                              (add safe (by omega))
     aesop (add simp Nat.mod_eq_of_lt) (add safe (by ring))
 
 end Vandermonde
@@ -191,13 +192,19 @@ lemma degree_polynomialOfCoeffs_deg_lt_deg
 @[simp]
 lemma coeff_polynomialOfCoeffs_eq_coeffs
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
-  (polynomialOfCoeffs coeffs).coeff ∘ Fin.val = coeffs := by -- NOTE TO SELF: `liftF' coeffs`!
-  aesop (add simp polynomialOfCoeffs)
+  Fin.liftF' (polynomialOfCoeffs coeffs).coeff = coeffs := by
+  aesop (add simp [Fin.liftF', polynomialOfCoeffs])
 
 lemma coeff_polynomialOfCoeffs_eq_coeffs'
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
   (polynomialOfCoeffs coeffs).coeff = fun x ↦ if h : x < deg then coeffs ⟨x, h⟩ else 0 := by
   aesop (add simp polynomialOfCoeffs)
+
+@[simp]
+lemma coeff_polynomialOfCoeffs_eq_coeffs''
+  [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  (polynomialOfCoeffs coeffs).coeff = Fin.liftF coeffs := by
+  aesop (add simp [Fin.liftF', polynomialOfCoeffs])
 
 @[simp]
 lemma polynomialOfCoeffs_mem_degreeLT
@@ -232,7 +239,7 @@ lemma support_polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] {coeffs :
 @[simp]
 lemma eval_polynomialsOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} {α : F} :
   (polynomialOfCoeffs coeffs).eval α = ∑ x ∈ {i | coeffs i ≠ 0}, coeffs x * α ^ x.1 := by
-  simp [eval_eq_sum, sum_def, coeff_polynomialOfCoeffs_eq_coeffs']
+  simp [eval_eq_sum, sum_def, coeff_polynomialOfCoeffs_eq_coeffs', Fin.liftF]
 
 @[simp]
 lemma isRoot_polynomialsOfCoeffs
@@ -259,6 +266,8 @@ def makeZero (ι : ℕ) (F : Type*) [Zero F] : Fin ι → F := fun _ ↦ 0
 lemma codewordIsZero_makeZero {ι : ℕ} {F : Type*} [Zero F] :
   makeZero ι F = 0 := by unfold makeZero; ext; rfl
 
+open LinearCode
+
 /--
   The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
@@ -268,7 +277,7 @@ lemma genMatIsVandermonde [Fintype ι] [Field F] {ι' : ℕ} [inst : NeZero ι']
   ext x; rw [LinearMap.mem_range, Submodule.mem_map]
   refine ⟨
     fun ⟨coeffs, h⟩ ↦ ⟨polynomialOfCoeffs coeffs, h.symm ▸ ?p₁⟩,
-    fun ⟨p, h⟩ ↦ ⟨p.coeff ∘ Fin.val, ?p₂⟩
+    fun ⟨p, h⟩ ↦ ⟨Fin.liftF' p.coeff, ?p₂⟩
   ⟩
   · rw [
       ←coeff_polynomialOfCoeffs_eq_coeffs (coeffs := coeffs),
@@ -294,12 +303,12 @@ lemma length_eq_domain_size [Field F] {deg ι : ℕ} {α : Fin ι → F}
   simp [length]
 
 lemma rateOfLinearCode_eq_div [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι ↪ F} (h : ι' ≤ ι) :
-  rateOfLinearCode (ReedSolomon.code α ι') = ι' / ι := by
-  rwa [rateOfLinearCode, dim_eq_deg_of_le, length_eq_domain_size]
+  rate (ReedSolomon.code α ι') = ι' / ι := by
+  rwa [rate, dim_eq_deg_of_le, length_eq_domain_size]
 
 @[simp]
 lemma dist_le_length [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
-  (inj : Function.Injective α) : minDistOfLC (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
+  (inj : Function.Injective α) : minDist (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
   convert minDist_UB
   simp
 
@@ -341,12 +350,12 @@ lemma ReedSolomon.wt_constantCode [Fintype ι] [Semiring F] {x : F} [NeZero x] :
 
 open Finset in
 /--
-  The minimal code distance of an RS code of length `ι` and dimensio `deg` is `ι - deg + 1`
+  The minimal code distance of an RS code of length `ι` and dimension `deg` is `ι - deg + 1`
 -/
 theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
                 {α : Fin ι → F} (inj : Function.Injective α) [φ : NeZero ι']
   (h : ι' ≤ ι) :
-  minDistOfLC (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
+  minDist (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
   have : NeZero ι := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
@@ -356,7 +365,7 @@ theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
     zify [dist_le_length] at distUB
     omega
   case p₂ =>
-    rw [minDistOfLC_eq_minWtCodewords]
+    rw [minDist_eq_minWtCodewords]
     apply le_csInf (by use ι, ReedSolomon.constantCode 1 _; simp)
     intro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
     let zeroes : Finset _ := {i | msg i = 0}
