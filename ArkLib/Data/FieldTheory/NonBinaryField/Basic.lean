@@ -60,7 +60,7 @@ private lemma comp_x_square_coeff_pos_deg {f : Polynomial F} {n : ℕ} (h : 0 < 
   · rintro _ _ _ _ (_ | _ | n) <;> try simp_all
     have : (n + 1 + 1) / 2 = n / 2 + 1 := by omega
     simp_all only [coeff_C_succ, add_zero]
-
+    
 theorem comp_x_square_coeff {f : Polynomial F} {n : ℕ} :
   (f.comp (X * X)).coeff n = if Even n then f.coeff (n / 2) else 0 := by
   by_cases hpos : 0 < f.degree
