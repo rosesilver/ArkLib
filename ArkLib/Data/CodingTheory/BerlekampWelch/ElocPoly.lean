@@ -172,9 +172,7 @@ lemma elocPolyF_deg {ωs f : Fin n → F} : (ElocPolyF ωs f p).natDegree = Δ�
     ]
     aesop (config := {warnOnNonterminal := false}) (add simp [
       hammingDist.eq_def, Finset.card_filter, Finset.sum_fin_eq_sum_range, Finset.sum_range_succ
-    ]) <;> (apply Finset.sum_congr rfl; aesop (add safe (by linarith)))
-    -- TODO: replace `linarith` with `omega` once this is in: 
-    -- https://github.com/leanprover-community/aesop/pull/224
+    ]) <;> (apply Finset.sum_congr rfl; aesop (add safe (by omega)))
 
 end 
 

@@ -135,63 +135,57 @@ private lemma BerlekampWelchCondition_to_Solution {e k : ℕ} [NeZero n]
   (hk_or_e : 1 ≤ k ∨ 1 ≤ e)
   (h : BerlekampWelchCondition e k ωs f E Q)
   : IsBerlekampWelchSolution e k ωs f (E_and_Q_to_a_solution e E Q) := by
-  sorry
-  -- TODO: The proof below relies heavily on `aesop` which is bugged in `leanprover/lean4:v4.19.0`
-  -- due to a race condition on choosing fresh names.
-  -- There is a fix available:
-  -- https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/aesop.20and.20bv_decide/near/519713897
-
-  -- rcases h with ⟨h_cond, h_E_deg, h_E_coeff, h_Q_deg⟩
-  -- refine is_berlekamp_welch_solution_ext fun i ↦ ?p₁
-  -- letI bound := 2 * e + k
-  -- generalize eq : BerlekampWelchMatrix _ _ _ f = M₁
-  -- letI leftσ : Finset _ := {j : Fin bound | j < e}
-  -- letI rightσ : Finset _ := univ (α := Fin bound) \ leftσ
-  -- generalize eq₁ : ∑ j ∈ leftσ, E.coeff j * (ωs i)^j.1 = σ₁
-  -- generalize eq₂ : ∑ j ∈ rightσ, Q.coeff (j - e) * -(ωs i)^(j - e) = σ₂
-  -- calc _ = ∑ j : Fin bound, if ↑j < e
-  --                           then E.coeff ↑j * M₁ i j
-  --                           else Q.coeff (↑j - e) * M₁ i j := by
-  --                             simp [Matrix.mulVec_eq_sum, ite_apply]; rfl
-  --      _ = f i * σ₁ + σ₂ := by
-  --       rw [sum_ite]
-  --       exact eq ▸ eq₁ ▸ eq₂ ▸
-  --         congr_arg₂ _
-  --           (by rw [mul_sum]; exact sum_congr rfl fun _ _ ↦ by rw [bwm_of_pos (by aesop)]; ac_rfl)
-  --           (sum_congr (by aesop) fun j hj ↦ by rw [bwm_of_neg (by aesop)])
-  -- replace eq₁ : eval (ωs i) E - ωs i ^ e * E.coeff e = σ₁ := calc
-  --               _ = ∑ i_1 ∈ range (e + 1), E.coeff i_1 * ωs i ^ i_1 - ωs i ^ e * E.coeff e :=
-  --                 by rw [eval_eq_sum_range, h_E_deg]
-  --               _ = ∑ x ∈ range e, E.coeff x * ωs i ^ x :=
-  --                 by rw [sum_range_succ]; ring
-  --               _ = σ₁ := by rw [←eq₁]; symm
-  --                            apply sum_nbij (i := Fin.val) <;>
-  --                              try intros a _; aesop (add safe (by existsi ⟨a, by omega⟩))
-  --                                                    (add simp Set.InjOn)
-  -- letI δσ := {j | j < e + k}.toFinset
-  -- replace eq₂ : -eval (ωs i) Q = σ₂ := calc
-  --               _              = -∑ j ∈ δσ.attach, ωs i ^ j.1 * Q.coeff j := by
-  --                 rw [
-  --                   eval_eq_sum, neg_inj,
-  --                   sum_eq_of_subset (s := δσ) _ (by simp) fun _ hj ↦
-  --                     by rw [mem_support_iff, ←ite_le_natDegree_coeff _ _ inferInstance] at hj
-  --                        aesop (add safe (by omega)),
-  --                   ←sum_attach
-  --                 ]
-  --                 ac_rfl
-  --               _              = σ₂ := by
-  --                 simp only [
-  --                   ←eq₂, mul_neg, sum_neg_distrib, neg_inj, ←sum_attach (s := rightσ)
-  --                 ]
-  --                 let F (n : {x // x ∈ δσ}) : {x // x ∈ rightσ} :=
-  --                   ⟨⟨n.1 + e, by aesop (add safe (by omega))⟩, by aesop⟩
-  --                 have : Function.Bijective F :=
-  --                   ⟨
-  --                     fun _ ↦ by aesop,
-  --                     fun a ↦ by use ⟨a - e, by aesop (add safe (by omega))⟩; aesop
-  --                   ⟩
-  --                 apply sum_bijective F <;> aesop (add safe [(by omega), (by ring)])
-  -- aesop (add safe (by ring))
+  rcases h with ⟨h_cond, h_E_deg, h_E_coeff, h_Q_deg⟩
+  refine is_berlekamp_welch_solution_ext fun i ↦ ?p₁
+  letI bound := 2 * e + k
+  generalize eq : BerlekampWelchMatrix _ _ _ f = M₁
+  letI leftσ : Finset _ := {j : Fin bound | j < e}
+  letI rightσ : Finset _ := univ (α := Fin bound) \ leftσ
+  generalize eq₁ : ∑ j ∈ leftσ, E.coeff j * (ωs i)^j.1 = σ₁
+  generalize eq₂ : ∑ j ∈ rightσ, Q.coeff (j - e) * -(ωs i)^(j - e) = σ₂
+  calc _ = ∑ j : Fin bound, if ↑j < e
+                            then E.coeff ↑j * M₁ i j
+                            else Q.coeff (↑j - e) * M₁ i j := by
+                              simp [Matrix.mulVec_eq_sum, ite_apply]; rfl
+       _ = f i * σ₁ + σ₂ := by
+        rw [sum_ite]
+        exact eq ▸ eq₁ ▸ eq₂ ▸
+          congr_arg₂ _
+            (by rw [mul_sum]; exact sum_congr rfl fun _ _ ↦ by rw [bwm_of_pos (by aesop)]; ac_rfl)
+            (sum_congr (by aesop) fun j hj ↦ by rw [bwm_of_neg (by aesop)])
+  replace eq₁ : eval (ωs i) E - ωs i ^ e * E.coeff e = σ₁ := calc
+                _ = ∑ i_1 ∈ range (e + 1), E.coeff i_1 * ωs i ^ i_1 - ωs i ^ e * E.coeff e :=
+                  by rw [eval_eq_sum_range, h_E_deg]
+                _ = ∑ x ∈ range e, E.coeff x * ωs i ^ x :=
+                  by rw [sum_range_succ]; ring
+                _ = σ₁ := by rw [←eq₁]; symm
+                             apply sum_nbij (i := Fin.val) <;>
+                               try intros a _; aesop (add safe (by existsi ⟨a, by omega⟩))
+                                                     (add simp Set.InjOn)
+  letI δσ := {j | j < e + k}.toFinset
+  replace eq₂ : -eval (ωs i) Q = σ₂ := calc
+                _              = -∑ j ∈ δσ.attach, ωs i ^ j.1 * Q.coeff j := by
+                  rw [
+                    eval_eq_sum, neg_inj,
+                    sum_eq_of_subset (s := δσ) _ (by simp) fun _ hj ↦
+                      by rw [mem_support_iff, ←ite_le_natDegree_coeff _ _ inferInstance] at hj
+                         aesop (add safe (by omega)),
+                    ←sum_attach
+                  ]
+                  ac_rfl
+                _              = σ₂ := by
+                  simp only [
+                    ←eq₂, mul_neg, sum_neg_distrib, neg_inj, ←sum_attach (s := rightσ)
+                  ]
+                  let F (n : {x // x ∈ δσ}) : {x // x ∈ rightσ} :=
+                    ⟨⟨n.1 + e, by aesop (add safe (by omega))⟩, by aesop⟩
+                  have : Function.Bijective F :=
+                    ⟨
+                      fun _ ↦ by aesop,
+                      fun a ↦ by use ⟨a - e, by aesop (add safe (by omega))⟩; aesop
+                    ⟩
+                  apply sum_bijective F <;> aesop (add safe [(by omega), (by ring)])
+  aesop (add safe (by ring))
 
 open Fin
 open Polynomial
@@ -298,111 +292,104 @@ private lemma solution_to_BerlekampWelch_condition₀ {e : ℕ}
   {v : Fin (2 * e + 0) → F}
   (h_sol : IsBerlekampWelchSolution e 0 ωs f v)
   : BerlekampWelchCondition e 0 ωs f (solution_to_E e 0 v) (solution_to_Q e 0 v) := by
-  sorry
-  -- TODO: The proof below relies heavily on `aesop` which is bugged in `leanprover/lean4:v4.19.0`
-  -- due to a race condition on choosing fresh names.
-  -- There is a fix available:
-  -- https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/aesop.20and.20bv_decide/near/519713897
-  -- TODO(Frantisek): This needs a cleanup anyway.
-
-  -- exact ⟨
-  --   by {
-  --   by_cases he : e = 0 
-  --   subst he 
-  --   intro i
-  --   rw [Polynomial.eval_eq_sum, Polynomial.eval_eq_sum]
-  --   simp [solution_to_E, solution_to_Q, Polynomial.sum]
-  --   simp [IsBerlekampWelchSolution] at h_sol 
-  --   have h_sol : (0 : Fin n → F) i = Rhs 0 ωs f i := by rw [h_sol]
-  --   simp [Rhs] at h_sol 
-  --   rw [h_sol]
-  --   intro i
-  --   symm
-  --   conv =>
-  --     lhs
-  --     rw [Polynomial.eval_eq_sum_range]
-  --     rfl
-  --   rw [Finset.range_succ]
-  --   rw [Finset.sum_insert (by aesop)]
-  --   simp
-  --   rw [Finset.sum_ite_of_false (by aesop)]
-  --   rw [Finset.sum_ite_of_true (by aesop)]
-  --   rw [Polynomial.eval_eq_sum_range' (n := e + 0) 
-  --         (Nat.lt_of_le_of_lt solution_to_Q_natDegree (by omega))]
-  --   simp 
-  --   rw [Finset.sum_ite_of_true (by aesop)]
-  --   simp [IsBerlekampWelchSolution] at h_sol 
-  --   have h_sol : (BerlekampWelchMatrix e 0 ωs f).mulVec v i = Rhs e ωs f i := by
-  --     rw [h_sol]
-  --   simp [BerlekampWelchMatrix, Rhs, Matrix.mulVec, dotProduct] at h_sol 
-  --   have h_aux {a b : F} : a = -b → -a = b := by aesop
-  --   have h_sol := h_aux h_sol 
-  --   rw [mul_add, ←h_sol]
-  --   rw [Finset.sum_ite]
-  --   conv =>
-  --     congr 
-  --     congr 
-  --     congr 
-  --     congr
-  --     rw [Finset.sum_bij
-  --       (t := Finset.range e)
-  --       (g := fun a => f i * (liftF v a * ωs i ^ a))
-  --       (by {
-  --         rintro ⟨a, hfin⟩ ha
-  --         exact a
-  --       })
-  --       (by {
-  --         rintro ⟨a, hfin⟩ ha 
-  --         simp
-  --         simp at ha 
-  --         exact ha
-  --       })
-  --       (by aesop)
-  --       (by {
-  --         intro b hb
-  --         simp 
-  --         exists ⟨b, by {
-  --           aesop (add safe (by omega))
-  --         }⟩
-  --         simp 
-  --         aesop
-  --       })
-  --       (by {
-  --         rintro ⟨a, hfin⟩ ha
-  --         simp [liftF, hfin ]
-  --         ring
-  --       })]
-  --     rfl
-  --     rfl 
-  --     rfl
-  --     rfl
-  --   rw [Finset.mul_sum]
-  --   rw [neg_add, add_comm]
-  --   rw [←add_assoc]
-  --   rw [add_neg_cancel]
-  --   simp 
-  --   apply Finset.sum_bij (by {
-  --     intro a ha 
-  --     exact a.val - e
-  --   })
-  --   · rintro ⟨a, ha⟩
-  --     simp
-  --     omega 
-  --   · aesop (add safe (by omega))
-  --   · intro b hb 
-  --     exists ⟨b + e, by aesop (add safe (by omega))⟩
-  --     aesop
-  --   · rintro ⟨a, hfin⟩ ha 
-  --     simp 
-  --     simp at ha
-  --     simp [liftF]
-  --     aesop (add safe (by ring))
-  --   },
-  --   by simp,
-  --   by simp,
-  --   by {
-  --     apply solution_to_Q_natDegree
-  --   }⟩
+  exact ⟨
+    by {
+    by_cases he : e = 0 
+    subst he 
+    intro i
+    rw [Polynomial.eval_eq_sum, Polynomial.eval_eq_sum]
+    simp [solution_to_E, solution_to_Q, Polynomial.sum]
+    simp [IsBerlekampWelchSolution] at h_sol 
+    have h_sol : (0 : Fin n → F) i = Rhs 0 ωs f i := by rw [h_sol]
+    simp [Rhs] at h_sol 
+    rw [h_sol]
+    intro i
+    symm
+    conv =>
+      lhs
+      rw [Polynomial.eval_eq_sum_range]
+      rfl
+    rw [Finset.range_succ]
+    rw [Finset.sum_insert (by aesop)]
+    simp
+    rw [Finset.sum_ite_of_false (by aesop)]
+    rw [Finset.sum_ite_of_true (by aesop)]
+    rw [Polynomial.eval_eq_sum_range' (n := e + 0) 
+          (Nat.lt_of_le_of_lt solution_to_Q_natDegree (by omega))]
+    simp 
+    rw [Finset.sum_ite_of_true (by aesop)]
+    simp [IsBerlekampWelchSolution] at h_sol 
+    have h_sol : (BerlekampWelchMatrix e 0 ωs f).mulVec v i = Rhs e ωs f i := by
+      rw [h_sol]
+    simp [BerlekampWelchMatrix, Rhs, Matrix.mulVec, dotProduct] at h_sol 
+    have h_aux {a b : F} : a = -b → -a = b := by aesop
+    have h_sol := h_aux h_sol 
+    rw [mul_add, ←h_sol]
+    rw [Finset.sum_ite]
+    conv =>
+      congr 
+      congr 
+      congr 
+      congr
+      rw [Finset.sum_bij
+        (t := Finset.range e)
+        (g := fun a => f i * (liftF v a * ωs i ^ a))
+        (by {
+          rintro ⟨a, hfin⟩ ha
+          exact a
+        })
+        (by {
+          rintro ⟨a, hfin⟩ ha 
+          simp
+          simp at ha 
+          exact ha
+        })
+        (by aesop)
+        (by {
+          intro b hb
+          simp 
+          exists ⟨b, by {
+            aesop (add safe (by omega))
+          }⟩
+          simp 
+          aesop
+        })
+        (by {
+          rintro ⟨a, hfin⟩ ha
+          simp [liftF, hfin ]
+          ring
+        })]
+      rfl
+      rfl 
+      rfl
+      rfl
+    rw [Finset.mul_sum]
+    rw [neg_add, add_comm]
+    rw [←add_assoc]
+    rw [add_neg_cancel]
+    simp 
+    apply Finset.sum_bij (by {
+      intro a ha 
+      exact a.val - e
+    })
+    · rintro ⟨a, ha⟩
+      simp
+      omega 
+    · aesop (add safe (by omega))
+    · intro b hb 
+      exists ⟨b + e, by aesop (add safe (by omega))⟩
+      aesop
+    · rintro ⟨a, hfin⟩ ha 
+      simp 
+      simp at ha
+      simp [liftF]
+      aesop (add safe (by ring))
+    },
+    by simp,
+    by simp,
+    by {
+      apply solution_to_Q_natDegree
+    }⟩
 
 private lemma solution_to_BerlekampWelch_condition {e k : ℕ} 
   [NeZero n] 
@@ -410,103 +397,96 @@ private lemma solution_to_BerlekampWelch_condition {e k : ℕ}
   {v : Fin (2 * e + k) → F}
   (h_sol : IsBerlekampWelchSolution e k ωs f v)
   : BerlekampWelchCondition e k ωs f (solution_to_E e k v) (solution_to_Q e k v) := by
-  sorry
-  -- TODO: The proof below relies heavily on `aesop` which is bugged in `leanprover/lean4:v4.19.0`
-  -- due to a race condition on choosing fresh names.
-  -- There is a fix available:
-  -- https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/aesop.20and.20bv_decide/near/519713897
-  -- TODO(Frantisek): This needs a cleanup anyway.
-
-  -- by_cases hk : 1 ≤ k 
-  -- · exact ⟨by {
-  --   intro i
-  --   symm
-  --   conv =>
-  --     lhs
-  --     rw [Polynomial.eval_eq_sum_range]
-  --     rfl
-  --   rw [Finset.range_succ]
-  --   rw [Finset.sum_insert (by aesop)]
-  --   simp
-  --   rw [Finset.sum_ite_of_false (by aesop)]
-  --   rw [Finset.sum_ite_of_true (by aesop)]
-  --   rw [Polynomial.eval_eq_sum_range' (n := e + k) 
-  --         (Nat.lt_of_le_of_lt solution_to_Q_natDegree (by omega))]
-  --   simp 
-  --   rw [Finset.sum_ite_of_true (by aesop)]
-  --   simp [IsBerlekampWelchSolution] at h_sol 
-  --   have h_sol : (BerlekampWelchMatrix e k ωs f).mulVec v i = Rhs e ωs f i := by
-  --     rw [h_sol]
-  --   simp [BerlekampWelchMatrix, Rhs, Matrix.mulVec, dotProduct] at h_sol 
-  --   have h_aux {a b : F} : a = -b → -a = b := by aesop
-  --   have h_sol := h_aux h_sol 
-  --   rw [mul_add, ←h_sol]
-  --   rw [Finset.sum_ite]
-  --   conv =>
-  --     congr 
-  --     congr 
-  --     congr 
-  --     congr
-  --     rw [Finset.sum_bij
-  --       (t := Finset.range e)
-  --       (g := fun a => f i * (liftF v a * ωs i ^ a))
-  --       (by {
-  --         rintro ⟨a, hfin⟩ ha
-  --         exact a
-  --       })
-  --       (by {
-  --         rintro ⟨a, hfin⟩ ha 
-  --         simp
-  --         simp at ha 
-  --         exact ha
-  --       })
-  --       (by aesop)
-  --       (by {
-  --         intro b hb
-  --         simp 
-  --         exists ⟨b, by {
-  --           aesop (add safe (by omega))
-  --         }⟩
-  --         simp 
-  --         aesop
-  --       })
-  --       (by {
-  --         rintro ⟨a, hfin⟩ ha
-  --         simp [liftF, hfin ]
-  --         ring
-  --       })]
-  --     rfl
-  --     rfl 
-  --     rfl
-  --     rfl
-  --   rw [Finset.mul_sum]
-  --   rw [neg_add, add_comm]
-  --   rw [←add_assoc]
-  --   rw [add_neg_cancel]
-  --   simp 
-  --   apply Finset.sum_bij (by {
-  --     intro a ha 
-  --     exact a.val - e
-  --   })
-  --   · rintro ⟨a, ha⟩
-  --     simp
-  --     omega 
-  --   · aesop (add safe (by omega))
-  --   · intro b hb 
-  --     exists ⟨b + e, by aesop (add safe (by omega))⟩
-  --     aesop
-  --   · rintro ⟨a, hfin⟩ ha 
-  --     simp 
-  --     simp at ha
-  --     simp [liftF]
-  --     aesop (add safe (by ring))
-  -- }, 
-  -- by simp,
-  -- by simp,
-  -- by simp⟩
-  -- · simp at hk 
-  --   subst hk
-  --   apply solution_to_BerlekampWelch_condition₀ h_sol
+  by_cases hk : 1 ≤ k 
+  · exact ⟨by {
+    intro i
+    symm
+    conv =>
+      lhs
+      rw [Polynomial.eval_eq_sum_range]
+      rfl
+    rw [Finset.range_succ]
+    rw [Finset.sum_insert (by aesop)]
+    simp
+    rw [Finset.sum_ite_of_false (by aesop)]
+    rw [Finset.sum_ite_of_true (by aesop)]
+    rw [Polynomial.eval_eq_sum_range' (n := e + k) 
+          (Nat.lt_of_le_of_lt solution_to_Q_natDegree (by omega))]
+    simp 
+    rw [Finset.sum_ite_of_true (by aesop)]
+    simp [IsBerlekampWelchSolution] at h_sol 
+    have h_sol : (BerlekampWelchMatrix e k ωs f).mulVec v i = Rhs e ωs f i := by
+      rw [h_sol]
+    simp [BerlekampWelchMatrix, Rhs, Matrix.mulVec, dotProduct] at h_sol 
+    have h_aux {a b : F} : a = -b → -a = b := by aesop
+    have h_sol := h_aux h_sol 
+    rw [mul_add, ←h_sol]
+    rw [Finset.sum_ite]
+    conv =>
+      congr 
+      congr 
+      congr 
+      congr
+      rw [Finset.sum_bij
+        (t := Finset.range e)
+        (g := fun a => f i * (liftF v a * ωs i ^ a))
+        (by {
+          rintro ⟨a, hfin⟩ ha
+          exact a
+        })
+        (by {
+          rintro ⟨a, hfin⟩ ha 
+          simp
+          simp at ha 
+          exact ha
+        })
+        (by aesop)
+        (by {
+          intro b hb
+          simp 
+          exists ⟨b, by {
+            aesop (add safe (by omega))
+          }⟩
+          simp 
+          aesop
+        })
+        (by {
+          rintro ⟨a, hfin⟩ ha
+          simp [liftF, hfin ]
+          ring
+        })]
+      rfl
+      rfl 
+      rfl
+      rfl
+    rw [Finset.mul_sum]
+    rw [neg_add, add_comm]
+    rw [←add_assoc]
+    rw [add_neg_cancel]
+    simp 
+    apply Finset.sum_bij (by {
+      intro a ha 
+      exact a.val - e
+    })
+    · rintro ⟨a, ha⟩
+      simp
+      omega 
+    · aesop (add safe (by omega))
+    · intro b hb 
+      exists ⟨b + e, by aesop (add safe (by omega))⟩
+      aesop
+    · rintro ⟨a, hfin⟩ ha 
+      simp 
+      simp at ha
+      simp [liftF]
+      aesop (add safe (by ring))
+  }, 
+  by simp,
+  by simp,
+  by simp⟩
+  · simp at hk 
+    subst hk
+    apply solution_to_BerlekampWelch_condition₀ h_sol
 
 theorem BerlekampWelchCondition_iff_Solution {e k : ℕ} [NeZero n]
   {ωs f : Fin n → F} {v : Fin (2 * e + k) → F} 
@@ -597,57 +577,50 @@ lemma E_and_Q_unique
   (h_bw₁ : BerlekampWelchCondition e k ωs f E Q)
   (h_bw₂ : BerlekampWelchCondition e k ωs f E' Q')
 : E * Q' = E' * Q := by
-  sorry
-  -- TODO: The proof below relies heavily on `aesop` which is bugged in `leanprover/lean4:v4.19.0`
-  -- due to a race condition on choosing fresh names.
-  -- There is a fix available:
-  -- https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/aesop.20and.20bv_decide/near/519713897
-  -- TODO(Frantisek): This needs a cleanup anyway.
-  
-  -- let R := E * Q' - E' * Q
-  -- have hr_deg : R.natDegree ≤ 2 * e + k - 1 := by
-  --   simp [R]
-  --   apply Nat.le_trans (natDegree_add_le _ _)
-  --   simp  [
-  --     natDegree_mul 
-  --       (BerlekampWelch_E_ne_0 h_bw₁) 
-  --       h_Q',
-  --     natDegree_neg,
-  --     natDegree_mul 
-  --       (BerlekampWelch_E_ne_0 h_bw₂)
-  --       h_Q
-  --     ]
-  --   aesop 
-  --     (add simp [Nat.max_le, h_bw₁.E_natDegree, h_bw₂.E_natDegree])
-  --     (add safe forward (h_bw₁.Q_natDegree))
-  --     (add safe forward (h_bw₂.Q_natDegree))
-  --     (add safe (by omega))
-  -- by_cases hr : R = 0 
-  -- · rw [←add_zero (E' * Q)
-  --      , ←hr]
-  --   ring
-  -- · let roots := Multiset.ofList <| List.map ωs  
-  --       (List.finRange n)
-  --   have hsub : (⟨roots, by 
-  --       rw [Multiset.coe_nodup, List.nodup_map_iff h_inj]        
-  --        ;
-  --       aesop 
-  --         (add simp [Multiset.coe_nodup])
-  --         (add simp [List.Nodup, List.pairwise_iff_get])
-  --     ⟩ : Finset F).val ⊆ R.roots := by
-  --     {
-  --       intro x hx
-  --       aesop 
-  --         (add simp [mem_roots, roots, R, h_bw₁.cond, h_bw₂.cond])
-  --         (add safe (by ring))
-  --     }
-  --   have hcard := card_le_degree_of_subset_roots hsub
-  --   by_cases hk : 1 ≤ k 
-  --   · aesop (add safe (by omega))
-  --   · simp at hk 
-  --     by_cases he: e = 0
-  --     · aesop
-  --     · aesop (add safe (by omega))
+  let R := E * Q' - E' * Q
+  have hr_deg : R.natDegree ≤ 2 * e + k - 1 := by
+    simp [R]
+    apply Nat.le_trans (natDegree_add_le _ _)
+    simp  [
+      natDegree_mul 
+        (BerlekampWelch_E_ne_0 h_bw₁) 
+        h_Q',
+      natDegree_neg,
+      natDegree_mul 
+        (BerlekampWelch_E_ne_0 h_bw₂)
+        h_Q
+      ]
+    aesop 
+      (add simp [Nat.max_le, h_bw₁.E_natDegree, h_bw₂.E_natDegree])
+      (add safe forward (h_bw₁.Q_natDegree))
+      (add safe forward (h_bw₂.Q_natDegree))
+      (add safe (by omega))
+  by_cases hr : R = 0 
+  · rw [←add_zero (E' * Q)
+       , ←hr]
+    ring
+  · let roots := Multiset.ofList <| List.map ωs  
+        (List.finRange n)
+    have hsub : (⟨roots, by 
+        rw [Multiset.coe_nodup, List.nodup_map_iff h_inj]        
+         ;
+        aesop 
+          (add simp [Multiset.coe_nodup])
+          (add simp [List.Nodup, List.pairwise_iff_get])
+      ⟩ : Finset F).val ⊆ R.roots := by
+      {
+        intro x hx
+        aesop 
+          (add simp [mem_roots, roots, R, h_bw₁.cond, h_bw₂.cond])
+          (add safe (by ring))
+      }
+    have hcard := card_le_degree_of_subset_roots hsub
+    by_cases hk : 1 ≤ k 
+    · aesop (add safe (by omega))
+    · simp at hk 
+      by_cases he: e = 0
+      · aesop
+      · aesop (add safe (by omega))
 
 end
 
