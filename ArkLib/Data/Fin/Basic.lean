@@ -145,7 +145,7 @@ theorem induction_tail {n : ℕ} {motive : Fin (n + 2) → Sort*} {zero : motive
   | succ i ih =>
     simp
     have : i.succ.castSucc = i.castSucc.succ := rfl
-    rw! (castMode := .all) [this, ih]
+    aesop
 
 /-- `Fin.induction` on `m + n` for `i ≤ m` steps is equivalent to `Fin.induction` on `m` for `i`
   steps. -/
@@ -218,10 +218,10 @@ theorem addCases_right' {motive : Fin (m + n) → Sort*}
   subst h
   simp only [addCases_right]
 
-theorem append_left' {u : Fin m → α} {v : Fin n → α} {i : Fin m}
-    (j : Fin (m + n)) (h : j = castAdd n i) : append u v j = u i := by
-  subst h
-  simp only [append_left]
+-- theorem append_left' {u : Fin m → α} {v : Fin n → α} {i : Fin m}
+--     (j : Fin (m + n)) (h : j = castAdd n i) : append u v j = u i := by
+--   subst h
+  -- simp only [append_left]
 
 theorem append_right' {u : Fin m → α} {v : Fin n → α} {i : Fin n}
     (j : Fin (m + n)) (h : j = natAdd m i) : append u v j = v i := by

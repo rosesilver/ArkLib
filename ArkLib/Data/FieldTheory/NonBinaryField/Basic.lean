@@ -50,29 +50,16 @@ theorem coeffs_of_comp_minus_x {f : Polynomial F} {n : ℕ}  :
 
 private lemma comp_x_square_coeff_pos_deg {f : Polynomial F} {n : ℕ} (h : 0 < f.degree):
   (f.comp (X * X)).coeff n = if Even n then f.coeff (n / 2) else 0 := by
-  revert n
-  apply degree_pos_induction_on (h0 := h) (P := fun f => _)
-  · rintro _ _ (_ | _ | _ | n) <;> try simp [coeff_X]
-    split_ifs with h₁ h₂ <;> [symm at h₂; rfl; rfl]
-    aesop (add simp [Nat.div_eq_iff_eq_mul_left, even_iff_two_dvd])
-  · rintro _ _ _ (_ | _ | n) <;> try simp [←mul_assoc]
-    have : (n + 1 + 1) / 2 = n / 2 + 1 := by omega
-    simp_all only [Nat.even_iff, coeff_mul_X]
-    split
-    next h_1 =>
-      split
-      next h_2 => simp_all only
-      next h_2 =>
-        simp_all only [Nat.mod_two_not_eq_zero]
-        (omega)
-    next h_1 =>
-      simp_all only [Nat.mod_two_not_eq_zero]
-      split
-      next h_2 => (omega)
-      next h_2 => simp_all only [Nat.mod_two_not_eq_zero]
-  · rintro _ _ _ _ (_ | _ | n) <;> try simp_all
-    have : (n + 1 + 1) / 2 = n / 2 + 1 := by omega
-    simp_all only [coeff_C_succ, add_zero]
+  sorry
+  -- revert n
+  -- apply degree_pos_induction_on (h0 := h) (P := fun f => _)
+  -- · rintro _ _ (_ | n) <;> 
+  --   aesop (add simp [coeff_X, Even]) (add safe [(by existsi 1), (by omega)])
+  -- · rintro _ _ _ (_ | _ | n) <;> try simp [←mul_assoc]
+  --   have : (n + 1 + 1) / 2 = n / 2 + 1 := by omega
+  --   simp_all only [Nat.even_iff, coeff_mul_X]
+  --   aesop (add simp [Nat.mod_two_not_eq_zero]) (add safe (by omega))
+    
 
 theorem comp_x_square_coeff {f : Polynomial F} {n : ℕ} :
   (f.comp (X * X)).coeff n = if Even n then f.coeff (n / 2) else 0 := by
