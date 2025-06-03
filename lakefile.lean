@@ -10,6 +10,8 @@ Many of these configs are taken from mathlib
 
 require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.21.0-rc1"
 
+-- don't need to specify this, since VCV already imports mathlib
+-- require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.20.0"
 
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "v4.21.0-rc1"
 
