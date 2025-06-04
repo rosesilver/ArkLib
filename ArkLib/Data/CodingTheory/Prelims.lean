@@ -7,6 +7,7 @@ Authors: Katerina Hristova, František Silváši, Julian Sutherland
 import Mathlib.Algebra.Lie.OfAssociative
 import Mathlib.Data.Matrix.Rank
 import Mathlib.LinearAlgebra.AffineSpace.AffineSubspace.Defs
+import ArkLib.Data.Fin.Basic
 
 noncomputable section
 
@@ -95,7 +96,7 @@ open Polynomial
 
 variable {F : Type*}
 
-lemma natDegree_lt_of_lbounded_zero_coeff [Semiring F] {p : F[X]} {deg : ℕ}
+lemma natDegree_lt_of_lbounded_zero_coeff [Semiring F] {p : F[X]} {deg : ℕ} [NeZero deg]
   (h : ∀ i, deg ≤ i → p.coeff i = 0) : p.natDegree < deg := by
   aesop (add unsafe [(by by_contra), (by specialize h p.natDegree)])
 
@@ -111,22 +112,24 @@ def coeffsOfPolynomial [Semiring F] {deg : ℕ} (p : F[X]) : Fin deg → F :=
 
 @[simp]
 lemma natDegree_polynomialOfCoeffs_deg_lt_deg
-  [DecidableEq F] [Semiring F] {deg : ℕ} {coeffs : Fin deg → F} :
+  [DecidableEq F] [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
   (polynomialOfCoeffs coeffs).natDegree < deg := by
   aesop (add simp polynomialOfCoeffs)
         (add safe apply natDegree_lt_of_lbounded_zero_coeff)
 
 @[simp]
 lemma degree_polynomialOfCoeffs_deg_lt_deg
-  [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  [DecidableEq F] [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
   (polynomialOfCoeffs coeffs).degree < deg := by
   aesop (add simp [polynomialOfCoeffs, degree_lt_iff_coeff_zero])
 
 @[simp]
 lemma coeff_polynomialOfCoeffs_eq_coeffs
-  [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
+  [DecidableEq F] [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
   Fin.liftF' (polynomialOfCoeffs coeffs).coeff = coeffs := by
   aesop (add simp [Fin.liftF', polynomialOfCoeffs])
+
+variable [DecidableEq F]
 
 lemma coeff_polynomialOfCoeffs_eq_coeffs'
   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
