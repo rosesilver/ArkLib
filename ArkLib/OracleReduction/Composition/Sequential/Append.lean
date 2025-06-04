@@ -8,23 +8,18 @@ import ArkLib.OracleReduction.Composition.Sequential.ProtocolSpec
 import ArkLib.OracleReduction.Security.Basic
 
 /-!
-  # Sequential Composition of Oracle Reductions
+  # Sequential Composition of Two (Oracle) Reductions
 
-  We define the composition of two or more interactive (oracle) reductions, where the output
-  statement & witness types for one reduction is the same as the input statement & witness types for
-  the next.
+  This file gives the definition & properties of the sequential composition of two (oracle)
+  reductions. For composition to be valid, we need that the output context (statement + oracle
+  statement + witness) for the first (oracle) reduction is the same as the input context for the
+  second (oracle) reduction.
 
-  This is defined in two steps:
-  1. First, we define the concatenation of two reductions, one from R1 => R2 and the other from R2
-     => R3.
-  2. Then, we define the general composition of `m + 1` reductions, indexed by `i : Fin (m + 1)`, by
-     iterating the concatenation of two reductions.
+  We have refactored the composition logic for `ProtocolSpec` and its associated structures into
+  `ProtocolSpec.lean`, and we will use the definitions from there.
 
-  For the definitions of composition for `ProtocolSpec` and their associated functions, see
-  `ProtocolSpec.lean`.
-
-  We also prove that the composition of reductions preserve all completeness & soundness properties
-  of the reductions being composed.
+  We will prove that the composition of reductions preserve all completeness & soundness properties
+  of the reductions being composed (with extra conditions on the extractor).
 -/
 
 section find_home
@@ -43,33 +38,6 @@ lemma evalDist_cast (h : α = β) [spec.FiniteRange] :
 end find_home
 
 open ProtocolSpec
-
-section Cast
-
--- Dependent casts across `ProtocolSpec`s for the `(Oracle)Prover`, `(Oracle)Verifier`, and
--- `(Oracle)Reduction` types
-
-/-- To cast the verifier, we only need to cast the transcript. -/
-def Verifier.cast {m n : ℕ} {pSpec : ProtocolSpec m} {pSpec' : ProtocolSpec n}
-    {ι : Type} {oSpec : OracleSpec ι} {StmtIn StmtOut : Type}
-    (h : m = n) (hSpec : dcast h pSpec = pSpec')
-    (V : Verifier pSpec oSpec StmtIn StmtOut) :
-    Verifier pSpec' oSpec StmtIn StmtOut where
-  verify := fun stmt transcript => V.verify stmt (dcast₂ h.symm (dcast_symm h hSpec) transcript)
-
-@[simp]
-def Verifier.cast_id {n} {pSpec : ProtocolSpec n}
-    {ι : Type} {oSpec : OracleSpec ι} {StmtIn StmtOut : Type}
-    (V : Verifier pSpec oSpec StmtIn StmtOut) :
-      V.cast rfl rfl = V := by
-  ext; simp [Verifier.cast]
-
-instance instDepCast₂Verifier {ι : Type} {oSpec : OracleSpec ι} {StmtIn StmtOut : Type} :
-    DepCast₂ Nat ProtocolSpec (fun _ pSpec => Verifier pSpec oSpec StmtIn StmtOut) where
-  dcast₂ := Verifier.cast
-  dcast₂_id := by intros; funext; simp
-
-end Cast
 
 variable {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n} {ι : Type} [DecidableEq ι]
     {oSpec : OracleSpec ι} {Stmt₁ Wit₁ Stmt₂ Wit₂ Stmt₃ Wit₃ : Type}
@@ -294,89 +262,77 @@ def OracleReduction.append (R₁ : OracleReduction pSpec₁ oSpec Stmt₁ Wit₁
   prover := Prover.append R₁.prover R₂.prover
   verifier := OracleVerifier.append R₁.verifier R₂.verifier
 
-section GeneralComposition
+namespace Verifier
 
-section Instances
+/-! Sequential composition of extractors and state functions
 
-variable {m : ℕ} {n : Fin (m + 1) → ℕ} {pSpec : ∀ i, ProtocolSpec (n i)}
+These have the following form: they needs to know the first verifier, and derive the intermediate
+statement from running the first verifier on the first statement.
 
-/-- If all protocols have sampleable challenges, then the challenges of their sequential
-  composition also have sampleable challenges. -/
-instance [h : ∀ i, ∀ j, Sampleable ((pSpec i).Challenge j)] :
-    ∀ j, Sampleable ((compose m n pSpec).Challenge j) := fun ⟨⟨i, isLt⟩, h⟩ => by
-  dsimp [ProtocolSpec.compose, Fin.append, Fin.addCases, Fin.castLT, Fin.subNat, Fin.cast] at h ⊢
-  sorry
-  -- by_cases h' : i < m <;> simp [h'] at h ⊢
-  -- · exact h₁ ⟨⟨i, by omega⟩, h⟩
-  -- · exact h₂ ⟨⟨i - m, by omega⟩, h⟩
+This leads to complications: the verifier is assumed to be a general `OracleComp oSpec`, and so
+we also need to have the extractors and state functions to be similarly `OracleComp`s.
 
-/-- If all protocols' messages have oracle interfaces, then the messages of their sequential
-  composition also have oracle interfaces. -/
-instance [O : ∀ i, ∀ j, OracleInterface ((pSpec i).Message j)] :
-    ∀ i, OracleInterface ((compose m n pSpec).Message i) := fun ⟨⟨i, isLt⟩, h⟩ => by
-  dsimp [ProtocolSpec.compose, ProtocolSpec.getDir, Fin.append, Fin.addCases,
-    Fin.castLT, Fin.subNat, Fin.cast] at h ⊢
-  sorry
-  -- by_cases h' : i < m <;> simp [h'] at h ⊢
-  -- · exact O₁ ⟨⟨i, by omega⟩, h⟩
-  -- · exact O₂ ⟨⟨i - m, by omega⟩, h⟩
+The alternative is to consider a fully deterministic (and non-failing) verifier. The non-failing
+part is somewhat problematic as we write our verifiers to be able to fail (i.e. implicit failing
+via `guard` statements).
 
--- open OracleComp OracleSpec SubSpec
+As such, the definitions below are temporary until further development. -/
 
--- variable [∀ i, ∀ j, Sampleable ((pSpec i).Challenge j)]
+/-- The sequential composition of two straightline extractors.
 
--- instance : SubSpec (challengeOracle pSpec₁ ++ₒ challengeOracle pSpec₂)
---     (challengeOracle (compose m n pSpec)) := sorry
+TODO: state a monotone condition on the extractor, namely that if extraction succeeds on a given
+query log, then it also succeeds on any extension of that query log -/
+def StraightlineExtractor.append (E₁ : StraightlineExtractor pSpec₁ oSpec Stmt₁ Wit₁ Wit₂)
+    (E₂ : StraightlineExtractor pSpec₂ oSpec Stmt₂ Wit₂ Wit₃)
+    (V₁ : Verifier pSpec₁ oSpec Stmt₁ Stmt₂) :
+      StraightlineExtractor (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ Wit₃ :=
+  fun wit₃ stmt₁ transcript proveQueryLog verifyQueryLog => do
+    let stmt₂ ← V₁.verify stmt₁ transcript.fst
+    let wit₂ ← E₂ wit₃ stmt₂ transcript.snd proveQueryLog verifyQueryLog
+    let wit₁ ← E₁ wit₂ stmt₁ transcript.fst proveQueryLog verifyQueryLog
+    return wit₁
 
-end Instances
+/-- The round-by-round extractor for the sequential composition of two (oracle) reductions
 
-def Prover.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, ProtocolSpec (n i))
-    (Stmt : Fin (m + 2) → Type) (Wit : Fin (m + 2) → Type)
-    (P : (i : Fin (m + 1)) → Prover (pSpec i) oSpec (Stmt i.castSucc) (Wit i.castSucc)
-      (Stmt i.succ) (Wit i.succ)) :
-      Prover (ProtocolSpec.compose m n pSpec) oSpec (Stmt 0) (Wit 0) (Stmt (Fin.last (m + 1)))
-        (Wit (Fin.last (m + 1))) :=
-  Fin.dfoldl m
-    (fun i => Prover
-      (ProtocolSpec.compose i (Fin.take (i + 1) (by omega) n) (Fin.take (i + 1) (by omega) pSpec))
-        oSpec (Stmt 0) (Wit 0) (Stmt i.succ) (Wit i.succ))
-    (fun i Pacc => by
-      convert Prover.append Pacc (P i.succ)
-      · simp [Fin.sum_univ_castSucc, Fin.last, Fin.succ]
-      · simp [ProtocolSpec.compose_append, dcast_eq_root_cast])
-    (by simpa using P 0)
+The nice thing is we just extend the first extractor to the concatenated protocol. The intuition is
+that RBR extraction happens on the very first message, so further messages don't matter. -/
+def RBRExtractor.append (E₁ : RBRExtractor pSpec₁ oSpec Stmt₁ Wit₁) :
+      RBRExtractor (pSpec₁ ++ₚ pSpec₂) oSpec Stmt₁ Wit₁ :=
+  -- (TODO: describe `Transcript.fst` and `Transcript.snd`)
+  fun roundIdx stmt₁ transcript proveQueryLog =>
+    E₁ ⟨min roundIdx m, by omega⟩ stmt₁ transcript.fst proveQueryLog
 
-def Verifier.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, ProtocolSpec (n i))
-    (Stmt : Fin (m + 2) → Type)
-    (V : (i : Fin (m + 1)) → Verifier (pSpec i) oSpec (Stmt i.castSucc) (Stmt i.succ)) :
-      Verifier (ProtocolSpec.compose m n pSpec) oSpec (Stmt 0) (Stmt (Fin.last (m + 1))) :=
-  Fin.dfoldl m
-    (fun i => Verifier
-      (ProtocolSpec.compose i (Fin.take (i + 1) (by omega) n) (Fin.take (i + 1) (by omega) pSpec))
-        oSpec (Stmt 0) (Stmt i.succ))
-    (fun i Vacc => by
-      refine dcast₂ (self := instDepCast₂Verifier) ?_ ?_ (Vacc.append (V i.succ))
-      · simp [Fin.sum_univ_castSucc, Fin.last, Fin.succ]
-      · simp [ProtocolSpec.compose_append, dcast_eq_root_cast])
-    (by simpa using V 0)
+variable {lang₁ : Set Stmt₁} {lang₂ : Set Stmt₂} {lang₃ : Set Stmt₃}
 
-def Reduction.compose (m : ℕ) (n : Fin (m + 1) → ℕ) (pSpec : ∀ i, ProtocolSpec (n i))
-    (Stmt : Fin (m + 2) → Type) (Wit : Fin (m + 2) → Type)
-    (R : (i : Fin (m + 1)) → Reduction (pSpec i) oSpec (Stmt i.castSucc) (Wit i.castSucc)
-      (Stmt i.succ) (Wit i.succ)) :
-      Reduction (ProtocolSpec.compose m n pSpec) oSpec (Stmt 0) (Wit 0) (Stmt (Fin.last (m + 1)))
-        (Wit (Fin.last (m + 1))) :=
-  Fin.dfoldl m
-    (fun i => Reduction
-      (ProtocolSpec.compose i (Fin.take (i + 1) (by omega) n) (Fin.take (i + 1) (by omega) pSpec))
-        oSpec (Stmt 0) (Wit 0) (Stmt i.succ) (Wit i.succ))
-    (fun i Racc => by
-      convert Reduction.append Racc (R i.succ)
-      · simp [Fin.sum_univ_castSucc, Fin.last, Fin.succ]
-      · simp [ProtocolSpec.compose_append, dcast_eq_root_cast])
-    (by simpa using R 0)
+example {a b : ℕ} (h : a < b) : min b a = a := by exact min_eq_right_of_lt h
 
-end GeneralComposition
+/-- The sequential composition of two state functions. -/
+def StateFunction.append [oSpec.FiniteRange]
+    (V₁ : Verifier pSpec₁ oSpec Stmt₁ Stmt₂)
+    (V₂ : Verifier pSpec₂ oSpec Stmt₂ Stmt₃)
+    (S₁ : StateFunction pSpec₁ oSpec lang₁ lang₂ V₁)
+    (S₂ : StateFunction pSpec₂ oSpec lang₂ lang₃ V₂)
+    -- Assume the first verifier is deterministic for now
+    (verify : Stmt₁ → pSpec₁.FullTranscript → Stmt₂)
+    (hVerify : V₁ = ⟨fun stmt tr => pure (verify stmt tr)⟩) :
+      StateFunction (pSpec₁ ++ₚ pSpec₂) oSpec lang₁ lang₃ (V₁.append V₂) where
+  toFun := fun roundIdx stmt₁ transcript =>
+    if h : roundIdx.val ≤ m then
+    -- If the round index falls in the first protocol, then we simply invokes the first state fn
+      S₁ ⟨roundIdx, by omega⟩ stmt₁ (by simpa [h] using transcript.fst)
+    else
+    -- If the round index falls in the second protocol, then we returns the conjunction of
+    -- the first state fn on the first protocol's transcript, and the second state fn on the
+    -- remaining transcript.
+      S₁ ⟨m, by omega⟩ stmt₁ (by simp at h; simpa [min_eq_right_of_lt h] using transcript.fst) ∧
+      S₂ ⟨roundIdx - m, by omega⟩ (verify stmt₁
+        (by simp at h; simpa [min_eq_right_of_lt h] using transcript.fst))
+        (by simpa [h] using transcript.snd)
+  toFun_empty := sorry
+  toFun_next := sorry
+  toFun_full := sorry
+
+end Verifier
 
 section Execution
 
@@ -409,14 +365,14 @@ section Security
 
 open scoped NNReal
 
-namespace Reduction
-
 section Append
 
 variable {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n} [∀ i, Sampleable (pSpec₁.Challenge i)]
     [∀ i, Sampleable (pSpec₂.Challenge i)] {Stmt₁ Wit₁ Stmt₂ Wit₂ Stmt₃ Wit₃ : Type}
     {rel₁ : Stmt₁ → Wit₁ → Prop} {rel₂ : Stmt₂ → Wit₂ → Prop} {rel₃ : Stmt₃ → Wit₃ → Prop}
     [oSpec.DecidableEq] [oSpec.FiniteRange]
+
+namespace Reduction
 
 /-- If two reductions satisfy completeness with compatible relations (`rel₁`, `rel₂` for `R₁` and
     `rel₂`, `rel₃` for `R₂`), and respective completeness errors `completenessError₁` and
@@ -441,31 +397,83 @@ theorem perfectCompleteness_append (R₁ : Reduction pSpec₁ oSpec Stmt₁ Wit�
   convert Reduction.completeness_append R₁ R₂ h₁ h₂
   simp only [add_zero]
 
-end Append
+variable {R₁ : Reduction pSpec₁ oSpec Stmt₁ Wit₁ Stmt₂ Wit₂}
+  {R₂ : Reduction pSpec₂ oSpec Stmt₂ Wit₂ Stmt₃ Wit₃}
 
-section GeneralComposition
-
-variable {m : ℕ} {n : Fin (m + 1) → ℕ} {pSpec : ∀ i, ProtocolSpec (n i)}
-    [∀ i, ∀ j, Sampleable ((pSpec i).Challenge j)]
-    {Stmt : Fin (m + 2) → Type} {Wit : Fin (m + 2) → Type} {rel : ∀ i, Stmt i → Wit i → Prop}
-    [oSpec.DecidableEq] [oSpec.FiniteRange]
-
-theorem completeness_compose
-    (R : ∀ i, Reduction (pSpec i) oSpec (Stmt i.castSucc) (Wit i.castSucc)
-      (Stmt i.succ) (Wit i.succ))
-    (completenessError : Fin (m + 1) → ℝ≥0)
-    (h : ∀ i, (R i).completeness (rel i.castSucc) (rel i.succ) (completenessError i)) :
-      (Reduction.compose m n pSpec Stmt Wit R).completeness (rel 0) (rel (Fin.last (m + 1)))
-        (∑ i, completenessError i) := by
-  induction m with
-  | zero =>
-    simp_all; convert h 0; sorry
-  | succ m ih =>
-    sorry
-
-
-end GeneralComposition
+-- Synthesization issues...
+-- So maybe no synthesization but simp is fine? Maybe not...
+-- instance [R₁.IsComplete rel₁ rel₂] [R₂.IsComplete rel₂ rel₃] :
+--     (R₁.append R₂).IsComplete rel₁ rel₃ := by sorry
 
 end Reduction
+
+namespace Verifier
+
+/-- If two verifiers satisfy soundness with compatible languages and respective soundness errors,
+    then their sequential composition also satisfies soundness.
+    The soundness error of the appended verifier is the sum of the individual errors. -/
+theorem append_soundness (V₁ : Verifier pSpec₁ oSpec Stmt₁ Stmt₂)
+    (V₂ : Verifier pSpec₂ oSpec Stmt₂ Stmt₃)
+    (langIn₁ : Set Stmt₁) (langOut₁ : Set Stmt₂)
+    (langIn₂ : Set Stmt₂) (langOut₂ : Set Stmt₃)
+    {soundnessError₁ soundnessError₂ : ℝ≥0}
+    (h₁ : V₁.soundness langIn₁ langOut₁ soundnessError₁)
+    (h₂ : V₂.soundness langIn₂ langOut₂ soundnessError₂) :
+      (V₁.append V₂).soundness langIn₁ langOut₂ (soundnessError₁ + soundnessError₂) := by
+  sorry
+
+/-- If two verifiers satisfy knowledge soundness with compatible relations and respective knowledge
+    errors, then their sequential composition also satisfies knowledge soundness.
+    The knowledge error of the appended verifier is the sum of the individual errors. -/
+theorem append_knowledgeSoundness (V₁ : Verifier pSpec₁ oSpec Stmt₁ Stmt₂)
+    (V₂ : Verifier pSpec₂ oSpec Stmt₂ Stmt₃)
+    (relIn₁ : Stmt₁ → Wit₁ → Prop) (relOut₁ : Stmt₂ → Wit₂ → Prop)
+    (relIn₂ : Stmt₂ → Wit₂ → Prop) (relOut₂ : Stmt₃ → Wit₃ → Prop)
+    {knowledgeError₁ knowledgeError₂ : ℝ≥0}
+    (h₁ : V₁.knowledgeSoundness relIn₁ relOut₁ knowledgeError₁)
+    (h₂ : V₂.knowledgeSoundness relIn₂ relOut₂ knowledgeError₂) :
+      (V₁.append V₂).knowledgeSoundness relIn₁ relOut₂ (knowledgeError₁ + knowledgeError₂) := by
+  sorry
+
+/-- If two verifiers satisfy round-by-round soundness with compatible languages and respective RBR
+    soundness errors, then their sequential composition also satisfies round-by-round soundness.
+    The RBR soundness error of the appended verifier extends the individual errors appropriately. -/
+theorem append_rbrSoundness (V₁ : Verifier pSpec₁ oSpec Stmt₁ Stmt₂)
+    (V₂ : Verifier pSpec₂ oSpec Stmt₂ Stmt₃)
+    (langIn₁ : Set Stmt₁) (langOut₁ : Set Stmt₂)
+    (langIn₂ : Set Stmt₂) (langOut₂ : Set Stmt₃)
+    {rbrSoundnessError₁ : pSpec₁.ChallengeIdx → ℝ≥0}
+    {rbrSoundnessError₂ : pSpec₂.ChallengeIdx → ℝ≥0}
+    (h₁ : V₁.rbrSoundness langIn₁ langOut₁ rbrSoundnessError₁)
+    (h₂ : V₂.rbrSoundness langIn₂ langOut₂ rbrSoundnessError₂)
+    -- Deterministic verifier condition for state function composition (placeholder for now)
+    (verify₁ : Stmt₁ → pSpec₁.FullTranscript → Stmt₂)
+    (hVerify₁ : V₁ = ⟨fun stmt tr => pure (verify₁ stmt tr)⟩) :
+      (V₁.append V₂).rbrSoundness langIn₁ langOut₂
+        (Sum.elim rbrSoundnessError₁ rbrSoundnessError₂ ∘ ChallengeIdx.sumEquiv.symm) := by
+  sorry
+
+/-- If two verifiers satisfy round-by-round knowledge soundness with compatible relations and
+    respective RBR knowledge errors, then their sequential composition also satisfies
+    round-by-round knowledge soundness.
+    The RBR knowledge error of the appended verifier extends the individual errors appropriately. -/
+theorem append_rbrKnowledgeSoundness (V₁ : Verifier pSpec₁ oSpec Stmt₁ Stmt₂)
+    (V₂ : Verifier pSpec₂ oSpec Stmt₂ Stmt₃)
+    (relIn₁ : Stmt₁ → Wit₁ → Prop) (relOut₁ : Stmt₂ → Wit₂ → Prop)
+    (relIn₂ : Stmt₂ → Wit₂ → Prop) (relOut₂ : Stmt₃ → Wit₃ → Prop)
+    {rbrKnowledgeError₁ : pSpec₁.ChallengeIdx → ℝ≥0}
+    {rbrKnowledgeError₂ : pSpec₂.ChallengeIdx → ℝ≥0}
+    (h₁ : V₁.rbrKnowledgeSoundness relIn₁ relOut₁ rbrKnowledgeError₁)
+    (h₂ : V₂.rbrKnowledgeSoundness relIn₂ relOut₂ rbrKnowledgeError₂)
+    -- Deterministic verifier condition for state function composition (placeholder for now)
+    (verify₁ : Stmt₁ → pSpec₁.FullTranscript → Stmt₂)
+    (hVerify₁ : V₁ = ⟨fun stmt tr => pure (verify₁ stmt tr)⟩) :
+      (V₁.append V₂).rbrKnowledgeSoundness relIn₁ relOut₂
+        (Sum.elim rbrKnowledgeError₁ rbrKnowledgeError₂ ∘ ChallengeIdx.sumEquiv.symm) := by
+  sorry
+
+end Verifier
+
+end Append
 
 end Security
