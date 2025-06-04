@@ -8,6 +8,7 @@ import ArkLib.Data.CodingTheory.Basic
 import Mathlib.LinearAlgebra.Lagrange
 import Mathlib.RingTheory.Henselian
 import ArkLib.Data.Fin.Basic
+import ArkLib.Data.Polynomial.Interface
 
 /-!
   # Reed-Solomon Codes
@@ -81,31 +82,36 @@ private lemma todoMoveOut {k : ℕ} : (List.finRange k).dedup = List.finRange k 
   induction k <;>
   aesop (add simp [List.finRange_succ, List.dedup_map_of_injective, Fin.succ_injective])
 
+section
+
+variable [CommRing F] {m n : ℕ} {α : Fin m → F}
+
 /--
   The maximal upper square submatrix of a Vandermonde matrix is a Vandermonde matrix.
 -/
-lemma subUpFull_of_vandermonde_is_vandermonde [CommRing F] {ι : ℕ} {ι' : ℕ} {α : Fin ι → F}
-  (h : ι' ≤ ι) :
+lemma subUpFull_of_vandermonde_is_vandermonde (h : n ≤ m) :
   Matrix.vandermonde (α ∘ Fin.castLE h) =
-  Matrix.subUpFull (nonsquare ι' α) (Fin.castLE h) := by
+  Matrix.subUpFull (nonsquare n α) (Fin.castLE h) := by
   ext r c
   simp [Matrix.vandermonde, Matrix.subUpFull, nonsquare]
 
 /--
   The maximal left square submatrix of a Vandermonde matrix is a Vandermonde matrix.
 -/
-lemma subLeftFull_of_vandermonde_is_vandermonde [CommRing F] {ι ι' : ℕ}
-  {α : Fin ι → F} (h : ι ≤ ι') :
-  Matrix.vandermonde α = Matrix.subLeftFull (nonsquare ι' α) (Fin.castLE h) := by
+lemma subLeftFull_of_vandermonde_is_vandermonde (h : m ≤ n) :
+  Matrix.vandermonde α = Matrix.subLeftFull (nonsquare n α) (Fin.castLE h) := by
   ext r c
   simp [Matrix.vandermonde, Matrix.subLeftFull, nonsquare]
+
+section
+
+variable [IsDomain F]
 
 /--
   The rank of a non-square Vandermonde matrix with more rows than columns is the number of columns.
 -/
-lemma rank_nonsquare_eq_deg_of_deg_le {ι : ℕ} [CommRing F] [IsDomain F]
-  {ι' : ℕ} {α : Fin ι → F} (inj : Function.Injective α) (h : ι' ≤ ι) :
-  (Vandermonde.nonsquare (ι' := ι') α).rank = ι' := by
+lemma rank_nonsquare_eq_deg_of_deg_le (inj : Function.Injective α) (h : n ≤ m) :
+  (Vandermonde.nonsquare (ι' := n) α).rank = n := by
   rw [
     Matrix.rank_eq_iff_subUpFull_eq h,
     ←subUpFull_of_vandermonde_is_vandermonde,
@@ -117,9 +123,8 @@ lemma rank_nonsquare_eq_deg_of_deg_le {ι : ℕ} [CommRing F] [IsDomain F]
 /--
   The rank of a non-square Vandermonde matrix with more columns than rows is the number of rows.
 -/
-lemma rank_nonsquare_eq_deg_of_ι_le {ι : ℕ} [CommRing F] [IsDomain F]
-  {ι' : ℕ} {α : Fin ι → F} (inj : Function.Injective α) (h : ι ≤ ι') :
-  (Vandermonde.nonsquare (ι' := ι') α).rank = ι := by
+lemma rank_nonsquare_eq_deg_of_ι_le (inj : Function.Injective α) (h : m ≤ n) :
+  (Vandermonde.nonsquare (ι' := n) α).rank = m := by
   rw [
     Matrix.full_row_rank_via_rank_subLeftFull h,
     ← subLeftFull_of_vandermonde_is_vandermonde,
@@ -129,22 +134,23 @@ lemma rank_nonsquare_eq_deg_of_ι_le {ι : ℕ} [CommRing F] [IsDomain F]
   exact inj
 
 @[simp]
-lemma rank_nonsquare_rows_eq_min [CommRing F] [IsDomain F] {ι ι' : ℕ}
-  {α : Fin ι → F} (inj : Function.Injective α) :
-  (Vandermonde.nonsquare (ι' := ι') α).rank = min ι ι' := by
-  by_cases h : ι ≤ ι'
+lemma rank_nonsquare_rows_eq_min (inj : Function.Injective α) :
+  (Vandermonde.nonsquare (ι' := n) α).rank = min m n := by
+  by_cases h : m ≤ n
   · rw [rank_nonsquare_eq_deg_of_ι_le inj h]; simp [h]
   · rw [rank_nonsquare_eq_deg_of_deg_le inj] <;> omega
 
+end
+
 theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
-  {ι' : ℕ} [NeZero ι'] [CommRing F] {v : ι ↪ F} {p : F[X]} (h_deg : p.natDegree < ι') :
-  (Vandermonde.nonsquare (ι' := ι') v).mulVecLin (Fin.liftF' p.coeff) =
+  {n : ℕ} [NeZero n] {v : ι ↪ F} {p : F[X]} (h_deg : p.natDegree < n) :
+  (Vandermonde.nonsquare (ι' := n) v).mulVecLin (Fin.liftF' p.coeff) =
   fun i => p.eval (v i) := by
   ext i
   simp only [
     nonsquare_mulVecLin, Finset.sum_fin_eq_sum_range, eval_eq_sum
   ]
-  refine Eq.symm (Finset.sum_of_injOn (·%ι') ?p₁ ?p₂ (fun i _ h ↦ ?p₃) (fun i _ ↦ ?p₄))
+  refine Eq.symm (Finset.sum_of_injOn (·%n) ?p₁ ?p₂ (fun i _ h ↦ ?p₃) (fun i _ ↦ ?p₄))
   · aesop (add simp [Set.InjOn])
           (add safe forward [le_natDegree_of_mem_supp, lt_of_le_of_lt, Nat.lt_add_one_of_le])
           (add 10% apply (show ∀ {a b c : ℕ}, a < c → b < c → a % c = b % c → a = b from
@@ -152,113 +158,38 @@ theorem mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
           (erase simp mem_support_iff)
   · aesop (add simp Set.MapsTo) (add safe apply Nat.mod_lt) (add 1% cases Nat)
   · aesop (add safe (by specialize h i)) (add simp [Nat.mod_eq_of_lt])
-  · have : i < ι' := by aesop (add safe forward le_natDegree_of_mem_supp)
+  · have : i < n := by aesop (add safe forward le_natDegree_of_mem_supp)
                               (erase simp mem_support_iff)
                               (add safe (by omega))
     aesop (add simp Nat.mod_eq_of_lt) (add safe (by ring))
+
+end
 
 end Vandermonde
 
 namespace ReedSolomonCode
 
--- lemma natDegree_lt_of_lbounded_zero_coeff [Semiring F] {p : F[X]} {deg : ℕ} [NeZero deg]
---   (h : ∀ i, deg ≤ i → p.coeff i = 0) : p.natDegree < deg := by
---   aesop (add unsafe [(by by_contra), (by specialize h p.natDegree)])
+section
 
--- def polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] (coeffs : Fin deg → F) : F[X] :=
---   ⟨
---     Finset.map ⟨Fin.val, Fin.val_injective⟩ {i | coeffs i ≠ 0},
---     fun i ↦ if h : i < deg then coeffs ⟨i, h⟩ else 0,
---     fun a ↦ by aesop (add safe (by existsi a))
---                      (add simp [Fin.natCast_def, Nat.mod_eq_of_lt])
---   ⟩
+variable {deg m n : ℕ} {α : Fin m → F}
 
--- def coeffsOfPolynomial [Semiring F] {deg : ℕ} [NeZero deg] (p : F[X]) : Fin deg → F :=
---   fun ⟨x, _⟩ ↦ p.coeff x
+section
 
--- @[simp]
--- lemma natDegree_polynomialOfCoeffs_deg_lt_deg
---   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   (polynomialOfCoeffs coeffs).natDegree < deg := by
---   aesop (add simp polynomialOfCoeffs)
---         (add safe apply natDegree_lt_of_lbounded_zero_coeff)
+variable [Semiring F] {p : F[X]}
 
--- @[simp]
--- lemma degree_polynomialOfCoeffs_deg_lt_deg
---   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   (polynomialOfCoeffs coeffs).degree < deg := by
---   aesop (add simp [polynomialOfCoeffs, degree_lt_iff_coeff_zero])
-
--- @[simp]
--- lemma coeff_polynomialOfCoeffs_eq_coeffs
---   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   Fin.liftF' (polynomialOfCoeffs coeffs).coeff = coeffs := by
---   aesop (add simp [Fin.liftF', polynomialOfCoeffs])
-
--- lemma coeff_polynomialOfCoeffs_eq_coeffs'
---   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   (polynomialOfCoeffs coeffs).coeff = fun x ↦ if h : x < deg then coeffs ⟨x, h⟩ else 0 := by
---   aesop (add simp polynomialOfCoeffs)
-
--- @[simp]
--- lemma coeff_polynomialOfCoeffs_eq_coeffs''
---   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   (polynomialOfCoeffs coeffs).coeff = Fin.liftF coeffs := by
---   aesop (add simp [Fin.liftF', polynomialOfCoeffs])
-
--- @[simp]
--- lemma polynomialOfCoeffs_mem_degreeLT
---   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   polynomialOfCoeffs coeffs ∈ degreeLT F deg := by
---   aesop (add simp Polynomial.mem_degreeLT)
-
--- @[simp]
--- lemma polynomialOfCoeffs_eq_zero [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   polynomialOfCoeffs coeffs = 0 ↔ ∀ (x : ℕ) (h : x < deg), coeffs ⟨x, h⟩ = 0 := by
---   simp [polynomialOfCoeffs, AddMonoidAlgebra.ext_iff]
-
--- lemma polynomialOfCoeffs_coeffsOfPolynomial [Semiring F] {deg : ℕ} [NeZero deg] {p : F[X]}
---   (h : p.natDegree + 1 = deg) : polynomialOfCoeffs (coeffsOfPolynomial (deg := deg) p) = p := by
---   ext x; symm
---   aesop (add simp [polynomialOfCoeffs, coeffsOfPolynomial, coeff_polynomialOfCoeffs_eq_coeffs'])
---         (add safe apply coeff_eq_zero_of_natDegree_lt)
---         (add safe (by omega))
-
--- @[simp]
--- lemma coeffsOfPolynomial_polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg]
---   {coeffs : Fin deg → F} : coeffsOfPolynomial (polynomialOfCoeffs coeffs) = coeffs := by
---   ext x; symm
---   aesop (add simp [polynomialOfCoeffs, coeffsOfPolynomial, coeff_polynomialOfCoeffs_eq_coeffs'])
---         (add safe (by omega))
-
--- @[simp]
--- lemma support_polynomialOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} :
---   (polynomialOfCoeffs coeffs).support =
---   Finset.map ⟨Fin.val, Fin.val_injective⟩ {i | coeffs i ≠ 0} := rfl
-
--- @[simp]
--- lemma eval_polynomialsOfCoeffs [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} {α : F} :
---   (polynomialOfCoeffs coeffs).eval α = ∑ x ∈ {i | coeffs i ≠ 0}, coeffs x * α ^ x.1 := by
---   simp [eval_eq_sum, sum_def, coeff_polynomialOfCoeffs_eq_coeffs', Fin.liftF]
-
--- @[simp]
--- lemma isRoot_polynomialsOfCoeffs
---   [Semiring F] {deg : ℕ} [NeZero deg] {coeffs : Fin deg → F} {x : F} :
---   IsRoot (polynomialOfCoeffs coeffs) x ↔ eval x (polynomialOfCoeffs coeffs) = 0 := by rfl
-
-lemma natDegree_lt_of_mem_degreeLT
-  [Semiring F] {deg : ℕ} [NeZero deg] {p : F[X]} (h : p ∈ degreeLT F deg) : p.natDegree < deg := by
+lemma natDegree_lt_of_mem_degreeLT [NeZero deg] (h : p ∈ degreeLT F deg) : p.natDegree < deg := by
   by_cases p = 0
   · cases deg <;> aesop
   · aesop (add simp [natDegree_lt_iff_degree_lt, mem_degreeLT])
 
-def encode [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι]
-  (msg : Fin deg → F) (domain : Fin ι ↪ F) : Fin ι → F := (polynomialOfCoeffs msg).eval ∘ ⇑domain
+def encode (msg : Fin deg → F) (domain : Fin m ↪ F) : Fin m → F :=
+  (polynomialOfCoeffs msg).eval ∘ ⇑domain
 
-lemma encode_mem_ReedSolomon_code
-  [Semiring F] {deg ι : ℕ} [NeZero deg] [NeZero ι] {msg : Fin deg → F} {domain : Fin ι ↪ F} :
+lemma encode_mem_ReedSolomon_code [NeZero deg] {msg : Fin deg → F} {domain : Fin m ↪ F} :
   encode msg domain ∈ ReedSolomon.code domain deg :=
   ⟨polynomialOfCoeffs msg, ⟨by simp, by ext i; simp [encode, ReedSolomon.evalOnPoints]⟩⟩
+
+end
 
 def makeZero (ι : ℕ) (F : Type*) [Zero F] : Fin ι → F := fun _ ↦ 0
 
@@ -271,8 +202,8 @@ open LinearCode
 /--
   The Vandermonde matrix is the generator matrix for an RS code of length `ι` and dimension `deg`.
 -/
-lemma genMatIsVandermonde [Fintype ι] [Field F] {ι' : ℕ} [inst : NeZero ι'] (α : ι ↪ F) :
-  fromColGenMat (Vandermonde.nonsquare (ι' := ι')  α) = ReedSolomon.code α ι' := by
+lemma genMatIsVandermonde [Fintype ι] [Field F] [inst : NeZero m] {α : ι ↪ F} :
+  fromColGenMat (Vandermonde.nonsquare (ι' := m) α) = ReedSolomon.code α m := by
   unfold fromColGenMat ReedSolomon.code
   ext x; rw [LinearMap.mem_range, Submodule.mem_map]
   refine ⟨
@@ -291,100 +222,110 @@ lemma genMatIsVandermonde [Fintype ι] [Field F] {ι' : ℕ} [inst : NeZero ι']
 for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
 Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
-lemma dim_eq_deg_of_le [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
-  (inj : Function.Injective α) (h : ι' ≤ ι) : dim (ReedSolomon.code ⟨α, inj⟩ ι') = ι' :=
-  by rw [
+section
+
+variable [Field F]
+
+lemma dim_eq_deg_of_le [NeZero n] (inj : Function.Injective α) (h : n ≤ m) :
+  dim (ReedSolomon.code ⟨α, inj⟩ n) = n := by
+    rw [
        ← genMatIsVandermonde, ← rank_eq_dim_fromColGenMat, Vandermonde.rank_nonsquare_rows_eq_min
-     ] <;> simp [inj, h]
+    ] <;> simp [inj, h]
 
 @[simp]
-lemma length_eq_domain_size [Field F] {deg ι : ℕ} {α : Fin ι → F}
-  (inj : Function.Injective α) : length (ReedSolomon.code ⟨α, inj⟩ deg) = ι := by
+lemma length_eq_domain_size (inj : Function.Injective α) :
+  length (ReedSolomon.code ⟨α, inj⟩ deg) = m := by
   simp [length]
 
-lemma rateOfLinearCode_eq_div [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι ↪ F} (h : ι' ≤ ι) :
-  rate (ReedSolomon.code α ι') = ι' / ι := by
+lemma rateOfLinearCode_eq_div [NeZero n] (inj : Function.Injective α) (h : n ≤ m) :
+  rate (ReedSolomon.code ⟨α, inj⟩ n) = n / m := by
   rwa [rate, dim_eq_deg_of_le, length_eq_domain_size]
 
 @[simp]
-lemma dist_le_length [Field F] {ι ι' : ℕ} [NeZero ι'] {α : Fin ι → F}
-  (inj : Function.Injective α) : minDist (ReedSolomon.code ⟨α, inj⟩ ι') ≤ ι := by
+lemma dist_le_length (inj : Function.Injective α) : minDist (ReedSolomon.code ⟨α, inj⟩ n) ≤ m := by
   convert minDist_UB
   simp
 
+end
+
 lemma card_le_card_of_count_inj {α β : Type*} {s : Multiset α} {s' : Multiset β}
-  (f : α → β) (inj : Function.Injective f)
-  (h : ∀ a : α, s.count a ≤ s'.count (f a)) : s.card ≤ s'.card := by
-  simp only [←Multiset.toFinset_sum_count_eq]
-  apply le_trans (b := ∑ x ∈ s.toFinset, s'.count (f x)) (Finset.sum_le_sum (by aesop))
-  rw [←Finset.sum_image (f := s'.count) (by aesop)]
-  have : s.toFinset.image f ⊆ s'.toFinset :=
-    suffices ∀ x ∈ s, f x ∈ s' by simpa [Finset.image_subset_iff]
-    by simp_rw [←Multiset.count_pos]
-       exact fun x h' ↦ lt_of_lt_of_le h' (h x)
-  exact Finset.sum_le_sum_of_subset_of_nonneg this (by aesop)
+  {f : α → β} (inj : Function.Injective f) (h : ∀ a : α, s.count a ≤ s'.count (f a)) :
+  s.card ≤ s'.card := by
+    simp only [←Multiset.toFinset_sum_count_eq]
+    apply le_trans (b := ∑ x ∈ s.toFinset, s'.count (f x)) (Finset.sum_le_sum (by aesop))
+    rw [←Finset.sum_image (f := s'.count) (by aesop)]
+    have : s.toFinset.image f ⊆ s'.toFinset :=
+      suffices ∀ x ∈ s, f x ∈ s' by simpa [Finset.image_subset_iff]
+      by simp_rw [←Multiset.count_pos]
+         exact fun x h' ↦ lt_of_lt_of_le h' (h x)
+    exact Finset.sum_le_sum_of_subset_of_nonneg this (by aesop)
 
-def ReedSolomon.constantCode {α : Type*} (x : α) (ι' : Type*) [Fintype ι'] : ι' → α := fun _ ↦ x
+section
+
+def constantCode {α : Type*} (x : α) (ι' : Type*) [Fintype ι'] : ι' → α := fun _ ↦ x
+
+variable [Semiring F] {x : F} [Fintype ι] {α : ι ↪ F}
 
 @[simp]
-lemma ReedSolomon.weight_constantCode [Semiring F] {ι' : Type*} [Fintype ι'] {x : F} :
-  wt (ReedSolomon.constantCode x ι') = 0 ↔ IsEmpty ι' ∨ x = 0 := by
-  by_cases eq : IsEmpty ι' <;> aesop (add simp [constantCode, wt_eq_zero_iff])
+lemma weight_constantCode :
+  wt (constantCode x ι) = 0 ↔ IsEmpty ι ∨ x = 0 := by
+  by_cases eq : IsEmpty ι <;> aesop (add simp [constantCode, wt_eq_zero_iff])
 
 @[simp]
-lemma ReedSolomon.constantCode_mem_code [Semiring F] [Fintype ι]
-                                        {α : ι ↪ F} {x : F} {ι' : ℕ} [NeZero ι']:
-  ReedSolomon.constantCode x ι ∈ ReedSolomon.code α ι' := by
+lemma constantCode_mem_code [NeZero n] :
+  constantCode x ι ∈ ReedSolomon.code α n := by
   use C x
   aesop (add simp [ReedSolomon.evalOnPoints, coeff_C, degreeLT])
 
 @[simp]
-lemma ReedSolomon.constantCode_eq_ofNat_zero_iff [Fintype ι] [Nonempty ι] [Semiring F] {x : F} :
-  ReedSolomon.constantCode x ι = 0 ↔ x = 0 := by
+lemma constantCode_eq_ofNat_zero_iff [Nonempty ι] :
+  constantCode x ι = 0 ↔ x = 0 := by
   unfold constantCode
   exact ⟨fun x ↦ Eq.mp (by simp) (congrFun x), (· ▸ rfl)⟩
 
 @[simp]
-lemma ReedSolomon.wt_constantCode [Fintype ι] [Semiring F] {x : F} [NeZero x] :
-  wt (ReedSolomon.constantCode x ι) = Fintype.card ι := by unfold constantCode wt; aesop
+lemma wt_constantCode [NeZero x] :
+  wt (constantCode x ι) = Fintype.card ι := by unfold constantCode wt; aesop
+
+end
 
 open Finset in
 /--
   The minimal code distance of an RS code of length `ι` and dimension `deg` is `ι - deg + 1`
 -/
-theorem minDist [Field F] [Inhabited F] {ι ι' : ℕ}
-                {α : Fin ι → F} (inj : Function.Injective α) [φ : NeZero ι']
-  (h : ι' ≤ ι) :
-  minDist (ReedSolomon.code ⟨α, inj⟩ ι') = ι - ι' + 1 := by
-  have : NeZero ι := by constructor; aesop
+theorem minDist [Field F] (inj : Function.Injective α) [NeZero n] (h : n ≤ m) :
+  minDist (ReedSolomon.code ⟨α, inj⟩ n) = m - n + 1 := by
+  have : NeZero m := by constructor; aesop
   refine le_antisymm ?p₁ ?p₂
   case p₁ =>
-    have distUB := singletonBound (LC := ReedSolomon.code ⟨α, inj⟩ ι')
+    have distUB := singletonBound (LC := ReedSolomon.code ⟨α, inj⟩ n)
     rw [dim_eq_deg_of_le inj h] at distUB
     simp at distUB
     zify [dist_le_length] at distUB
     omega
   case p₂ =>
     rw [minDist_eq_minWtCodewords]
-    apply le_csInf (by use ι, ReedSolomon.constantCode 1 _; simp)
+    apply le_csInf (by use m, constantCode 1 _; simp)
     intro b ⟨msg, ⟨p, p_deg, p_eval_on_α_eq_msg⟩, msg_neq_0, wt_c_eq_b⟩
     let zeroes : Finset _ := {i | msg i = 0}
     have eq₁ : zeroes.val.Nodup := by
       aesop (add simp [Multiset.nodup_iff_count_eq_one, Multiset.count_filter])
-    have msg_zeros_lt_deg : #zeroes < ι' := by
+    have msg_zeros_lt_deg : #zeroes < n := by
       apply lt_of_le_of_lt (b := p.roots.card)
                            (hbc := lt_of_le_of_lt (Polynomial.card_roots' _)
                                                   (natDegree_lt_of_mem_degreeLT p_deg))
-      exact card_le_card_of_count_inj α inj fun i ↦
+      exact card_le_card_of_count_inj inj fun i ↦
         if h : msg i = 0
         then suffices 0 < Multiset.count (α i) p.roots by
                 rwa [@Multiset.count_eq_one_of_mem (d := eq₁) (h := by simpa [zeroes])]
               by aesop
         else by simp [zeroes, h]
-    have : #zeroes + wt msg = ι := by
+    have : #zeroes + wt msg = m := by
       rw [wt, filter_card_add_filter_neg_card_eq_card]
       simp
     omega
+
+end
 
 end ReedSolomonCode
 end
