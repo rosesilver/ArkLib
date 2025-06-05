@@ -6,7 +6,6 @@ import ArkLib.CommitmentScheme.SimpleRO
 import ArkLib.CommitmentScheme.Tensor
 import ArkLib.CommitmentScheme.Trivial
 import ArkLib.Data.CodingTheory
-import ArkLib.Data.CodingTheory.HammingDistance.Lemmas -- Temporary.
 import ArkLib.Data.EllipticCurve.BN254
 import ArkLib.Data.FieldTheory.BinaryTowerField.Basic
 import ArkLib.Data.FieldTheory.BinaryTowerField.Prelude

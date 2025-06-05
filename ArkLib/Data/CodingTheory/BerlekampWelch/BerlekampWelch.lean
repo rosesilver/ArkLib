@@ -10,7 +10,6 @@ import ArkLib.Data.CodingTheory.Basic
 import ArkLib.Data.CodingTheory.BerlekampWelch.Condition
 import ArkLib.Data.CodingTheory.BerlekampWelch.Existence
 import ArkLib.Data.CodingTheory.BerlekampWelch.Sorries
-import ArkLib.Data.CodingTheory.HammingDistance.Lemmas
 
 /-!
   # Berlekamp-Welch decoder algorithm for Reed-Solomon codes.
@@ -102,7 +101,7 @@ theorem decoder_eq_some {e k : ℕ} [NeZero n] {ωs f : Fin n → F} {p : Polyno
   simp only [decoder]
   split_ifs with hif
   · suffices p = 0 from Option.some_inj.2 this.symm
-    refine an_implication_of_min_dist h_deg hn h_inj (lt_of_le_of_lt ?p₁ he)
+    refine poly_eq_zero_of_dist_lt h_deg hn h_inj (lt_of_le_of_lt ?p₁ he)
     transitivity ‖f‖₀ + Δ₀(f, p.eval ∘ ωs)
     · convert hammingDist_triangle 0 f (p.eval ∘ ωs) using 1 <;> simp
     · omega

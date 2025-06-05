@@ -17,7 +17,6 @@ import ArkLib.Data.CodingTheory.Basic
 import ArkLib.Data.CodingTheory.BerlekampWelch.ElocPoly
 import ArkLib.Data.CodingTheory.BerlekampWelch.Sorries
 import ArkLib.Data.CodingTheory.BerlekampWelch.ToMathlib
-import ArkLib.Data.CodingTheory.HammingDistance.Lemmas
 
 namespace BerlekampWelch
 
