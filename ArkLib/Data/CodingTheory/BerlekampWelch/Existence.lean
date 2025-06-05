@@ -14,80 +14,68 @@ import ArkLib.Data.CodingTheory.BerlekampWelch.Sorries
 namespace BerlekampWelch
 
 variable {α : Type} {F : Type} [Field F]
-         {n : ℕ} {p : Polynomial F}
-variable [DecidableEq F]
+         {n e : ℕ} {p : Polynomial F}
+         {ωs f : Fin n → F}
+         [DecidableEq F]
 
 open Polynomial
 
-private noncomputable def E {n : ℕ} (ωs : Fin n → F) 
+private noncomputable def E (ωs : Fin n → F) 
   (f : Fin n → F) (p : Polynomial F) (e : ℕ) : Polynomial F :=
-  X ^ (e - (Δ₀(f, p.eval ∘ ωs) : ℕ)) * ElocPolyF (ωs := ωs) f p
+  X ^ (e - (Δ₀(f, p.eval ∘ ωs) : ℕ)) * ElocPolyF ωs f p
 
 private lemma E_natDegree 
-  {e : ℕ} 
-  {ωs f : Fin n → F} 
   (h : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) : 
-  (E (ωs := ωs) f p e).natDegree = e  
-  := by
+  (E (ωs := ωs) f p e).natDegree = e := by
   simp only [E]
   rw [natDegree_mul (by aesop) (by aesop)]
   aesop 
-    (add simp [natDegree_mul])
-    (erase simp [BerlekampWelch.elocPolyF_eq_elocPoly'])
+    (add simp natDegree_mul)
+    (erase simp BerlekampWelch.elocPolyF_eq_elocPoly')
     (add safe (by omega))
 
-private lemma E_ne_0 {e : ℕ} {ωs f : Fin n → F} : (E ωs f p e) ≠ 0 := by
-  aesop (add simp [E])
+private lemma E_ne_0 : (E ωs f p e) ≠ 0 := by
+  aesop (add simp E)
 
-private lemma errors_are_roots_of_E {i : Fin n} {e} {ωs f : Fin n → F}
+private lemma errors_are_roots_of_E {i : Fin n}
   (h : f i ≠ p.eval (ωs i)) : (E ωs f p e).eval (ωs i) = 0  := by
   aesop 
     (erase simp [BerlekampWelch.elocPolyF_eq_elocPoly']) 
     (add simp [E, BerlekampWelch.errors_are_roots_of_elocPolyF])
 
 @[simp]
-private lemma E_leading_coeff {e} {ωs f : Fin n → F}
-  : (E ωs f p e).leadingCoeff = 1 := by
+private lemma E_leading_coeff : (E ωs f p e).leadingCoeff = 1 := by
   simp [E]
 
-private lemma E_leading_coeff' {e} {ωs f : Fin n → F}
+private lemma E_leading_coeff'
   (h_dist : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) 
   : (E ωs f p e).coeff e = 1 := by
   generalize he : (E ωs f p e) = E 
   rw [←E_natDegree h_dist]
   aesop
 
-private noncomputable def Q {n : ℕ} (ωs : Fin n → F) 
+private noncomputable def Q (ωs : Fin n → F) 
   (f : Fin n → F) (p : Polynomial F) (e : ℕ) : Polynomial F :=
   p * (E ωs f p e)
 
-private lemma Q_natDegree 
-  {e : ℕ} {ωs f : Fin n → F}
+private lemma Q_natDegree
   (h : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) : 
   (Q ωs f p e).natDegree ≤ e + p.natDegree := by
-  by_cases h0 : p = 0   
-  · aesop (add simp [Q])
-  · aesop 
-      (add simp [Q, natDegree_mul, E_ne_0, E_natDegree]) 
-      (add safe (by omega))
-
-private lemma Q_ne_0 
-  {e : ℕ} {ωs f : Fin n → F}
-  (hne : p ≠ 0)
-  : Q ωs f p e ≠ 0 := by
+  by_cases p = 0 <;>
   aesop 
-    (add simp [Q, E_ne_0])
+    (add simp [Q, natDegree_mul, E_ne_0, E_natDegree]) 
+    (add safe (by omega))
+
+private lemma Q_ne_0 (hne : p ≠ 0) : Q ωs f p e ≠ 0 := by
+  aesop (add simp [Q, E_ne_0])
 
 private lemma solution_to_Q_from_Q {e k : ℕ} {ωs f : Fin n → F}
   (h_p_deg : p.natDegree < k)
   (h_dist : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) 
   : solution_to_Q e k (E_and_Q_to_a_solution e (E ωs f p e) (Q ωs f p e)) = Q ωs f p e := by
-  apply Polynomial.ext 
-  intro i 
-  simp 
-  split_ifs with hif
-  · simp [Fin.liftF]
-    omega
+  refine Polynomial.ext fun i ↦ ?p₁
+  simp [Fin.liftF]
+  split_ifs <;>
   · by_cases hne : p = 0  
     · simp [Q, hne]
     · by_contra hq
@@ -104,7 +92,7 @@ private lemma solution_to_E_from_E {e k : ℕ} {ωs f : Fin n → F}
   apply Polynomial.ext 
   intro i 
   simp 
-  split_ifs with hif hif2 <;> 
+  split_ifs <;> 
     try aesop (config := {warnOnNonterminal := false})  
               (add simp [Fin.liftF, E_leading_coeff'])
               (add safe (by omega))
@@ -115,7 +103,7 @@ private lemma solution_to_E_from_E {e k : ℕ} {ωs f : Fin n → F}
     (add simp [E_ne_0, Polynomial.degree_eq_natDegree])
     (add safe (by omega))
 
-private lemma E_and_Q_BerlekampWelch_condition {e k : ℕ} {ωs f : Fin n → F}
+private lemma E_and_Q_BerlekampWelch_condition {k : ℕ}
   (h_p_deg : p.natDegree < k)
   (h_dist : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) 
   : BerlekampWelchCondition e k ωs f (E ωs f p e) (Q ωs f p e) := by
