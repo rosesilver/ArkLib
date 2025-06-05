@@ -18,11 +18,11 @@ variable {F : Type} [DecidableEq F]
 variable {n : ℕ}
 
 /-- This should be gone once min distance is merged -/
-lemma an_implication_of_min_dist {k : ℕ} [Field F] {p : Polynomial F} {ωs : Fin n → F}
+lemma poly_eq_zero_of_norm_lt {k : ℕ} [Field F] {p : Polynomial F} {ωs : Fin n → F}
   (h_deg : p.natDegree < k)
   (hn : k ≤ n)
   (h_inj: Function.Injective ωs) 
-  (h_dist : Δ₀((fun a ↦ Polynomial.eval a p) ∘ ωs, 0) < n - k + 1)
+  (h_dist : Δ₀(p.eval ∘ ωs, 0) < n - k + 1)
   : p = 0 := by
   by_cases hk : k = 0
   · simp [hk] at h_deg
