@@ -162,7 +162,7 @@ lemma linsolve_always_some_berlekamp_welch
   rw [←IsBerlekampWelchSolution_def]
   simp [
     BerlekampWelchCondition_iff_Solution,
-    solution_to_Q_from_Q hp_deg h_ham, 
+    solution_to_Q_from_Q hp_deg h_ham,
     solution_to_E_from_E hp_deg h_ham,
     E_and_Q_BerlekampWelch_condition hp_deg h_ham]
 

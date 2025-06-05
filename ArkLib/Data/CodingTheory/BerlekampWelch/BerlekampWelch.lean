@@ -59,7 +59,7 @@ noncomputable def decoder (e k : ℕ) [NeZero n] (ωs f : Fin n → F) : Option 
       let E := solution_to_E e k x
       let Q := solution_to_Q e k x 
       if Q % E = 0 then 
-        let p := Q / E 
+        let p := Q / E
         if Δ₀(f, p.eval ∘ ωs) ≤ e then 
           some p
         else 

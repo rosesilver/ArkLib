@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2024 ArkLib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Quang Dao
+Authors: Quang Dao, Katerina Hristova, František Silváši, Julian Sutherland, Ilia Vlasov
 -/
 
 import ArkLib.Data.CodingTheory.Basic
@@ -217,10 +217,6 @@ lemma genMatIsVandermonde [Fintype ι] [Field F] [inst : NeZero m] {α : ι ↪ 
     simp [ReedSolomon.evalOnPoints]
   · exact h.2 ▸ Vandermonde.mulVecLin_coeff_vandermondens_eq_eval_matrixOfPolynomials
                   (natDegree_lt_of_mem_degreeLT h.1)
-
-/- Our lemma Vandermonde.nonsquareRank will finish the proof because we fall into the first case.
-for RS codes we know `deg ≤ ι ≤ |F|`.  `ι ≤ |F|` is clear from the embedding.
-Check : is `deg ≤ ι` implemented in Quang's defn? Answer: not explicitly.-/
 
 section
 
