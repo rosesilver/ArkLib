@@ -222,7 +222,7 @@ lemma solution_to_E_0 {k : ℕ} {v : Fin (2 * 0 + k) → F} :
   rw [Polynomial.coeff_C]
   rcases n with _ | n <;> try simp 
 
-lemma solution_to_E_ne_0 {e k : ℕ} {v : Fin (2 * e + k) → F} :
+lemma solution_to_E_ne_zero {e k : ℕ} {v : Fin (2 * e + k) → F} :
   (solution_to_E e k v) ≠ 0 := by
   by_cases he : e = 0 
   · subst he
@@ -508,7 +508,7 @@ lemma linsolve_to_BerlekampWelch_condition {e k : ℕ}
 end
 
 
-lemma BerlekampWelch_E_ne_0 {e k : ℕ}
+lemma BerlekampWelch_E_ne_zero {e k : ℕ}
   {ωs f : Fin n → F}
   {E Q : Polynomial F}
   (h_cond : BerlekampWelchCondition e k ωs f E Q)
@@ -543,14 +543,14 @@ lemma BerlekampWelch_Q_ne_0 {e k : ℕ}
       simp at hx 
       rcases hx with ⟨i, ⟨hf, hi⟩⟩ 
       specialize (h_cond i)
-      simp [BerlekampWelch_E_ne_0 h_bw]
+      simp [BerlekampWelch_E_ne_zero h_bw]
       aesop 
     })
   simp at h_card 
   rw [Finset.card_image_of_injective _ h_inj, h_bw.E_natDegree] at h_card
   omega
 
-lemma solution_to_Q_ne_0 {e k : ℕ} 
+lemma solution_to_Q_ne_zero {e k : ℕ} 
   [NeZero n] 
   {ωs f : Fin n → F}
   {v : Fin (2 * e + k) → F}
@@ -582,11 +582,11 @@ lemma E_and_Q_unique
     apply Nat.le_trans (natDegree_add_le _ _)
     simp  [
       natDegree_mul 
-        (BerlekampWelch_E_ne_0 h_bw₁) 
+        (BerlekampWelch_E_ne_zero h_bw₁) 
         h_Q',
       natDegree_neg,
       natDegree_mul 
-        (BerlekampWelch_E_ne_0 h_bw₂)
+        (BerlekampWelch_E_ne_zero h_bw₂)
         h_Q
       ]
     aesop 

@@ -24,7 +24,7 @@ private noncomputable def E (ωs : Fin n → F)
   (f : Fin n → F) (p : Polynomial F) (e : ℕ) : Polynomial F :=
   X ^ (e - (Δ₀(f, p.eval ∘ ωs) : ℕ)) * ElocPolyF ωs f p
 
-private lemma E_natDegree 
+private lemma natDegree_E 
   (h : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) : 
   (E (ωs := ωs) f p e).natDegree = e := by
   simp only [E]
@@ -34,7 +34,7 @@ private lemma E_natDegree
     (erase simp BerlekampWelch.elocPolyF_eq_elocPoly')
     (add safe (by omega))
 
-private lemma E_ne_0 : (E ωs f p e) ≠ 0 := by
+private lemma E_ne_zero : (E ωs f p e) ≠ 0 := by
   aesop (add simp E)
 
 private lemma errors_are_roots_of_E {i : Fin n}
@@ -44,30 +44,30 @@ private lemma errors_are_roots_of_E {i : Fin n}
     (add simp [E, BerlekampWelch.errors_are_roots_of_elocPolyF])
 
 @[simp]
-private lemma E_leading_coeff : (E ωs f p e).leadingCoeff = 1 := by
+private lemma leadingCoeff_E : (E ωs f p e).leadingCoeff = 1 := by
   simp [E]
 
-private lemma E_leading_coeff'
+private lemma leadingCoeff_E'
   (h_dist : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) 
   : (E ωs f p e).coeff e = 1 := by
   generalize he : (E ωs f p e) = E 
-  rw [←E_natDegree h_dist]
+  rw [←natDegree_E h_dist]
   aesop
 
 private noncomputable def Q (ωs : Fin n → F) 
   (f : Fin n → F) (p : Polynomial F) (e : ℕ) : Polynomial F :=
   p * (E ωs f p e)
 
-private lemma Q_natDegree
+private lemma natDegree_Q
   (h : (Δ₀(f, p.eval ∘ ωs) : ℕ) ≤ e) : 
   (Q ωs f p e).natDegree ≤ e + p.natDegree := by
   by_cases p = 0 <;>
   aesop 
-    (add simp [Q, natDegree_mul, E_ne_0, E_natDegree]) 
+    (add simp [Q, natDegree_mul, E_ne_zero, natDegree_E]) 
     (add safe (by omega))
 
-private lemma Q_ne_0 (hne : p ≠ 0) : Q ωs f p e ≠ 0 := by
-  aesop (add simp [Q, E_ne_0])
+private lemma Q_ne_zero (hne : p ≠ 0) : Q ωs f p e ≠ 0 := by
+  aesop (add simp [Q, E_ne_zero])
 
 private lemma solution_to_Q_from_Q {e k : ℕ} {ωs f : Fin n → F}
   (h_p_deg : p.natDegree < k)
@@ -81,8 +81,8 @@ private lemma solution_to_Q_from_Q {e k : ℕ} {ωs f : Fin n → F}
     · by_contra hq
       have hdeg := Polynomial.le_degree_of_ne_zero (n := i) (p := Q ωs f p e) (by aesop)
       aesop 
-        (add safe forward (Q_natDegree h_dist))
-        (add simp [Q_ne_0, Polynomial.degree_eq_natDegree])
+        (add safe forward (natDegree_Q h_dist))
+        (add simp [Q_ne_zero, Polynomial.degree_eq_natDegree])
         (add safe (by omega))
   
 private lemma solution_to_E_from_E {e k : ℕ} {ωs f : Fin n → F}
@@ -94,13 +94,13 @@ private lemma solution_to_E_from_E {e k : ℕ} {ωs f : Fin n → F}
   simp 
   split_ifs <;> 
     try aesop (config := {warnOnNonterminal := false})  
-              (add simp [Fin.liftF, E_leading_coeff'])
+              (add simp [Fin.liftF, leadingCoeff_E'])
               (add safe (by omega))
   by_contra he
   have hdeg := Polynomial.le_degree_of_ne_zero (n := i) (p := E ωs f p e) (by aesop)
   aesop 
-    (add safe forward E_natDegree)
-    (add simp [E_ne_0, Polynomial.degree_eq_natDegree])
+    (add safe forward natDegree_E)
+    (add simp [E_ne_zero, Polynomial.degree_eq_natDegree])
     (add safe (by omega))
 
 private lemma E_and_Q_BerlekampWelch_condition {k : ℕ}
@@ -116,10 +116,10 @@ private lemma E_and_Q_BerlekampWelch_condition {k : ℕ}
         (erase simp BerlekampWelch.elocPolyF_eq_elocPoly')
         (add simp [E, Q, BerlekampWelch.errors_are_roots_of_elocPolyF])
   },
-  by simp [E_natDegree h_dist],
-  by simp [E_leading_coeff' h_dist],
+  by simp [natDegree_E h_dist],
+  by simp [leadingCoeff_E' h_dist],
   by aesop 
-    (add safe forward (Q_natDegree h_dist))
+    (add safe forward (natDegree_Q h_dist))
     (add safe (by omega))
   ⟩
 
@@ -141,12 +141,12 @@ lemma Q'_div_E'_eq_p {e k : ℕ}
   (hp : p ≠ 0)
   (h_cond: BerlekampWelchCondition e k ωs f E' Q')
   : E' ∣ Q' ∧ Q' / E' = p  := by
-  have h_eq := E_and_Q_unique he hk_n (Q_ne_0 hp) h_Q' h_diff 
+  have h_eq := E_and_Q_unique he hk_n (Q_ne_zero hp) h_Q' h_diff 
     (E_and_Q_BerlekampWelch_condition hp_deg h_ham)
     h_cond
   simp [Q] at h_eq
   rw [←mul_assoc, mul_comm _ (E _ _ _ _)] at h_eq 
-  aesop (add simp E_ne_0)
+  aesop (add simp E_ne_zero)
 
 /-- If only up to `e` errors happened `linsolve` cannot fail to find a solution. -/
 lemma linsolve_always_some_berlekamp_welch 
