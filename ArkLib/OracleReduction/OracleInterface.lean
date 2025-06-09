@@ -27,12 +27,25 @@ import Mathlib.Algebra.Polynomial.Roots
   - Vectors. This instance turns vectors into oracles for which one can query specific positions.
 -/
 
+universe u v
+
 /-- `⊕ᵥ` is notation for `Sum.elim`, e.g. sending `α → γ` and `β → γ` to `α ⊕ β → γ`. -/
 infixr:35 " ⊕ᵥ " => Sum.elim
 
 open OracleComp OracleSpec OracleQuery
 
-variable {ι ιₜ : Type}
+variable {ι ι' ιₜ : Type*} {spec : OracleSpec ι}
+    {spec' : OracleSpec ι'} {specₜ : OracleSpec ιₜ}
+    {m : Type u → Type v} {α β γ σ : Type u}
+
+/-- Canonical lifting of a function `OracleQuery spec α → m α`, for an arbitrary monad `m`,
+to a new function on computations `OracleComp spec α` that _never_ fails. -/
+def simulateQNeverFails [Monad m] (so : QueryImpl spec m) (oa : OracleComp spec α)
+    (h : oa.neverFails) : m α := by
+  induction oa using OracleComp.construct with
+  | pure x => exact pure x
+  | query_bind q r ih => exact (do let b ← so.impl q; ih b (by simp at h; exact h b))
+  | failure => simp [neverFails] at h
 
 @[reducible]
 def SimOracle.Stateful (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) :=
@@ -116,12 +129,20 @@ end SimOracle
 
 /-- `OracleInterface` is a type class that provides an oracle interface for a type `Message`. It
     consists of a query type `Query`, a response type `Response`, and a function `oracle` that
-    transforms a message `m : Message` into a function `Query → Response`. -/
+    transforms a message `m : Message` into a function `Query → Response`.
+
+  TODO: turn `(Query, Response)` into a general `PFunctor` (i.e. `Response : Query → Type`) This
+  allows for better compositionality of `OracleInterface`, including (indexed) sum, instead of
+  requiring indexed family of `OracleInterface`s.
+
+  However, this won't be possible until `OracleSpec` is changed to be an alias for `PFunctor` -/
 @[ext]
 class OracleInterface (Message : Type) where
   Query : Type
   Response : Type
   oracle : Message → Query → Response
+
+#check PFunctor
 
 namespace OracleInterface
 
@@ -132,6 +153,12 @@ def toOracleSpec {ι : Type} (v : ι → Type) [O : ∀ i, OracleInterface (v i)
     OracleSpec ι := fun i => ((O i).Query, (O i).Response)
 
 @[inherit_doc] notation "[" term "]ₒ" => toOracleSpec term
+
+/-- Given an underlying data for an indexed type family of oracle interfaces `v`,
+    we can give an implementation of all queries to the interface defined by `v` -/
+def toOracleImpl {ι : Type} (v : ι → Type) [O : ∀ i, OracleInterface (v i)]
+    (data : ∀ i, v i) : QueryImpl [v]ₒ Id where
+  impl | query i t => (O i).oracle (data i) t
 
 instance {ι : Type} (v : ι → Type) [O : ∀ i, OracleInterface (v i)]
     [h : ∀ i, DecidableEq (Query (v i))]
@@ -148,12 +175,74 @@ instance {ι : Type} (v : ι → Type) [O : ∀ i, OracleInterface (v i)]
   range_inhabited' := h'
 
 @[reducible, inline]
-instance {ι₁ : Type} {T₁ : ι₁ → Type} [∀ i, OracleInterface (T₁ i)]
-    {ι₂ : Type} {T₂ : ι₂ → Type} [∀ i, OracleInterface (T₂ i)] :
+instance {ι₁ : Type} {T₁ : ι₁ → Type} [inst₁ : ∀ i, OracleInterface (T₁ i)]
+    {ι₂ : Type} {T₂ : ι₂ → Type} [inst₂ : ∀ i, OracleInterface (T₂ i)] :
     ∀ i, OracleInterface (Sum.elim T₁ T₂ i) :=
   fun i => match i with
-    | .inl i => by dsimp; infer_instance
-    | .inr i => by dsimp; infer_instance
+    | .inl i => inst₁ i
+    | .inr i => inst₂ i
+
+/-- The tensor product oracle interface for the product of two types `α` and `β`, each with its own
+  oracle interface, is defined as:
+  - The query & response types are the product of the two query & response types.
+  - The oracle will run both oracles and return the pair of responses.
+
+This is a low priority instance since we do not expect to have this behavior often. See `instProd`
+for the sum behavior on the interface. -/
+@[reducible, inline]
+instance (priority := low) instTensorProd {α β : Type}
+    [Oα : OracleInterface α] [Oβ : OracleInterface β] : OracleInterface (α × β) where
+  Query := Oα.Query × Oβ.Query
+  Response := Oα.Response × Oβ.Response
+  oracle := fun (a, b) (q₁, q₂) => (Oα.oracle a q₁, Oβ.oracle b q₂)
+
+/-- The product oracle interface for the product of two types `α` and `β`, each with its own oracle
+  interface, is defined as:
+  - The query & response types are the sum type of the two query & response types.
+  - The oracle will answer depending on the input query.
+
+This is the behavior more often assumed, i.e. when we send multiple oracle messages in a round.
+See `instTensor` for the tensor product behavior on the interface. -/
+@[reducible, inline]
+instance instProd {α β : Type} [Oα : OracleInterface α] [Oβ : OracleInterface β] :
+    OracleInterface (α × β) where
+  Query := Oα.Query ⊕ Oβ.Query
+  Response := Oα.Response ⊕ Oβ.Response
+  oracle := fun (a, b) q => match q with
+    | .inl q => .inl (Oα.oracle a q)
+    | .inr q => .inr (Oβ.oracle b q)
+
+/-- The indexed tensor product oracle interface for the dependent product of a type family `v`,
+    indexed by `ι`, each having an oracle interface, is defined as:
+  - The query & response types are the dependent product of the query & response types of the type
+    family.
+  - The oracle, on a given query specifying the index `i` of the type family, will run the oracle
+    of `v i` and return the response.
+
+This is a low priority instance since we do not expect to have this behavior often. See `instForall`
+for the product behavior on the interface (with dependent sums for the query and response types). -/
+@[reducible, inline]
+instance (priority := low) instTensorForall {ι : Type} (v : ι → Type)
+    [O : ∀ i, OracleInterface (v i)] : OracleInterface (∀ i, v i) where
+  Query := (i : ι) → (O i).Query
+  Response := (i : ι) → (O i).Response
+  oracle := fun f q i => (O i).oracle (f i) (q i)
+
+/-- The indexed product oracle interface for the dependent product of a type family `v`, indexed by
+    `ι`, each having an oracle interface, is defined as:
+  - The query & response types are the dependent product of the query & response types of the type
+    family.
+  - The oracle, on a given query specifying the index `i` of the type family, will run the oracle
+    of `v i` and return the response.
+
+This is the behavior usually assumed, i.e. when we send multiple oracle messages in a round.
+See `instTensorForall` for the tensor product behavior on the interface. -/
+@[reducible, inline]
+instance instForall {ι : Type} (v : ι → Type) [O : ∀ i, OracleInterface (v i)] :
+    OracleInterface (∀ i, v i) where
+  Query := (i : ι) × (O i).Query
+  Response := (i : ι) × (O i).Response
+  oracle := fun f ⟨i, q⟩ => ⟨i, (O i).oracle (f i) q⟩
 
 def append {ι₁ : Type} {T₁ : ι₁ → Type} [∀ i, OracleInterface (T₁ i)]
     {ι₂ : Type} {T₂ : ι₂ → Type} [∀ i, OracleInterface (T₂ i)] : OracleSpec (ι₁ ⊕ ι₂) :=
