@@ -23,40 +23,40 @@ The quotient univariate polynomial in `Y` obtained after evaluating bivariate po
 `f` and `g` in `X` at a point and dividing in the ring `F[Y]`.
 -/
 def quotientPolyYAfterEvalX : Prop :=
-  ∃ p : Polynomial F, Bivariate.evalAtX a g = p * (Bivariate.evalAtX a f)
+  ∃ p : Polynomial F, Bivariate.evalX a g = p * (Bivariate.evalX a f)
 
 /--
 Given two integers, we form a tighter degree bound on the quotient polynomial in `Y` obtained after
 evaluating in `X`.
 -/
-def quotientPolyYAfterEvalX_degBd (hmn : m ≥ n) : Prop :=
-  ∃ p, p.natDegree ≤ m - n ∧ Bivariate.evalAtX a g = p * (Bivariate.evalAtX a f)
+def quotientPolyYAfterEvalX_degBd : Prop :=
+  ∃ p, p.natDegree ≤ m - n ∧ Bivariate.evalX a g = p * (Bivariate.evalX a f)
 
 /--
 The set of univariate quotients in `Y` obtained after evaluating `X` on a given set of points.
 -/
-def setOfQuotientPolyYAfterEvalX (hmn : m ≥ n) : Prop :=
-  ∀ θ ∈ P, quotientPolyYAfterEvalX_degBd m n θ f g hmn
+def setOfQuotientPolyYAfterEvalX : Prop :=
+  ∀ θ ∈ P, quotientPolyYAfterEvalX_degBd m n θ f g
 
 /--
 The quotient univariate polynomial in `X` obtained after evaluating bivariate polynomials
 `f` and `g` in `Y` at a point and dividing in the ring `F[X]`.
 -/
 def quotientPolyXAfterEvalY : Prop :=
-  ∃ p : Polynomial F, Bivariate.evalAtY a g = p * (Bivariate.evalAtY a f)
+  ∃ p : Polynomial F, Bivariate.evalY a g = p * (Bivariate.evalY a f)
 
 /--
 Given two integers, we form a tighter degree bound on the quotient polynomial in `X` obtained after
 evaluating in `Y`.
 -/
-def quotientPolyXAfterEvalY_degBd (hmn : m ≥ n) : Prop :=
-  ∃ p : Polynomial F, p.natDegree ≤ m - n ∧ Bivariate.evalAtY a g = p * (Bivariate.evalAtY a f)
+def quotientPolyXAfterEvalY_degBd : Prop :=
+  ∃ p : Polynomial F, p.natDegree ≤ m - n ∧ Bivariate.evalY a g = p * (Bivariate.evalY a f)
 
 /--
 The set of univariate quotients in `X` obtained after evaluating `Y` on a given set of points.
 -/
-def setOfQuotientPolyXAfterEvalY (hmn : m ≥ n) : Prop :=
-  ∀ θ ∈ P, quotientPolyXAfterEvalY_degBd m n θ f g hmn
+def setOfQuotientPolyXAfterEvalY : Prop :=
+  ∀ θ ∈ P, quotientPolyXAfterEvalY_degBd m n θ f g
 
 /--
 Polishchuk-Spielman Lemma, existence part : If all conditions below are satisfied, then there exists
@@ -69,8 +69,8 @@ lemma existence_of_bivariate_quotient [Field F] (a₁ a₂ b₁ b₂ n₁ n₂ :
   (h_f_degY : a₂ ≥ Bivariate.degreeY f) (h_g_degY : b₂ ≥ Bivariate.degreeY g)
   (h_card_P₁ : n₁ ≥ P₁.card) (h_card_P₂ : n₂ ≥ P₂.card)
   (h_le_1: 1 > (b₁ : ℚ)/(P₁.card : ℚ) + (b₂ : ℚ)/(P₂.card : ℚ))
-  (h_quot_X : setOfQuotientPolyXAfterEvalY b₂ a₂ P₂ f g ha₂b₂)
-  (h_quot_Y : setOfQuotientPolyYAfterEvalX b₁ a₁ P₁ f g ha₁b₁)
+  (h_quot_X : setOfQuotientPolyXAfterEvalY b₂ a₂ P₂ f g)
+  (h_quot_Y : setOfQuotientPolyYAfterEvalX b₁ a₁ P₁ f g)
   : ∃ q : F[X][Y], g = q * f
     ∧ Bivariate.degreeX q ≤ b₁ - a₁ ∧ Bivariate.degreeY q ≤ b₂ - a₂ := sorry
 
@@ -85,12 +85,12 @@ lemma properties_of_bivariate_quotient [Field F] (a₁ a₂ b₁ b₂ n₁ n₂ 
   (h_f_degY : a₂ ≥ Bivariate.degreeY f) (h_g_degY : b₂ ≥ Bivariate.degreeY g)
   (h_card_P₁ : n₁ ≥ P₁.card) (h_card_P₂ : n₂ ≥ P₂.card)
   (h_le_1: 1 > (b₁ : ℚ)/(P₁.card : ℚ) + (b₂ : ℚ) /(P₂.card : ℚ))
-  (h_quot_X : setOfQuotientPolyXAfterEvalY b₂ a₂ P₂ f g ha₂b₂)
-  (h_quot_Y : setOfQuotientPolyYAfterEvalX b₁ a₁ P₁ f g ha₁b₁)
+  (h_quot_X : setOfQuotientPolyXAfterEvalY b₂ a₂ P₂ f g)
+  (h_quot_Y : setOfQuotientPolyYAfterEvalX b₁ a₁ P₁ f g)
   (h_quot_XY : g = q * f) :
   ∃ P₃ : Finset F, P₃.card ≥ n₁ - a₁
-  ∧ setOfQuotientPolyYAfterEvalX b₁ a₁ P₃ f g ha₁b₁
-  ∧ ∃ P₄ : Finset F, P₄.card ≥ n₂ - a₂ ∧ setOfQuotientPolyYAfterEvalX b₂ a₂ P₄ f g ha₂b₂
+  ∧ setOfQuotientPolyYAfterEvalX b₁ a₁ P₃ f g
+  ∧ ∃ P₄ : Finset F, P₄.card ≥ n₂ - a₂ ∧ setOfQuotientPolyYAfterEvalX b₂ a₂ P₄ f g
   := by sorry
 
 
