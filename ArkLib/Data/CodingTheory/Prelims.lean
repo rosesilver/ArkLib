@@ -72,7 +72,7 @@ end
   Affine line between two vectors with coefficients in a semiring.
 -/
 def Affine.line {F : Type*} {ι : Type*} [Ring F] (u v : ι → F) : Submodule F (ι → F) :=
-  vectorSpan _ {u, v} 
+  vectorSpan _ {u, v}
 
 namespace sInf
 
