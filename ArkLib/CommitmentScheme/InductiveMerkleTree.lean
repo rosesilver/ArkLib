@@ -25,7 +25,9 @@ This file implements Merkle Trees. In contrast to the other Merkle tree implemen
   - analogously
   - `FullDataTree α ≃ InternalDataTree α × LeafDataTree α`
   - OR EVEN BETTER:
-    - Redefine `FullDataTree`, `InternalDataTree`, `LeafDataTree` in terms of functions from `Skeleton`, so that this equivalence follows immediately from the above by algebra.
+    - Redefine `FullDataTree`, `InternalDataTree`, `LeafDataTree`
+      in terms of functions from `Skeleton`,
+      so that this equivalence follows immediately from the above by algebra.
 - Replace `List`s with `FreeSubgroup` for ancestors?
 - Functions for navigating tree
   - [ ] Go to parent if it exists
@@ -40,7 +42,9 @@ This file implements Merkle Trees. In contrast to the other Merkle tree implemen
 - API for flatttening a tree to a list
 - Define `Lattice` strutcure of trees
   - a susbset relation on trees, mappings of indices to indices of supertrees
-- Define a datatype for indices of general trees, equivalent to lists of bools, and relationships to normal types.
+- Define a datatype for indices of trees agnostic of the skeleton,
+  - This type has an equivalence to lists of bools,
+  - and maps from the the other indexing types.
 
 ### More Things needed for basic Merkle Trees
 
@@ -61,7 +65,6 @@ should (eventually) include all complexities such as the following:
 -/
 
 namespace BinaryTree
-#check Lattice
 
 /-!
 # Binary Trees
@@ -77,7 +80,7 @@ Inductive data type for a binary tree skeleton.
 A skeleton is a binary tree without values, used to represent the structure of the tree.
 -/
 inductive Skeleton where
-  | leaf : Skeleton
+  | leaf : Skeleton -- TODO rename to `nil`?
   | internal : Skeleton → Skeleton → Skeleton
 
 /-- Type of indices of leaves of a skeleton -/
@@ -87,6 +90,14 @@ inductive SkeletonLeafIndex : Skeleton → Type
       SkeletonLeafIndex (Skeleton.internal left right)
   | ofRight {left right : Skeleton} (idxRight : SkeletonLeafIndex right) :
       SkeletonLeafIndex (Skeleton.internal left right)
+
+/-- Type of indices of internal nodes of a skeleton -/
+inductive SkeletonInternalIndex : Skeleton → Type
+  | ofInternal {left right} : SkeletonInternalIndex (Skeleton.internal left right)
+  | ofLeft {left right : Skeleton} (idxLeft : SkeletonLeafIndex left) :
+      SkeletonInternalIndex (Skeleton.internal left right)
+  | ofRight {left right : Skeleton} (idxRight : SkeletonLeafIndex right) :
+      SkeletonInternalIndex (Skeleton.internal left right)
 
 /-- Type of indices of any node of a skeleton -/
 inductive SkeletonNodeIndex : Skeleton → Type
@@ -115,7 +126,8 @@ def SkeletonNodeIndex.depth {s : Skeleton} : SkeletonNodeIndex s → Nat
   | SkeletonNodeIndex.ofLeft idxLeft => idxLeft.depth + 1
   | SkeletonNodeIndex.ofRight idxRight => idxRight.depth + 1
 
-def SkeletonNodeIndex.parent {s : Skeleton} (idx : SkeletonNodeIndex s) : Option (SkeletonNodeIndex s) :=
+def SkeletonNodeIndex.parent {s : Skeleton} (idx : SkeletonNodeIndex s) :
+    Option (SkeletonNodeIndex s) :=
   match idx with
   | SkeletonNodeIndex.ofLeaf => none
   | SkeletonNodeIndex.ofInternal => none
@@ -131,7 +143,7 @@ def SkeletonNodeIndex.parent {s : Skeleton} (idx : SkeletonNodeIndex s) : Option
 /-- Get the root value of a InternalDataTree. -/
 def getRootIndex (s : Skeleton) : SkeletonNodeIndex s := match s with
   | Skeleton.leaf => SkeletonNodeIndex.ofLeaf
-  | Skeleton.internal left right =>
+  | Skeleton.internal _ _ =>
     SkeletonNodeIndex.ofInternal
 
 -- Analogous to `Cache`
@@ -155,12 +167,13 @@ inductive LeafDataTree (α : Type) : Skeleton → Type
   deriving Repr
 
 /-- Get the root value of a InternalDataTree. -/
-def LeafDataTree.getValueAtIndex {s} {α : Type} (tree : LeafDataTree α s) (idx : SkeletonLeafIndex s) : α :=
+def LeafDataTree.getValueAtIndex {s} {α : Type}
+    (tree : LeafDataTree α s) (idx : SkeletonLeafIndex s) : α :=
   match tree, idx with
   | LeafDataTree.leaf value, SkeletonLeafIndex.ofLeaf => value
-  | LeafDataTree.internal left right, SkeletonLeafIndex.ofLeft idxLeft =>
+  | LeafDataTree.internal left _, SkeletonLeafIndex.ofLeft idxLeft =>
     LeafDataTree.getValueAtIndex left idxLeft
-  | LeafDataTree.internal left right, SkeletonLeafIndex.ofRight idxRight =>
+  | LeafDataTree.internal _ right, SkeletonLeafIndex.ofRight idxRight =>
     LeafDataTree.getValueAtIndex right idxRight
 
 /--
@@ -174,13 +187,14 @@ inductive FullDataTree (α : Type) : Skeleton → Type
       FullDataTree α (Skeleton.internal left right)
 
 /-- Get the root value of a InternalDataTree. -/
-def FullDataTree.getValueAtIndex {s} {α : Type} (tree : FullDataTree α s) (idx : SkeletonNodeIndex s) : α :=
+def FullDataTree.getValueAtIndex {s} {α : Type}
+    (tree : FullDataTree α s) (idx : SkeletonNodeIndex s) : α :=
   match tree, idx with
   | FullDataTree.leaf value, SkeletonNodeIndex.ofLeaf => value
   | FullDataTree.internal value _ _, SkeletonNodeIndex.ofInternal => value
-  | FullDataTree.internal _ left right, SkeletonNodeIndex.ofLeft idxLeft =>
+  | FullDataTree.internal _ left _, SkeletonNodeIndex.ofLeft idxLeft =>
     FullDataTree.getValueAtIndex left idxLeft
-  | FullDataTree.internal _ left right, SkeletonNodeIndex.ofRight idxRight =>
+  | FullDataTree.internal _ _ right, SkeletonNodeIndex.ofRight idxRight =>
     FullDataTree.getValueAtIndex right idxRight
 
 
@@ -189,7 +203,8 @@ def FullDataTree.getRootValue {s} {α : Type} (tree : FullDataTree α s) :=
   tree.getValueAtIndex (getRootIndex s)
 
 
-lemma SkeletonNodeIndex.parent_of_depth_zero {s : Skeleton} (idx : SkeletonNodeIndex s) (h : idx.depth = 0) :
+lemma SkeletonNodeIndex.parent_of_depth_zero {s : Skeleton}
+    (idx : SkeletonNodeIndex s) (h : idx.depth = 0) :
     parent idx = none := by
   cases idx with
   | ofLeaf => rfl
@@ -202,58 +217,14 @@ lemma SkeletonNodeIndex.parent_of_depth_zero {s : Skeleton} (idx : SkeletonNodeI
     simp_all
 
 
-
-lemma SkeletonNodeIndex.parent_of_depth_succ {s : Skeleton} (idx : SkeletonNodeIndex s) (n : ℕ) (h : idx.depth = n + 1) :
-    idx.parent.map depth = some n := by
-  sorry
-  -- cases idx with
-  -- | ofLeaf =>
-  --   unfold depth at h
-  --   exfalso
-  --   omega
-  -- | ofInternal =>
-  --   unfold depth at h
-  --   exfalso
-  --   omega
-  -- | ofLeft idxLeft =>
-  --   cases idxLeft with
-  --   | ofLeaf =>
-  --     unfold depth at h
-  --     unfold depth at h
-  --     unfold parent
-  --     unfold Option.map
-  --     unfold depth
-  --     simp_all
-  --   | ofInternal =>
-  --     unfold depth at h
-  --     unfold depth at h
-  --     unfold parent
-  --     unfold Option.map
-  --     unfold depth
-  --     simp_all
-  --   | ofLeft idxLeftLeft =>
-  --     unfold depth at h
-  --     unfold depth at h
-  --     unfold parent
-  --     rw [Option.map_map]
-  --     unfold Option.map
-  --     cases idxLeftLeft.ofLeft.parent with
-  --     | none =>
-  --       simp_all
-  --       sorry
-  --     | some idxLeftLeftParent =>
-  --       sorry
-  --     -- unfold depth
-  --     simp_all
-  --   | ofRight idxLeftRight => sorry
-  -- | ofRight idxRight => sorry
-
-
 /--
 Given a `Skeleton`, and a node index of the skeleton,
-return a list of node indices which are the ancestors of the node, starting with the root node, working down to the node itself.
+return a list of node indices which are the ancestors of the node,
+starting with the root node,
+working down to the node itself.
 -/
-def SkeletonNodeIndex.findAncestors {s : Skeleton} (idx : SkeletonNodeIndex s) : List (SkeletonNodeIndex s) :=
+def SkeletonNodeIndex.findAncestors {s : Skeleton} (idx : SkeletonNodeIndex s) :
+    List (SkeletonNodeIndex s) :=
   match idx with
   | SkeletonNodeIndex.ofLeaf => [SkeletonNodeIndex.ofLeaf]
   | SkeletonNodeIndex.ofInternal => [SkeletonNodeIndex.ofInternal]
@@ -263,7 +234,9 @@ def SkeletonNodeIndex.findAncestors {s : Skeleton} (idx : SkeletonNodeIndex s) :
     .ofInternal :: ((idxRight.findAncestors)).map (SkeletonNodeIndex.ofRight)
 
 /--
-Given a `Skeleton`, and a leaf index of the skeleton, return a list of node indices which are the ancestors of the leaf.
+Given a `Skeleton`,
+and a leaf index of the skeleton,
+return a list of node indices which are the ancestors of the leaf.
 -/
 def findAncestors {s : Skeleton} (idx : SkeletonLeafIndex s) : List (SkeletonNodeIndex s) :=
   SkeletonNodeIndex.findAncestors idx.toNodeIndex
@@ -271,7 +244,8 @@ def findAncestors {s : Skeleton} (idx : SkeletonLeafIndex s) : List (SkeletonNod
 /--
 Return the sibling node index of a given `SkeletonNodeIndex`. Or `none` if the node is the root
 -/
-def SkeletonNodeIndex.findSibling {s : Skeleton} (idx : SkeletonNodeIndex s) : Option (SkeletonNodeIndex s) :=
+def SkeletonNodeIndex.findSibling {s : Skeleton} (idx : SkeletonNodeIndex s) :
+    Option (SkeletonNodeIndex s) :=
   match idx with
   | SkeletonNodeIndex.ofLeaf => none
   | SkeletonNodeIndex.ofInternal => none
@@ -295,6 +269,22 @@ def SkeletonNodeIndex.findSibling {s : Skeleton} (idx : SkeletonNodeIndex s) : O
 /-- Find the siblings of the ancestors of a node -/
 def SkeletonNodeIndex.findUncles {s : Skeleton} (idx : SkeletonNodeIndex s) :
     List (SkeletonNodeIndex s) := (idx.findAncestors.filterMap (fun idx => idx.findSibling))
+
+
+/--
+Returns, for a particular FullDataTree,
+the set of all query-responses that have been made to the oracle to construct the tree.
+Note that technically, this can have multiple responses for the same query,
+even though that cannot happen in a genuine tree construction.
+-/
+def FullDataTree.toQueryCacheSet {s : BinaryTree.Skeleton} {α : Type} (tree : FullDataTree α s) :
+    Set ((α × α) × α) :=
+  match tree with
+  | FullDataTree.leaf a => ∅
+  | FullDataTree.internal value left right =>
+    let leftCache := left.toQueryCacheSet
+    let rightCache := right.toQueryCacheSet
+    leftCache ∪ rightCache ∪ Set.singleton ((left.getRootValue, right.getRootValue), value)
 
 
 end BinaryTree
@@ -356,7 +346,8 @@ variable {α : Type}
 --     | none => getProofHelper rest r
 --     | some v => v :: getProofHelper rest r
 
-def buildMerkleTree_with_hash {s} (leaf_tree : LeafDataTree α s) (hashFn : α → α → α) : (FullDataTree α s) :=
+def buildMerkleTree_with_hash {s} (leaf_tree : LeafDataTree α s) (hashFn : α → α → α) :
+    (FullDataTree α s) :=
   match leaf_tree with
   | LeafDataTree.leaf a => FullDataTree.leaf a
   | LeafDataTree.internal left right =>
@@ -379,7 +370,8 @@ def buildMerkleTree {s} (leaf_tree : LeafDataTree α s) : OracleComp (spec α) (
     The proof consists of the sibling hashes needed to recompute the root.
 
 -/
-def generateProof {s} (cache_tree : FullDataTree α s) (idx : BinaryTree.SkeletonLeafIndex s) : List α :=
+def generateProof {s} (cache_tree : FullDataTree α s) (idx : BinaryTree.SkeletonLeafIndex s) :
+    List α :=
   (idx.toNodeIndex.findUncles.map (fun siblingIdx =>
     cache_tree.getValueAtIndex siblingIdx))
 
@@ -399,7 +391,7 @@ def getPutativeRoot {s} (idx : BinaryTree.SkeletonLeafIndex s) (leafValue : α)
     | BinaryTree.SkeletonLeafIndex.ofLeaf =>
       -- This indicates that the proof is longer than the depth of the tree, which is invalid.
       -- A more well-typed version using `Vector` might prevent this.
-      -- FOr now, we just return the leaf value.
+      -- For now, we just return the leaf value.
       return leafValue
     | BinaryTree.SkeletonLeafIndex.ofLeft idxLeft =>
       -- Recursively get the hash of the ancestor of the leaf which is just below the root
@@ -414,7 +406,8 @@ def getPutativeRoot {s} (idx : BinaryTree.SkeletonLeafIndex s) (leafValue : α)
   `root`.
   Works by computing the putative root based on the branch, and comparing that to the actual root.
   Outputs `failure` if the proof is invalid. -/
-def verifyProof [DecidableEq α] {s} (idx : BinaryTree.SkeletonLeafIndex s) (leafValue : α) (rootValue : α)
+def verifyProof [DecidableEq α] {s}
+    (idx : BinaryTree.SkeletonLeafIndex s) (leafValue : α) (rootValue : α)
     (proof : List α) : OracleComp (spec α) Unit := do
   let putative_root ← getPutativeRoot idx leafValue proof
   guard (putative_root = rootValue)
@@ -433,7 +426,7 @@ theorem singleHash_neverFails [DecidableEq α] [inst_1 : SelectableType α] (lef
   | some u =>
     simp only [StateT.run_pure, neverFails_pure]
 
-theorem buildMerkleTree_neverFails {α : Type} [inst : DecidableEq α] [inst_1 : SelectableType α] {s : Skeleton}
+theorem buildMerkleTree_neverFails {α : Type} [DecidableEq α] [SelectableType α] {s : Skeleton}
     (leaf_tree : LeafDataTree α s) (preexisting_cache : (spec α).QueryCache) :
     ((simulateQ randomOracle (buildMerkleTree leaf_tree)).run preexisting_cache).neverFails := by
   induction leaf_tree generalizing preexisting_cache with
@@ -449,34 +442,136 @@ theorem buildMerkleTree_neverFails {α : Type} [inst : DecidableEq α] [inst_1 :
       singleHash_neverFails merkle_cache_left.getRootValue merkle_cache_right.getRootValue
         query_cache'
 
-theorem completeness [DecidableEq α] [SelectableType α] {s} (leaf_tree : LeafDataTree α s) (idx : BinaryTree.SkeletonLeafIndex s)
+theorem getPutativeRoot_neverFails {α : Type} [inst : DecidableEq α] [inst_1 : SelectableType α]
+    {s : Skeleton} (idx : SkeletonLeafIndex s) (leafValue : α) (query_cache : (spec α).QueryCache)
+    (proof : List α) :
+    ((simulateQ randomOracle
+            (getPutativeRoot idx leafValue proof)).run
+        query_cache).neverFails := by
+  induction proof generalizing s idx leafValue query_cache with
+  | nil =>
+    unfold getPutativeRoot
+    simp only [simulateQ_pure, StateT.run_pure, neverFails_pure]
+  | cons siblingBelowRootHash restProof ih =>
+    unfold getPutativeRoot
+    cases s with
+    | leaf =>
+      cases idx with
+      | ofLeaf =>
+        -- If the index is a leaf, then the proof is invalid, so we just return the leaf value.
+        simp only [simulateQ_pure, StateT.run_pure, neverFails_pure]
+    | internal left right =>
+      cases idx with
+      | ofLeft idxLeft =>
+        simp only [simulateQ_bind, StateT.run_bind, neverFails_bind_iff]
+        constructor
+        · apply ih
+        · intro x x_mem
+          simp only [Function.comp_apply]
+          exact singleHash_neverFails x.1 siblingBelowRootHash x.2
+      | ofRight idxRight =>
+        simp only [simulateQ_bind, StateT.run_bind, neverFails_bind_iff]
+        constructor
+        · apply ih
+        · intro x x_mem
+          simp only [Function.comp_apply]
+          exact singleHash_neverFails siblingBelowRootHash x.1 x.2
+
+
+-- To VCVio
+/--
+Returns, for a particular oracle's cache,
+the set of all (query, response) pairs that have been made to the oracle.
+-/
+def QueryCache.toSet {ι : Type} {spec : OracleSpec ι} (i : ι) (cache : spec.QueryCache) :
+    Set (spec.domain i × spec.range i) :=
+  { (q, r) : spec.domain i × spec.range i | cache i q = some r }
+
+
+/--
+A theorem that characterizes the support of the `buildMerkleTree` function.
+This is used to prove completeness of the Merkle tree construction.
+It states that a particular `(merkle_tree_cache, query_cache)` pair
+is a possible output, query cache state pair after a run of the `buildMerkleTree` function
+if and only if:
+
+- The resulting_cache is the union of the preexisting_cache and the merkle_tree_cache
+- The resulting_cache is consistent, i.e. there are not two distinct responses for the same query.
+-/
+theorem mem_buildMerkleTree_support_iff {α : Type} [DecidableEq α] [SelectableType α] {s : Skeleton}
+    (leaf_tree : LeafDataTree α s)
+    (merkle_tree_cache) (preexisting_cache resulting_cache : (spec α).QueryCache) :
+    ((merkle_tree_cache, resulting_cache)
+        ∈ ((simulateQ randomOracle (buildMerkleTree leaf_tree)).run preexisting_cache).support) ↔
+    (
+      QueryCache.toSet () resulting_cache
+      = QueryCache.toSet () preexisting_cache ∪ merkle_tree_cache.toQueryCacheSet
+      ∧ (
+          ∀ x ∈ (QueryCache.toSet () resulting_cache),
+            ∀ x' ∈ (QueryCache.toSet () resulting_cache),
+              x.1 = x'.1 → x.2 = x'.2)
+    ) := by
+  sorry
+
+/--
+When generateProof runs on a cache that contains all the queries in the merkle tree,
+the putative root obtained from the resulting proof is equal to the root value of the cache.
+-/
+theorem putative_root_eq_merkle_tree_cache_root_of_generate_proof {α : Type}
+    [DecidableEq α] [SelectableType α]
+    {s : Skeleton} (leaf_tree : LeafDataTree α s) (idx : SkeletonLeafIndex s)
+    (merkle_tree_cache : FullDataTree α s) (query_cache query_cache' : (spec α).QueryCache)
+    (putative_root : α)
+    (cache_subset :
+      merkle_tree_cache.toQueryCacheSet ⊆ QueryCache.toSet () query_cache)
+    (mem_support :
+      (putative_root, query_cache') ∈
+      ((simulateQ randomOracle
+        (getPutativeRoot idx
+          (leaf_tree.getValueAtIndex idx)
+          (generateProof merkle_tree_cache idx))).run
+        query_cache).support) :
+    putative_root = merkle_tree_cache.getRootValue := by
+  
+  sorry
+
+theorem completeness [DecidableEq α] [SelectableType α] {s}
+    (leaf_tree : LeafDataTree α s) (idx : BinaryTree.SkeletonLeafIndex s)
     (preexisting_cache : (spec α).QueryCache) :
     (((do
       let cache ← buildMerkleTree leaf_tree
       let proof := generateProof cache idx
-      let verif ← verifyProof idx (leaf_tree.getValueAtIndex idx) (cache.getRootValue) proof).simulateQ
-      (randomOracle)).run preexisting_cache).neverFails := by
+      let _ ← verifyProof idx (leaf_tree.getValueAtIndex idx) (cache.getRootValue) proof
+      ).simulateQ (randomOracle)).run preexisting_cache).neverFails := by
   simp [neverFails_bind_iff]
   constructor
   · -- buildMerkleTree never fails
     exact buildMerkleTree_neverFails leaf_tree preexisting_cache
   · -- verifyProof never fails on the output of generateProof after buildMerkleTree
     intros merkle_tree_cache query_cache h_mem_support
-    -- Need a theorem to characterize
-    -- `(merkle_tree_cache, query_cache) ∈ ((simulateQ randomOracle (buildMerkleTree leaf_tree)).run preexisting_cache).support`
-    -- i.e. this is equivalent to:
-    --  - All merkle_tree_cache parent-child relationships are in the query_cache
-    --  - Everything in the preexisting_cache is in the query_cache (so merkle_tree_cache and preexisting_cache are compatible)
-    --  - Nothing else is in the query_cache
     simp [verifyProof, neverFails_bind_iff]
     constructor
     · -- getPutativeRoot never fails
-      sorry
+      exact
+        getPutativeRoot_neverFails idx (leaf_tree.getValueAtIndex idx) query_cache
+          (generateProof merkle_tree_cache idx)
     · -- guard never fails
       intro putative_root query_cache' h_mem_support'
-      -- Now, Need a theorem to characterize
-      -- `(putative_root, query_cache') ∈ ((simulateQ randomOracle
-      --     (getPutativeRoot idx (leaf_tree.getValueAtIndex idx) (generateProof merkle_tree_cache idx))).run
-      -- query_cache✝).support`
+      split_ifs with h
+      · -- If the putative root is equal to the root value, then we are done.
+        simp
+      -- Otherwise, we must derive a contradiction
+      simp only [StateT.run_failure, not_neverFails_failure]
+      contrapose! h
+      rw [mem_buildMerkleTree_support_iff] at h_mem_support
+      rcases h_mem_support with ⟨h_cache_subset, h_consistent⟩
+      have cache_subset : merkle_tree_cache.toQueryCacheSet ⊆ QueryCache.toSet () query_cache := by
+        rw [h_cache_subset]
+        exact Set.subset_union_right
+      exact
+        InductiveMerkleTree.putative_root_eq_merkle_tree_cache_root_of_generate_proof leaf_tree idx
+          merkle_tree_cache query_cache query_cache' putative_root cache_subset h_mem_support'
 
-      sorry
+end
+
+end InductiveMerkleTree
