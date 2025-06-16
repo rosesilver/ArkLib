@@ -314,7 +314,6 @@ lemma isBerlekampWelchSolution_zero_zero [NeZero n] {v : Fin (2 * 0 + 0) → F} 
   IsBerlekampWelchSolution 0 0 ωs f v ↔ f = 0 := by
   simp [IsBerlekampWelchSolution]
 
-set_option maxHeartbeats 400000 in
 private lemma solution_to_BerlekampWelch_condition {e k : ℕ} 
   [NeZero n] 
   {ωs f : Fin n → F}
@@ -447,7 +446,8 @@ lemma E_and_Q_unique
                             exact List.nodup_finRange _⟩ : Finset F).val ⊆ R.roots := fun _ _ ↦ by
       aesop (add safe cases BerlekampWelchCondition) (add safe (by ring))
     have hcard := card_le_degree_of_subset_roots hsub
-    aesop (add safe (by omega)) (add 1% cases Nat)
+    simp at *
+    cases k <;> cases e <;> aesop (add safe (by omega))
 
 end
 
