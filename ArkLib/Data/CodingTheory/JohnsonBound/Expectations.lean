@@ -77,5 +77,14 @@ lemma lin_shift_d [Field F] {B : Finset (Fin n → F)} (v : Fin n → F)
   field_simp 
   apply Finset.sum_bij (fun x _ => (x.1 - v, x.2 -v)) <;> try aesop
 
+lemma e_ball_le_radius [Field F] {B : Finset (Fin n → F)} (v : Fin n → F) (r : ℚ)
+  :
+  e (B ∩ ({ x | Δ₀(x, v) ≤ r} : Finset _)) v ≤ r := by 
+  sorry 
+
+lemma min_dist_le_d [Field F] {B : Finset (Fin n → F)} (v : Fin n → F)
+  :
+  
+
 end JohnsonBound
 
