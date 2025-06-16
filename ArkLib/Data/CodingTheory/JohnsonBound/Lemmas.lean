@@ -19,7 +19,7 @@ namespace JohnsonBound
 section 
 
 variable {n : ℕ}
-variable {F : Type} [Fintype F] [DecidableEq F]
+variable {F : Type*} [Fintype F] [DecidableEq F]
 
 private def Fi (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset (Fin n → F) :=
   { x | x ∈ B ∧ x i = α } 

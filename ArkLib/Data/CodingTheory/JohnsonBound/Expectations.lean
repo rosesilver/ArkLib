@@ -17,7 +17,7 @@ import ArkLib.Data.CodingTheory.JohnsonBound.Choose2
 namespace JohnsonBound
 
 variable {n : ℕ}
-variable {F : Type} [Fintype F] [DecidableEq F]
+variable {F : Type*} [Fintype F] [DecidableEq F]
 
 def e (B : Finset (Fin n → F)) (v : Fin n → F) : ℚ :=
   (1 : ℚ)/B.card * ∑ x ∈ B, Δ₀(v, x) 
@@ -78,4 +78,3 @@ lemma lin_shift_d [Field F] {B : Finset (Fin n → F)} (v : Fin n → F)
   apply Finset.sum_bij (fun x _ => (x.1 - v, x.2 -v)) <;> try aesop
 
 end JohnsonBound
-
