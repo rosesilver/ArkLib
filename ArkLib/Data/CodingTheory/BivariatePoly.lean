@@ -22,7 +22,7 @@ variable {F : Type} [Semiring F]
          (f g : F[X][Y])
 
 /--
-The set of coeffiecients of a bivatiate polynomial.
+The set of coefficients of a bivariate polynomial.
 -/
 def coeffs : Finset F[X] := f.support.image (fun n => f.coeff n)
 
