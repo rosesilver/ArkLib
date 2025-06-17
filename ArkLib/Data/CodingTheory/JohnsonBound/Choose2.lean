@@ -25,7 +25,7 @@ private lemma x_sqr_minus_x_is_conv' {x₁ x₂ : ℚ} {α₁ α₂ : ℚ}
   unfold f 
   obtain ⟨rfl⟩ := show α₂ = 1 - α₁ by rw [←h_conv]; simp
   suffices 0 ≤ α₁ * (1 - α₁) * (x₁ - x₂) ^ 2 by linarith
-  refine mul_nonneg (mul_nonneg h_noneg_1 h_noneg_2) (sq_nonneg _)
+  exact mul_nonneg (mul_nonneg h_noneg_1 h_noneg_2) (sq_nonneg _)
 
 def choose_2 (x : ℚ) : ℚ := x * (x-1)/2
 
