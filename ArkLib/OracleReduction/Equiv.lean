@@ -1,4 +1,5 @@
 import ArkLib.OracleReduction.Security.Basic
+import ArkLib.OracleReduction.LiftContext.Basic
 
 /-!
   # Equivalence / Isomorphism of Oracle Reductions
@@ -7,6 +8,8 @@ import ArkLib.OracleReduction.Security.Basic
 
   We also define equivalence between IORs, in the sense that the statements and witnesses are
   equivalent, and their mapping commute with the reduction (both for the prover and the verifier).
+
+  NOTE: this is now a special case of `liftContext`
 
   -----------------------------------------------------------------------------------------------
 
@@ -72,17 +75,19 @@ def distEquiv (oa ob : OracleComp spec α) : Prop :=
   evalDist oa = evalDist ob
 
 theorem oa1_distEquiv_oa2 : distEquiv oa1 oa2 := by
-  simp [oa1, oa2, distEquiv]
-  ext i
-  rcases i with none | ⟨x, y⟩
-  · simp [tsum_eq_sum (s := Finset.univ) (by simp)]
-    simp [OptionT.run, OptionT.lift, OptionT.mk, Functor.map, Option.elimM]
-    sorry
-  · simp [tsum_eq_sum (s := Finset.univ) (by simp)]
-    simp [OptionT.run, OptionT.lift, OptionT.mk, Functor.map]
-    -- simp [tsum_eq_sum (s := Finset.univ) (by simp)]
-    -- cases on x and y
-    sorry
+  simp [oa1, oa2, distEquiv, OptionT.lift, OptionT.mk, evalDist, liftM, monadLift, simulateQ,
+    Option.getM, Option.elimM, OptionT.run, MonadLift.monadLift, lift]
+  ext ⟨i, j⟩
+  sorry
+  -- rcases i with none | ⟨x, y⟩
+  -- · simp [tsum_eq_sum (s := Finset.univ) (by simp)]
+  --   simp [OptionT.run, OptionT.lift, OptionT.mk, Functor.map, Option.elimM]
+  --   sorry
+  -- · simp [tsum_eq_sum (s := Finset.univ) (by simp)]
+  --   simp [OptionT.run, OptionT.lift, OptionT.mk, Functor.map]
+  --   -- simp [tsum_eq_sum (s := Finset.univ) (by simp)]
+  --   -- cases on x and y
+  --   sorry
 
 open SimOracle in
 def obsEquiv (oa ob : OracleComp spec α) : Prop :=
