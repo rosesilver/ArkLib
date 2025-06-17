@@ -17,63 +17,42 @@ import ArkLib.Data.CodingTheory.JohnsonBound.Choose2
 namespace JohnsonBound
 
 variable {n : ℕ}
-variable {F : Type*} [Fintype F] [DecidableEq F]
+variable {F : Type*} [DecidableEq F]
+         {B : Finset (Fin n → F)} {v : Fin n → F}
 
 def e (B : Finset (Fin n → F)) (v : Fin n → F) : ℚ :=
-  (1 : ℚ)/B.card * ∑ x ∈ B, Δ₀(v, x) 
+  (1 : ℚ)/B.card * ∑ x ∈ B, Δ₀(v, x)
 
 def d (B : Finset (Fin n → F)) : ℚ :=
   (1 : ℚ)/(2 * choose_2 B.card) * ∑ x ∈ (Finset.product B B) with x.1 ≠ x.2, Δ₀(x.1, x.2) 
 
-lemma lin_shift_card [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
+lemma lin_shift_card [Field F] [Fintype F]
   :
   B.card = ({ x - v | x ∈ B} : Finset _).card := by
-  apply Finset.card_bij
-    (i := fun x _ => x - v)
-    (by aesop)
-    (by simp)
-    (by simp)
+  apply Finset.card_bij (i := fun x _ => x - v) <;> aesop
 
 @[simp]
 lemma lin_shift_hamming_distance [Field F] {x₁ x₂ v : Fin n → F}
   :
-  Δ₀(x₁ - v, x₂ - v) = Δ₀(x₁, x₂) := by
-  simp [hammingDist]
-lemma lin_shift_e [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
+  Δ₀(x₁ - v, x₂ - v) = Δ₀(x₁, x₂) := by simp [hammingDist]
+
+lemma lin_shift_e [Field F] [Fintype F]
   (h_B : B.card ≠ 0)
   :
   e B v = e ({ x - v | x ∈ B} : Finset _) 0 := by
   simp [e]
   rw [←lin_shift_card]
   field_simp
-  apply Finset.sum_bij (i := fun x _ => x - v) <;> try simp [hammingDist, hammingNorm] 
-  intro a ha 
-  apply Finset.card_bij (i := fun x _ => x) <;> try tauto
-  simp at *
-  intro α₁ h contr
-  rw [←zero_add (v α₁)] at h
-  rw [←contr] at h 
-  simp at h  
-  simp 
-  intro b h contr 
-  rw [contr] at h
-  simp at h
+  apply Finset.sum_bij (i := fun x _ => x - v) <;>
+    simp [hammingDist, hammingNorm, sub_eq_zero, eq_comm]
 
-lemma lin_shift_d [Field F] {B : Finset (Fin n → F)} (v : Fin n → F)
+lemma lin_shift_d [Field F] [Fintype F]
   (h_B : 2 ≤ B.card)
   :
-  d B = d ({ x - v | x ∈ B} : Finset _) := by
+  d B = d ({x - v | x ∈ B} : Finset _) := by
   simp [d]
   rw [←lin_shift_card]
-  have h : choose_2 B.card ≠ 0 := by
-    simp [choose_2]
-    apply And.intro (by aesop)
-    intro contr 
-    have h : (B.card : ℚ) = 1 := by 
-      rw [←zero_add (1 : ℚ), ←contr] 
-      simp
-    simp at h
-    omega
+  have h : choose_2 B.card ≠ 0 := by aesop (add simp [choose_2, sub_eq_zero])
   field_simp 
   apply Finset.sum_bij (fun x _ => (x.1 - v, x.2 -v)) <;> try aesop
 

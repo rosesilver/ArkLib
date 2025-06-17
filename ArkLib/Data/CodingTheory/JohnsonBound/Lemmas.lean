@@ -47,7 +47,7 @@ private lemma K_eq_sum {α : F} : K B i α = ∑ (x : B), if x.1 i = α then 1 e
   simp_rw [Finset.card_filter, Finset.sum_attach_eq_sum_dite]
   apply Finset.sum_congr <;> aesop
 
-private lemma sum_choose_K' [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
+private lemma sum_choose_K' [Zero F]
   (h_card : 2 ≤ (Fintype.card F))
   : 
   ((Finset.univ (α := F)).card - 1 : ℚ) 
