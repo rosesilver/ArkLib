@@ -84,6 +84,9 @@ lemma e_ball_le_radius [Field F] {B : Finset (Fin n → F)} (v : Fin n → F) (r
 
 lemma min_dist_le_d [Field F] {B : Finset (Fin n → F)} (v : Fin n → F)
   :
+  sInf { d | ∃ u ∈ B, ∃ v ∈ B, u ≠ v ∧ hammingDist u v = d } ≤ d B := by
+  sorry
+
   
 
 end JohnsonBound
