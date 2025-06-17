@@ -20,39 +20,29 @@ section
 
 variable {n : ℕ}
 variable {F : Type*} [Fintype F] [DecidableEq F]
+         {B : Finset (Fin n → F)} {i : Fin n}
 
 private def Fi (B : Finset (Fin n → F)) (i : Fin n) (α : F) : Finset (Fin n → F) :=
   { x | x ∈ B ∧ x i = α } 
 
-private def K (B : Finset (Fin n → F)) (i : Fin n) (α : F) : ℕ :=
+private abbrev K (B : Finset (Fin n → F)) (i : Fin n) (α : F) : ℕ :=
   (Fi B i α).card
 
-private lemma Fis_cover_B {B : Finset (Fin n → F)} {i : Fin n} 
-  : B = Finset.univ.biUnion (Fi B i) := by 
+private lemma Fis_cover_B : B = Finset.univ.biUnion (Fi B i) := by
   aesop (add simp [Fi])
 
-private lemma Fis_pairwise_disjoint {B : Finset (Fin n → F)} {i : Fin n} 
-  : Set.PairwiseDisjoint Set.univ (Fi B i) := by 
-  aesop (add simp 
-    [Set.PairwiseDisjoint
-    , Set.Pairwise
-    , Disjoint
-    , Fi
-    , Finset.Nonempty
-    , Finset.subset_iff
-    ]) 
+private lemma Fis_pairwise_disjoint : Set.PairwiseDisjoint Set.univ (Fi B i) := by
+  unfold Fi
+  rintro x - y - h₁ _ h₂ h₃ _ contra
+  specialize h₂ contra
+  specialize h₃ contra
+  aesop
 
-private lemma K_sums_to_B_card {B : Finset (Fin n → F)} {i : Fin n}
-  : ∑ (α : F), K B i α = B.card := by 
-  conv => 
-    rhs 
-    rw [Fis_cover_B (B := B) (i := i)]
-    rfl
+private lemma sum_K_eq_card : ∑ (α : F), K B i α = B.card := by
+  rw (occs := [2]) [Fis_cover_B (B := B) (i := i)]
   rw [Finset.card_biUnion (by simp [Fis_pairwise_disjoint])]
-  simp [K]
 
-private lemma K_eq_sum {B : Finset (Fin n → F)} {i : Fin n} {α : F}
-  : K B i α = ∑ (x : B), if x.1 i = α then 1 else 0 := by
+private lemma K_eq_sum {α : F} : K B i α = ∑ (x : B), if x.1 i = α then 1 else 0 := by
   simp [K, Fi]
   simp_rw [Finset.card_filter, Finset.sum_attach_eq_sum_dite]
   apply Finset.sum_congr <;> aesop
@@ -63,7 +53,7 @@ private lemma sum_choose_K' [Zero F] {B : Finset (Fin n → F)} {i : Fin n}
   ((Finset.univ (α := F)).card - 1 : ℚ) 
     * choose_2 ((B.card - K B i 0)/((Finset.univ (α := F)).card-1)) 
       ≤ ∑ (α : F) with α ≠ 0, choose_2 (K B i α) := by 
-  rw [←K_sums_to_B_card (i := i)]
+  rw [←sum_K_eq_card (i := i)]
   simp 
   have h_univ : Finset.univ = insert 0 ({x : F | x ≠ 0} : Finset F) := by
     ext x 

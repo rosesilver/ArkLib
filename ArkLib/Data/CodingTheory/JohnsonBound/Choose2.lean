@@ -23,34 +23,9 @@ private lemma x_sqr_minus_x_is_conv' {x₁ x₂ : ℚ} {α₁ α₂ : ℚ}
   :
   f (α₁ * x₁ + α₂ * x₂) ≤ α₁ * f x₁ + α₂ * f x₂ := by
   unfold f 
-  have h_conv : α₂ = 1 - α₁ := by 
-    rw [←h_conv]
-    field_simp
-  rw [add_sq, mul_sub, mul_sub]
-  have h : α₁ * x₁ ^ 2 - α₁ * x₁ + (α₂ * x₂ ^ 2 - α₂ * x₂) 
-    = α₁ * x₁ ^ 2  + α₂ * x₂ ^ 2 - (α₁ * x₁ + α₂ * x₂) := by ring
-  rw [h]
-  field_simp
-  rw [h_conv]
-  have h : (α₁ * x₁) ^ 2 + 2 * (α₁ * x₁) * ((1 - α₁) * x₂) + ((1 - α₁) * x₂) ^ 2
-    = α₁^2 * x₁ ^ 2 + 2 * (α₁ * (1 - α₁) * x₁ * x₂) + (1 - α₁)^2 * x₂ ^ 2 := by ring
-  rw [h]
-  apply add_le_of_le_sub_left 
-  conv =>
-    lhs 
-    rw [←add_zero ((1 - α₁) ^ 2 * x₂ ^ 2)]
-    rfl
-  apply add_le_of_le_sub_left 
-  have h : α₁ * x₁ ^ 2 
-    + (1 - α₁) * x₂ ^ 2 - (α₁ ^ 2 * x₁ ^ 2 + 2 * (α₁ * (1 - α₁) * x₁ * x₂)) - (1 - α₁) ^ 2 * x₂ ^ 2 
-    = α₁ * (1 - α₁) * x₁^2 - 2 * α₁ * (1 - α₁) * x₁ * x₂ + (1 - α₁) * α₁ * x₂^2 := by ring_nf 
-  rw [h]
-  have h : α₁ * (1 - α₁) * x₁ ^ 2 - 2 * α₁ * (1 - α₁) * x₁ * x₂ + (1 - α₁) * α₁ * x₂ ^ 2 
-    = α₁ * (1 - α₁) * (x₁ - x₂ ) ^ 2 := by ring
-  rw [h, ←h_conv]
-  apply mul_nonneg 
-  apply mul_nonneg h_noneg_1 h_noneg_2 
-  exact sq_nonneg _
+  obtain ⟨rfl⟩ := show α₂ = 1 - α₁ by rw [←h_conv]; simp
+  suffices 0 ≤ α₁ * (1 - α₁) * (x₁ - x₂) ^ 2 by linarith
+  refine mul_nonneg (mul_nonneg h_noneg_1 h_noneg_2) (sq_nonneg _)
 
 def choose_2 (x : ℚ) : ℚ := x * (x-1)/2
 
