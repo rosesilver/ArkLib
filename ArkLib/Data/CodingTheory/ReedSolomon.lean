@@ -79,10 +79,6 @@ lemma nonsquare_mulVecLin [CommSemiring F] {ι' : ℕ} {α₁ : ι ↪ F} {α₂
 def nonsquareTranspose [Field F] (ι' : ℕ) (α : ι ↪ F) : Matrix (Fin ι') ι F :=
   (Vandermonde.nonsquare ι' α)ᵀ
 
-private lemma todoMoveOut {k : ℕ} : (List.finRange k).dedup = List.finRange k := by
-  induction k <;>
-  aesop (add simp [List.finRange_succ, List.dedup_map_of_injective, Fin.succ_injective])
-
 section
 
 variable [CommRing F] {m n : ℕ} {α : Fin m → F}
