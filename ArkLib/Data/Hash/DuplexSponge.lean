@@ -4,10 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-import ArkLib.Data.Fin.Basic
-import Batteries.Data.ByteArray
-import Mathlib.Logic.Equiv.Defs
--- import Batteries.Data.ByteSubarray
+import ArkLib.Data.Hash.Serde
 
 /-!
   # Duplex Sponge API
@@ -20,23 +17,7 @@ import Mathlib.Logic.Equiv.Defs
   The API is designed to be as close as possible to the Rust implementation (as of June 22, 2025).
 
   The API is subject to change as spongefish changes.
-
-  TODO: we may want to split this file up, for instance `Serde` should be useful elsewhere
 -/
-
-/-- Type class for types that can be serialized to another type (most often `ByteArray` or
-  `String`). -/
-class Serialize (α : Type*) (β : Type*) where
-  serialize : α → β
-
-/-- Type class for types that can be deserialized from another type (most often `ByteArray` or
-  `String`), returning an `Option` if the deserialization fails. -/
-class Deserialize (α : Type*) (β : Type*) where
-  deserialize : β → Option α
-
-/-- Type class for types that can be serialized and deserialized to/from another type (most often
-  `ByteArray` or `String`). -/
-class Serde (α : Type*) (β : Type*) extends Serialize α β, Deserialize α β
 
 /-- Type class for types that can be zeroized. -/
 class Zeroize (α : Type*) where
@@ -320,7 +301,7 @@ instance : Serialize UInt8 ByteArray where
   serialize byte := ByteArray.mk #[byte]
 
 /-- Deserialize a single byte from a byte array. Gives `none` if the array is not of size 1. -/
-instance : Deserialize UInt8 ByteArray where
+instance : DeserializeOption UInt8 ByteArray where
   deserialize bytes :=
     if h : bytes.size = 1 then
       some bytes[0]

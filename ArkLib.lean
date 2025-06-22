@@ -37,7 +37,9 @@ import ArkLib.Data.FieldTheory.NonBinaryField.Secp256k1
 import ArkLib.Data.Fin.Basic
 import ArkLib.Data.Fin.Lift
 import ArkLib.Data.Fin.Pad
+import ArkLib.Data.Hash.DomainSep
 import ArkLib.Data.Hash.DuplexSponge
+import ArkLib.Data.Hash.Serde
 import ArkLib.Data.Math.Basic
 import ArkLib.Data.Math.DepCast
 import ArkLib.Data.Math.HList
@@ -71,6 +73,7 @@ import ArkLib.OracleReduction.Composition.Sequential.ProtocolSpec
 import ArkLib.OracleReduction.Equiv
 import ArkLib.OracleReduction.Execution
 import ArkLib.OracleReduction.FiatShamir.Basic
+import ArkLib.OracleReduction.FiatShamir.DuplexSponge.State
 import ArkLib.OracleReduction.LiftContext.Lens
 import ArkLib.OracleReduction.LiftContext.OracleReduction
 import ArkLib.OracleReduction.LiftContext.Reduction
