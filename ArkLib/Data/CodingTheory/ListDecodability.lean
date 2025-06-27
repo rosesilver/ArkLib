@@ -17,12 +17,14 @@ variable {ι : Type*} [Fintype ι]
 
 abbrev Code.{u, v} (ι : Type u) (S : Type v) : Type (max u v) := Set (ι → S)
 
+open Classical in
 /--
 Hamming ball of radius `r` centred at a word `y`.
 -/
 def hammingBall (C : Code ι F) (y : ι → F) (r : ℕ) : Code ι F :=
   { c | c ∈ C ∧ hammingDist y c ≤ r }
 
+open Classical in
 /--
 Ball of radius `r` centred at a word `y` with respect to the relative Hamming distance.
 -/
@@ -55,7 +57,7 @@ The code `C` is `(r,ℓ)`-list decodable.
 def listDecodable (C : Code ι F) (r : ℝ) (ℓ : ℝ) : Prop :=
   ∀ y : ι → F, listOfCloseCodewordsRel C y r ≤ ℓ
 
-section
+section Lemmas
 
 variable {C : Code ι F} {y : ι → F} {n : ℕ} {r : ℝ} {ℓ : ℝ}
 
@@ -68,7 +70,7 @@ lemma listOfCloseCodewordsRel_eq_zero :
   IsEmpty (relHammingBall C y r) ∨ Infinite (relHammingBall C y r) := by
   simp [listOfCloseCodewordsRel, Nat.card_eq_zero]
 
-end
+end Lemmas
 
 end
 
