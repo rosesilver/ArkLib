@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
+import ArkLib.Data.Hash.Classes
 import ArkLib.Data.Hash.Serde
 
 /-!
@@ -18,30 +19,6 @@ import ArkLib.Data.Hash.Serde
 
   The API is subject to change as spongefish changes.
 -/
-
-/-- Type class for types that can be zeroized. -/
-class Zeroize (α : Type*) where
-  zeroize : α → α
-
-/-- Derive `Zeroize` from `Zero`. -/
-instance {α : Type*} [Zero α] : Zeroize α where
-  zeroize := Zero.zero
-
-/-- Type class for types that can be initialized from a value of type `β`.
-
-This abstraction allows different types to be initialized from the same input type,
-providing a uniform interface for construction. In the context of cryptographic sponges,
-this is typically used to initialize states from a seed or initialization vector.
--/
-class Initialize (α : Type*) (β : Type*) where
-  /-- Initialize a value of type `α` from a value of type `β`. -/
-  new : β → α
-
-/-- Type class for types that has an injective mapping to a vector of a given length `size` of
-  another type (often `UInt8`). -/
-class HasSize (α : Type*) (β : Type*) where
-  size : Nat
-  toFun : α ↪ Vector β size
 
 /-- Type class for types that can be used as units in a cryptographic sponge.
 
@@ -136,9 +113,9 @@ class SpongePermutationSize where
   N : Nat
   /-- The rate of the sponge. -/
   R : Nat
-  /-- The rate is less than or equal to the width. -/
-  R_le_N : R ≤ N := by omega
-  /-- The rate is non-zero. -/
+  /-- The rate is less than the width. -/
+  R_lt_N : R < N := by omega
+  /-- The rate is non-zero (i.e. positive). -/
   [neZero_R : NeZero R]
 
 attribute [instance] SpongePermutationSize.neZero_R
@@ -149,6 +126,11 @@ variable [sz : SpongePermutationSize]
 
 /-- The capacity of the sponge, defined as `N - R`, the width minus the rate. -/
 def C : Nat := sz.N - sz.R
+
+instance [sz : SpongePermutationSize] : NeZero sz.C where
+  out := by
+    have := sz.R_lt_N
+    simp [C]; omega
 
 end SpongePermutationSize
 
