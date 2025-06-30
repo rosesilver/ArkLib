@@ -70,7 +70,6 @@ lemma johnson_condition_weak_implies_strong {B : Finset (Fin n → F)} {v : Fin 
   JohnsonConditionStrong (B ∩ ({ x | Δ₀(x, v) ≤ e } : Finset _)) v := by
   sorry
 
-private lemma johnson_condition_strong_implies_n_pos {B : Finset (Fin n → F)} {v : Fin n → F} 
 private lemma johnson_condition_strong_implies_n_pos
   (h_johnson : JohnsonConditionStrong B v)
   :
@@ -85,7 +84,6 @@ private lemma johnson_condition_strong_implies_2_le_F_card
   dsimp [JohnsonConditionStrong]
   rcases Fintype.card F with _ | _ | _ <;> aesop
 
-private lemma johnson_condition_strong_implies_2_le_B_card {B : Finset (Fin n → F)} {v : Fin n → F} 
 private lemma johnson_condition_strong_implies_2_le_B_card
   (h_johnson : JohnsonConditionStrong B v)
   :
@@ -113,50 +111,6 @@ lemma johnson_condition_strong_iff_johnson_denom_pos {B : Finset (Fin n → F)} 
 /--
 Theorem 3.1.
 --/
-theorem johnson_bound [Field F] {B : Finset (Fin n → F)} {v : Fin n → F}
-lemma johnson_condition_strong_iff_johnson_denom_pos :
-  JohnsonConditionStrong B v ↔ 0 < JohnsonDenominator B v := by
-  simp [JohnsonDenominator, JohnsonConditionStrong]
-
-theorem johnson_bound_OLD [Field F]
-  (h_condition : JohnsonConditionStrong B v)
-  :
-  let d := d B
-  let q : ℚ := Fintype.card F
-  let frac := q / (q - 1)
-  B.card ≤ (frac * d/n) / JohnsonDenominator B v 
-  := by
-  simp 
-  have h_condition' := h_condition
-  rw [johnson_condition_strong_iff_johnson_denom_pos] at h_condition
-  rw [Field.div_eq_mul_inv]
-  apply le_of_mul_le_mul_right (a0 := h_condition)
-  rw [mul_assoc, mul_comm ((_)⁻¹) _, Field.mul_inv_cancel _ (by linarith)]
-  simp 
-  rw [johnson_denominator_def]
-  exact JohnsonBound.johnson_bound_lemma 
-    (johnson_condition_strong_implies_n_pos h_condition') 
-    (johnson_condition_strong_implies_2_le_B_card h_condition') 
-    (johnson_condition_strong_implies_2_le_F_card h_condition')
-
-/--
-Alphabet-free Johnson bound from [codingtheory]. 
-## References
-
-* [Venkatesan Guruswami, Atri Rudra, Madhu Sudan, *Essential Coding Theory*][codingtheory]
--/
-theorem johnson_bound_alphabet_free [Field F] [DecidableEq F] 
-  {B : Finset (Fin n → F)} 
-  {v : Fin n → F}
-  {e : ℕ}
-  :
-  let d := sInf { d | ∃ u ∈ B, ∃ v ∈ B, u ≠ v ∧ hammingDist u v = d }
-  let q : ℚ := Fintype.card F
-  let frac := q / (q - 1)
-  e ≤ n - ((n * (n - d)) : ℝ).sqrt
-  →
-  (B ∩ ({ x | Δ₀(x, v) ≤ e } : Finset _)).card ≤ q * d * n := by
-  sorry
 theorem johnson_bound [Field F]
   (h_condition : JohnsonConditionStrong B v)
   :
@@ -176,5 +130,24 @@ theorem johnson_bound [Field F]
     (johnson_condition_strong_implies_n_pos h_condition) 
     (johnson_condition_strong_implies_2_le_B_card h_condition) 
     (johnson_condition_strong_implies_2_le_F_card h_condition)
+
+/--
+Alphabet-free Johnson bound from [codingtheory]. 
+## References
+
+* [Venkatesan Guruswami, Atri Rudra, Madhu Sudan, *Essential Coding Theory*][codingtheory]
+-/
+theorem johnson_bound_alphabet_free [Field F] [DecidableEq F] 
+  {B : Finset (Fin n → F)} 
+  {v : Fin n → F}
+  {e : ℕ}
+  :
+  let d := sInf { d | ∃ u ∈ B, ∃ v ∈ B, u ≠ v ∧ hammingDist u v = d }
+  let q : ℚ := Fintype.card F
+  let frac := q / (q - 1)
+  e ≤ n - ((n * (n - d)) : ℝ).sqrt
+  →
+  (B ∩ ({ x | Δ₀(x, v) ≤ e } : Finset _)).card ≤ q * d * n := by
+  sorry
 
 end JohnsonBound

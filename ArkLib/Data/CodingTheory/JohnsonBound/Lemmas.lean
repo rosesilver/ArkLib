@@ -48,175 +48,6 @@ private lemma sum_choose_K' [Zero F]
   : 
   (Fintype.card (α := F) - 1) * choose_2 ((B.card - K B i 0) / (Fintype.card (α := F) - 1)) ≤
   ∑ (α : F) with α ≠ 0, choose_2 (K B i α) := by
-  
-  rw [←sum_K_eq_card (i := i)]
-  simp
-  have h_univ : Finset.univ = insert 0 ({x : F | x ≠ 0} : Finset F) := by
-    ext x 
-    simp 
-    tauto
-  rw [h_univ, Finset.sum_insert (by simp)]
-  field_simp
-
-  have h : ((∑ x ∈ {x | ¬x = 0}, ↑(K B i x)) : ℚ) / (↑(Fintype.card F) - 1)
-    =  ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) := by 
-    rw [Finset.sum_div]
-    congr 
-    field_simp
-  rw [h]
-  let w : F → ℚ := fun _ => (1 : ℚ) / (↑(Fintype.card F) - 1)
-  let p : F → ℚ := fun x => K B i x
-  have h : ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) 
-    = ∑ x ∈ {x : F | ¬x = 0}, w x • p x := by simp [w, p]
-  rw [h]
-  rw [mul_comm]
-  apply le_trans 
-  rewrite [mul_le_mul_right (by field_simp; linarith)]
-  apply ConvexOn.map_sum_le choose_2_convex (by {
-    simp [w]
-    intro i _
-    linarith
-  })
-    (by {
-      simp [w]
-      have h : (Finset.univ (α := F)).card = Fintype.card F := by rfl
-      conv =>
-        congr 
-        congr 
-        rfl 
-        rw [←h, h_univ]
-        rfl
-        rfl
-      simp 
-      rw [Field.mul_inv_cancel]
-      simp 
-      rw [←ne_eq]
-      rw [←Finset.nonempty_iff_ne_empty]
-      simp [Finset.Nonempty]
-      have h_two := (Finset.one_lt_card (s := Finset.univ (α := F))).1 (by omega)
-      rcases h_two with ⟨a, ha, b, hb, hab⟩
-      by_cases h_ne_a : a ≠ 0 <;> try tauto
-      simp at h_ne_a 
-      rw [h_ne_a] at hab 
-      tauto
-    })
-    (by simp)
-  rw [mul_comm]
-  simp [w, p]
-  rw [Finset.mul_sum]
-  conv =>
-    lhs 
-    congr 
-    rfl
-    ext α
-    rw [←mul_assoc] 
-    rw [Field.mul_inv_cancel _ (by {
-     intro contr 
-     have contr : (↑(Fintype.card F) : ℚ) = 1 := by 
-      rw [←zero_add 1, ←contr]
-      field_simp
-     simp at contr 
-     omega
-    })]
-    rw [one_mul]
-    rfl
-  have h : ({x ∈ insert 0 ({x | ¬x = 0} : Finset F) | ¬x = 0} : Finset F) 
-    = ({ x : F | ¬ x = 0 } : Finset F) := 
-    by 
-      ext x 
-      simp
-      tauto
-  rw [h]
-
-private lemma sum_choose_K'' [Zero F]
-  (h_card : 2 ≤ (Fintype.card F))
-  : 
-  (Fintype.card (α := F) - 1) * choose_2 ((B.card - K B i 0) / (Fintype.card (α := F) - 1)) ≤
-  ∑ (α : F) with α ≠ 0, choose_2 (K B i α) := by
-  rw [←sum_K_eq_card (i := i), Nat.cast_sum]
-  set X₁ : ℚ := Fintype.card F - 1
-  set X₂ := K B i
-  suffices X₁ * choose_2 ((∑ x with x ≠ 0, ↑(X₂ x)) / X₁) ≤
-           ∑ α with α ≠ 0, choose_2 ↑(X₂ α) by
-    convert this
-    rw [Finset.sum_eq_sum_diff_singleton_add (i := 0) (by simp)]
-    ring_nf; apply Finset.sum_congr (Finset.ext _) <;> simp
-  
-
-  
-  have h : ((∑ x ∈ {x : F | ¬x = 0}, ↑(K B i x)) : ℚ) / (↑(Fintype.card F) - 1)
-    =  ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) := by 
-    rw [Finset.sum_div]
-    congr 
-    field_simp
-  rw [h]
-  
-  let w : F → ℚ := fun _ => (1 : ℚ) / (↑(Fintype.card F) - 1)
-  let p : F → ℚ := fun x => K B i x
-  have h : ∑ x ∈ {x : F | ¬x = 0}, ((1 : ℚ)/((Fintype.card F) - 1)) * ↑(K B i x) 
-    = ∑ x ∈ {x : F | ¬x = 0}, w x • p x := by simp [w, p]
-  rw [h]
-  rw [mul_comm]
-  apply le_trans 
-  rewrite [mul_le_mul_right (by field_simp; linarith)]
-  apply ConvexOn.map_sum_le choose_2_convex (by {
-    simp [w]
-    intro i _
-    linarith
-  })
-    (by {
-      simp [w]
-      have h : (Finset.univ (α := F)).card = Fintype.card F := by rfl
-      conv =>
-        congr 
-        congr 
-        rfl 
-        rw [←h, h_univ]
-        rfl
-        rfl
-      simp 
-      rw [Field.mul_inv_cancel]
-      simp 
-      rw [←ne_eq]
-      rw [←Finset.nonempty_iff_ne_empty]
-      simp [Finset.Nonempty]
-      have h_two := (Finset.one_lt_card (s := Finset.univ (α := F))).1 (by omega)
-      rcases h_two with ⟨a, ha, b, hb, hab⟩
-      by_cases h_ne_a : a ≠ 0 <;> try tauto
-      simp at h_ne_a 
-      rw [h_ne_a] at hab 
-      tauto
-    })
-    (by simp)
-  rw [mul_comm]
-  simp [w, p]
-  rw [Finset.mul_sum]
-  conv =>
-    lhs 
-    congr 
-    rfl
-    ext α
-    rw [←mul_assoc] 
-    rw [Field.mul_inv_cancel _ (by {
-     intro contr 
-     have contr : (↑(Fintype.card F) : ℚ) = 1 := by 
-      rw [←zero_add 1, ←contr]
-      field_simp
-     simp at contr 
-     omega
-    })]
-    rw [one_mul]
-    rfl
-  have h : ({x ∈ insert 0 ({x | ¬x = 0} : Finset F) | ¬x = 0} : Finset F) 
-    = ({ x : F | ¬ x = 0 } : Finset F) := 
-    by 
-      ext x 
-      simp
-      tauto
-  rw [h]
-
-private def sum_choose_K_i (B : Finset (Fin n → F)) (i : Fin n) : ℚ :=
-  ∑ (α : F), choose_2 (K B i α) 
   rw [←sum_K_eq_card (i := i), Nat.cast_sum]
   set X₁ : ℚ := Fintype.card F - 1
   have X₁h : X₁ ≠ 0 := by simp [X₁, sub_eq_zero]; omega
@@ -237,14 +68,14 @@ private def sum_choose_K_i (B : Finset (Fin n → F)) (i : Fin n) : ℚ :=
             (by simp)
   · rw [mul_sum]; field_simp
 
-private def sum_choose_K (B : Finset (Fin n → F)) (i : Fin n) : ℚ :=
-  ∑ (α : F), choose_2 (K B i α)
+private def sum_choose_K_i (B : Finset (Fin n → F)) (i : Fin n) : ℚ :=
+  ∑ (α : F), choose_2 (K B i α) 
 
 private lemma le_sum_choose_K [Zero F]
   (h_card : 2 ≤ (Fintype.card F)) : 
   choose_2 (K B i 0) + (Fintype.card (α := F) - 1) *
-  choose_2 ((B.card - K B i 0) / (Fintype.card (α := F) - 1)) ≤ sum_choose_K B i := by 
-  unfold sum_choose_K  
+  choose_2 ((B.card - K B i 0) / (Fintype.card (α := F) - 1)) ≤ sum_choose_K_i B i := by 
+  unfold sum_choose_K_i
   rw [show Finset.univ = {0} ∪ {x : F | x ≠ 0}.toFinset by ext; simp; tauto]
   simp [Finset.sum_union, sum_choose_K' h_card]
 
@@ -342,7 +173,7 @@ private lemma le_sum_sum_choose_K [Zero F]
   : 
   n * (choose_2 (k B) + (Fintype.card (α := F) - 1) 
     * choose_2 ((B.card - k B) / ((Fintype.card (α := F) - 1))))
-  ≤ ∑ i, sum_choose_K B i := by 
+  ≤ ∑ i, sum_choose_K_i B i := by 
   rw [mul_add]
   transitivity
   apply add_le_add_right (k_choose_2 (n := n) (by omega) h_B)
@@ -451,12 +282,12 @@ private lemma d_eq_sum {B : Finset (Fin n → F)}
 private lemma sum_sum_K_i_eq_n_sub_d
   (h_B : 2 ≤ B.card)
   :
-  ∑ i, sum_choose_K B i = choose_2 B.card * (n - d B) := by
+  ∑ i, sum_choose_K_i B i = choose_2 B.card * (n - d B) := by
   rw [show
     choose_2 B.card * (n - d B) = choose_2 B.card * n - (2 * choose_2 B.card * d B) / 2 by ring
   ]
   simp_rw [d_eq_sum h_B, sum_of_not_equals]
-  field_simp [←Finset.mul_sum, sum_choose_K]
+  field_simp [←Finset.mul_sum, sum_choose_K_i]
   ring
 
 private lemma almost_johnson [Zero F]
@@ -594,14 +425,6 @@ protected lemma johnson_bound_lemma [Field F] {v : Fin n → F}
     ((1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (e B v / n)) ^ 2 
       - (1 - ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * (d B/n)))  ≤
   ((Fintype.card F : ℚ) / (Fintype.card F - 1)) * d B/n := by 
-  rw [lin_shift_e (B := B) (by omega)]
-  rw [lin_shift_d h_B]
-  rw [lin_shift_card (B := B) (v := v)]
-  exact johnson_bound₀ h_n (by {
-      rw [←lin_shift_card (B := B)]
-      assumption
-    })
-    h_card
   rw [lin_shift_e (by omega), lin_shift_d h_B, lin_shift_card (v := v)]
   exact johnson_bound₀ h_n (lin_shift_card (B := B) ▸ h_B) h_card
 
