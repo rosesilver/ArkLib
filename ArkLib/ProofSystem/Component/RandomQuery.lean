@@ -47,16 +47,16 @@ def WitOut := Unit
 
 /-- The input relation is that the two oracles are equal. -/
 @[reducible, simp]
-def relIn : (StmtIn × ∀ i, OStmtIn OStatement i) → WitIn → Prop := fun ⟨(), oracles⟩ () =>
-  oracles 0 = oracles 1
+def relIn : Set ((StmtIn × ∀ i, OStmtIn OStatement i) × WitIn) :=
+  { ⟨⟨(), oracles⟩, ()⟩ | oracles 0 = oracles 1 }
 
 /--
 The output relation states that if the verifier's single query was `q`, then
 `a` and `b` agree on that `q`, i.e. `oracle a q = oracle b q`.
 -/
 @[reducible, simp]
-def relOut : (StmtOut OStatement × ∀ i, OStmtOut OStatement i) → WitOut → Prop :=
-  fun ⟨q, oStmt⟩ () => oracle (oStmt 0) q = oracle (oStmt 1) q
+def relOut : Set ((StmtOut OStatement × ∀ i, OStmtOut OStatement i) × WitOut) :=
+  { ⟨⟨q, oStmt⟩, ()⟩ | oracle (oStmt 0) q = oracle (oStmt 1) q }
 
 @[reducible]
 def pSpec : ProtocolSpec 1 := ![(.V_to_P, Query OStatement)]
@@ -68,15 +68,15 @@ and outputs the same `q`.
 We keep track of `(a, b)` in the prover's state, along with the single random query `q`.
 -/
 @[inline, specialize]
-def oracleProver : OracleProver (pSpec OStatement) oSpec Unit Unit
-    (Query OStatement) Unit
-    (fun _ : Fin 2 => OStatement) (fun _ : Fin 2 => OStatement) where
+def oracleProver : OracleProver oSpec
+    Unit (fun _ : Fin 2 => OStatement) Unit
+    (Query OStatement) (fun _ : Fin 2 => OStatement) Unit (pSpec OStatement) where
 
   PrvState
   | 0 => ∀ _ : Fin 2, OStatement
   | 1 => (∀ _ : Fin 2, OStatement) × (Query OStatement)
 
-  input := fun ⟨(), oracles⟩ () => oracles
+  input := fun x => x.1.2
 
   sendMessage | ⟨0, h⟩ => nomatch h
 
@@ -88,8 +88,9 @@ def oracleProver : OracleProver (pSpec OStatement) oSpec Unit Unit
 The oracle verifier simply returns the challenge, and performs no checks.
 -/
 @[inline, specialize]
-def oracleVerifier : OracleVerifier (pSpec OStatement) oSpec Unit (Query OStatement)
-    (fun _ : Fin 2 => OStatement) (fun _ : Fin 2 => OStatement) where
+def oracleVerifier : OracleVerifier oSpec
+    Unit (fun _ : Fin 2 => OStatement)
+    (Query OStatement) (fun _ : Fin 2 => OStatement) (pSpec OStatement) where
 
   verify := fun _ chal => do
     let q : Query OStatement := chal ⟨0, rfl⟩
@@ -106,9 +107,8 @@ its output statement also contains the challenge `q`.
 -/
 @[inline, specialize]
 def oracleReduction :
-  OracleReduction (pSpec OStatement) oSpec Unit Unit
-    (Query OStatement) Unit
-    (fun _ : Fin 2 => OStatement) (fun _ : Fin 2 => OStatement) where
+  OracleReduction oSpec Unit (fun _ : Fin 2 => OStatement) Unit
+    (Query OStatement) (fun _ : Fin 2 => OStatement) Unit (pSpec OStatement) where
   prover := oracleProver oSpec OStatement
   verifier := oracleVerifier oSpec OStatement
 
@@ -134,24 +134,24 @@ theorem oracleReduction_completeness : (oracleReduction oSpec OStatement).perfec
 -- def langOut : Set ((Query OStatement) × (∀ _ : Fin 2, OStatement)) := setOf fun ⟨q, oracles⟩ =>
 --   OracleInterface.oracle (oracles 0) q = OracleInterface.oracle (oracles 1) q
 
-def stateFunction : (oracleVerifier oSpec OStatement).StateFunction (pSpec OStatement) oSpec
+def stateFunction : (oracleVerifier oSpec OStatement).StateFunction
     (relIn OStatement).language (relOut OStatement).language where
   toFun
   | 0 => fun ⟨_, oracles⟩ _ => oracles 0 = oracles 1
   | 1 => fun ⟨_, oracles⟩ chal =>
     let q : Query OStatement := by simpa [pSpec] using chal ⟨0, by aesop⟩
     OracleInterface.oracle (oracles 0) q = OracleInterface.oracle (oracles 1) q
-  toFun_empty := fun stmt hStmt => by simp_all [relIn, Function.language]
+  toFun_empty := fun stmt hStmt => by simp_all [relIn, Set.language]
   toFun_next := fun i hDir ⟨stmt, oStmt⟩ tr h => by simp_all
   toFun_full := fun ⟨stmt, oStmt⟩ tr h => by
-    simp_all [relOut, Function.language]
+    simp_all [relOut, Set.language]
     intro a b hSupp
     simp [OracleVerifier.toVerifier, Verifier.run, oracleVerifier] at hSupp
     simp [hSupp.1, hSupp.2, h]
 
 /-- The extractor is trivial since the output witness is `Unit`. -/
-def extractor : RBRExtractor (pSpec OStatement) oSpec
-    (Unit × (∀ _ : Fin 2, OStatement)) Unit :=
+def extractor : Extractor.RoundByRound oSpec
+    (Unit × (∀ _ : Fin 2, OStatement)) Unit (pSpec OStatement) :=
   fun _ _ _ _ => ()
 
 /-!
@@ -237,7 +237,7 @@ instance : ∀ i, OracleInterface ((pSpec OStatement).Message i) | ⟨0, h⟩ =>
 
 -- Perhaps it's time to test out the liftContext infrastructure
 
--- instance : OracleContextLens
+-- instance : OracleContext.Lens
 --     RandomQuery.StmtIn (RandomQuery.StmtOut OStatement)
 --     StmtIn (StmtOut OStatement)
 --     (RandomQuery.OStmtIn OStatement) (RandomQuery.OStmtOut OStatement)
