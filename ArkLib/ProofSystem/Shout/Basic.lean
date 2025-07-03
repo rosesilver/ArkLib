@@ -12,37 +12,71 @@ import ArkLib.ProofSystem.Sumcheck.Spec.General
 
 namespace Shout
 
-variable (K : ℕ) (T : ℕ) (F : Type)
+-- number of registers
+variable (K : ℕ) --assuming K is a power of 2
+
+-- log K
+variable (logK : ℕ)
+
+--number of cycles
+variable (T : ℕ) --assuming T is a power of 2
+
+-- log T
+variable (logT : ℕ)
+
+-- field
+variable (F : Type) --TODO: make a field?
+
+-- The set of register indices
 def Registers : Type := Fin K
+
+-- The set of cycle indices
 def Cycles : Type := Fin T
-variable (Val : Registers K → F) (rv : Cycles T → F) (ra : Registers K × Cycles T → F)
-def w := ra × rv
--- variable (w : ra × rv)
--- def pSpec : ProtocolSpec 1 := ![(.P_to_V, MlPoly R n)]
--- #check pSpec
 
--- variable {ι : Type} (oSpec : OracleSpec ι) (StmtIn WitIn StmtOut WitOut : Type)
--- variable {ιₛ : Type} (OStmtIn : ιₛ → Type) [∀ i, OracleInterface (OStmtIn i)]
--- variable {ιₛ : Type} (OStmtOut : ιₛ → Type) [∀ i, OracleInterface (OStmtOut i)]
+-- the read-accesses vector
+--variable (ra : Registers logK × Cycles logT → F)
+variable (ra : Registers (2 ^ logK) × Cycles (2 ^ logT) → F)
 
+-- the read-values vector
+variable (rv : Cycles (2 ^ logT) → F)
+
+-- the static lookup table
+variable (Val : Registers (2 ^ logK) → F)
+
+-- TODO: change var name to be more descriptive
+-- polynomial len
+def n : ℕ := logK + logT
+-- def n (logK : ℕ) (logT : ℕ) : ℕ := logK + logT
+
+-- the single-round protocol specification
+def pSpec : ProtocolSpec 1 := ![(.P_to_V, MlPoly F (n logK logT))]
+
+-- the input statement type
+def StmtIn : Type := Unit
+
+-- the input witness type
+def WitIn : Type := (Registers (2 ^ logK) × Cycles (2 ^ logT) → F) × (Cycles (2 ^ logT) → F)
+
+
+-- the input oracle statement type
+-- TODO
+
+def OStmtIn : Fin 1 → Type := fun _ => (Registers (2 ^ logK) → F)
+
+variable {ι : Type} (oSpec : OracleSpec ι) (StmtIn WitIn StmtOut WitOut : Type)
+variable {ιₛ : Type} (OStmtIn : ιₛ → Type) [∀ i, OracleInterface (OStmtIn i)]
+variable {ιₛ : Type} (OStmtOut : ιₛ → Type) [∀ i, OracleInterface (OStmtOut i)]
 
 section OracleReduction
 
 @[inline, specialize]
-def oracleProver : OracleProver pSpec oSpec StmtIn WitIn StmtOut WitOut OStmtIn OStmtOut where
-  PrvState | 1 => sorry
+def oracleProver : OracleProver (pSpec logK logT F) oSpec StmtIn WitIn StmtOut WitOut OStmtIn OStmtOut where
+  --PrvState | 0 => sorry
+  PrvState := sorry
   input := sorry
   sendMessage := sorry
   receiveChallenge := sorry
   output := sorry
-
-
-/- The prover
-input statement x:
-witness w:
-oracle input ox:
--/
-
 
 end OracleReduction
 end Shout
