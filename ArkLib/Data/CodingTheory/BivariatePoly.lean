@@ -8,10 +8,16 @@ import Mathlib.Algebra.Polynomial.Eval.Defs
 import Mathlib.Algebra.Polynomial.Bivariate
 import Mathlib.Data.Fintype.Defs
 
+import Mathlib.Algebra.MvPolynomial.Basic
 
 open Classical
 open Polynomial
 open Polynomial.Bivariate
+
+variable {a b : MvPolynomial ℕ ℚ}
+
+example : a + b = b + a := by
+  exact Lean.Grind.IntModule.add_comm a b
 
 namespace Bivariate
 
