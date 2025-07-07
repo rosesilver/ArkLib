@@ -10,9 +10,7 @@ import ArkLib.Data.Classes.HasSize
 import ArkLib.Data.Classes.Initialize
 import ArkLib.Data.Classes.Serde
 import ArkLib.Data.Classes.Zeroize
-import ArkLib.Data.CodingTheory
 import ArkLib.Data.CodingTheory.Basic
-import ArkLib.Data.CodingTheory.BerlekampWelch
 import ArkLib.Data.CodingTheory.BerlekampWelch.BerlekampWelch
 import ArkLib.Data.CodingTheory.BerlekampWelch.Condition
 import ArkLib.Data.CodingTheory.BerlekampWelch.ElocPoly
@@ -21,6 +19,10 @@ import ArkLib.Data.CodingTheory.BerlekampWelch.Sorries
 import ArkLib.Data.CodingTheory.BerlekampWelch.ToMathlib
 import ArkLib.Data.CodingTheory.DivergenceOfSets
 import ArkLib.Data.CodingTheory.InterleavedCode
+import ArkLib.Data.CodingTheory.JohnsonBound.Basic
+import ArkLib.Data.CodingTheory.JohnsonBound.Choose2
+import ArkLib.Data.CodingTheory.JohnsonBound.Expectations
+import ArkLib.Data.CodingTheory.JohnsonBound.Lemmas
 import ArkLib.Data.CodingTheory.ListDecodability
 import ArkLib.Data.CodingTheory.PolishchukSpielman
 import ArkLib.Data.CodingTheory.Prelims
