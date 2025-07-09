@@ -9,51 +9,50 @@ import ArkLib.Data.MvPolynomial.Multilinear
 import ArkLib.Data.MlPoly.Basic
 import Mathlib.RingTheory.MvPolynomial.Basic
 import ArkLib.ProofSystem.Sumcheck.Spec.General
+import ArkLib.ProofSystem.Component.SendWitness
 
 namespace Shout
 
--- Public Parameters
 structure PublicParams where
   logK : ℕ
   logT : ℕ
   F : Type
 
-namespace PublicParams
+------------------ NAMESPACE: SETUP ------------------
+namespace SetUp
 
---variable (pp : PublicParams)
--- the read-accesses vector ra, read-values vector rv, static lookup table Val
-structure SetUp (pp : PublicParams) where
-  ra : MlPoly pp.F (pp.logK + pp.logT)
-  rv : MlPoly pp.F pp.logT
-  val : MlPoly pp.F pp.logK
-end PublicParams
+variable (pp : PublicParams)
 
-/-
-variable (ra : MlPoly pp.F (pp.logK + pp.logT))
-variable (rv : MlPoly pp.F pp.logT)
-variable (Val : MlPoly pp.F pp.logK)
--/
--- number of variables in polynomial ra
-def ra_num_vars : ℕ := pp.logK + pp.logT
+structure MemCheckPolys (pp : PublicParams) where
+  ra : MlPoly pp.F (pp.logK + pp.logT) --read-access vector
+  rv : MlPoly pp.F pp.logT --read-values vector
+  val : MlPoly pp.F pp.logK --static lookup table
 
--- The set of register and cycle indices
+
+def ra_num_vars : ℕ := pp.logK + pp.logT -- number of variables in polynomial ra
+
 def Registers (K : ℕ): Type := Fin K
 def Cycles (T : ℕ): Type := Fin T
+end SetUp
 
--- the single-round protocol specification
-def pSpec : ProtocolSpec 1 := ![(.P_to_V, MlPoly pp.F (ra_num_vars pp))]
+------------------ NAMESPACE: SPEC ------------------
+namespace Spec
+variable (pp : PublicParams)
+variable {ι : Type} (oSpec : OracleSpec ι)
 
 -- the input statement type
-def StmtIn : Type := Unit
-
--- the input witness type
-def WitIn : Type :=
-  (Registers (2 ^ pp.logK) × Cycles (2 ^ pp.logT) → pp.F) × (Cycles (2 ^ pp.logT) → pp.F)
+@[simp]
+abbrev StmtIn : Type := Unit
 
 -- the input oracle statement type
-def OStmtIn : Fin 1 → Type := fun _ => (Registers (2 ^ pp.logK) → pp.F)
+@[simp]
+abbrev OStmtIn : Fin 1 → Type := fun _ => (SetUp.Registers (2 ^ pp.logK) → pp.F)
 
--- the oracle interface
+-- the input witness type
+@[simp]
+abbrev WitIn : Type := MlPoly pp.F (SetUp.ra_num_vars pp)
+
+-- the oracle interface for OStmtIn
 instance : ∀ i, OracleInterface (OStmtIn pp i) :=
   fun _ => {
     Query := Fin (2 ^ pp.logK)
@@ -61,31 +60,40 @@ instance : ∀ i, OracleInterface (OStmtIn pp i) :=
     oracle := fun Val k => Val k
   }
 
+-- the oracle interface for WitIn
+instance : OracleInterface (WitIn pp) where
+  Query := sorry --TODO: change to ra_num_vars
+  Response := pp.F
+  oracle := sorry
+
 -- the relation
+@[simp]
+abbrev RelIn := Set ((StmtIn × ∀ i, (OStmtIn pp i)) × (WitIn pp))
+
+-- the output statement type
+@[simp]
+abbrev Statement.AfterFirstMessage : Type := Unit
+
+-- the output statement type
+@[simp]
+abbrev OracleStatement.AfterFirstMessage : Fin 1 ⊕ Fin 1 → Type :=
+  (OStmtIn pp) ⊕ᵥ (fun _ => WitIn pp)
+
+-- the output witness type
+@[simp]
+abbrev Witness.AfterFirstMessage : Type := WitIn pp
+
+-- the first reduction
+def oracleReduction.firstMessage :
+    OracleReduction oSpec StmtIn (OStmtIn pp) (WitIn pp) StmtIn
+    (OracleStatement.AfterFirstMessage pp) Unit ![(.P_to_V, (WitIn pp))] :=
+    SendSingleWitness.oracleReduction oSpec StmtIn (OStmtIn pp) (WitIn pp)
 
 end Spec
-
-
-variable {ι : Type} (oSpec : OracleSpec ι) (StmtIn WitIn StmtOut WitOut : Type)
-variable {ιₛ : Type} (OStmtIn : ιₛ → Type) [∀ i, OracleInterface (OStmtIn i)]
-variable {ιₛ : Type} (OStmtOut : ιₛ → Type) [∀ i, OracleInterface (OStmtOut i)]
-
-section OracleReduction
-
-@[inline, specialize]
-def oracleProver : OracleProver (pSpec logK logT F) oSpec StmtIn WitIn StmtOut WitOut OStmtIn OStmtOut where
-  PrvState := fun i => match i with
-   | 0 => sorry
-   | 1 => sorry
-  input := sorry
-  sendMessage := sorry
-  receiveChallenge := sorry
-  output := sorry
-
-end OracleReduction
 end Shout
 
-/- SCRATCH WORK
+------------------ SCRATCH WORK ------------------
+/-
 def Regs (logK : ℕ): Type := Fin (2^logK) → Fin (logK) → Bool
 def reg {logK : ℕ} (var : Fin (logK)): Regs (logK) := sorry
 def Regs {logK : ℕ} : Type := Fin (2^logK) → Fin (logK) → Bool
@@ -103,4 +111,17 @@ variable (rv : Cycles (2 ^ logT) → F)
 variable (ra : Registers logK × Cycles logT → F)
 variable (Val : Registers (2 ^ logK) → F)
 variable (ra : Registers (2 ^ logK) × Cycles (2 ^ logT) → F)
+
+variable (ra : MlPoly pp.F (pp.logK + pp.logT))
+variable (rv : MlPoly pp.F pp.logT)
+variable (Val : MlPoly pp.F pp.logK)
+
+the input witness type
+@[simp]
+abbrev WitIn : Type :=
+  (SetUp.Registers (2 ^ pp.logK) × SetUp.Cycles (2 ^ pp.logT) → pp.F)
+    × (SetUp.Cycles (2 ^ pp.logT) → pp.F)
+
+the single-round protocol specification for sending ~ra
+def pSpec : ProtocolSpec 1 := ![(.P_to_V, MlPoly pp.F (SetUp.ra_num_vars pp))]
 -/
