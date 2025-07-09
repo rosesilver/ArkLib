@@ -29,7 +29,7 @@ structure MemCheckPolys (pp : PublicParams) where
   val : MlPoly pp.F pp.logK --static lookup table
 
 
-def ra_num_vars : ℕ := pp.logK + pp.logT -- number of variables in polynomial ra
+def n_ra : ℕ := pp.logK + pp.logT -- number of variables in polynomial ra
 
 def Registers (K : ℕ): Type := Fin K
 def Cycles (T : ℕ): Type := Fin T
@@ -46,23 +46,33 @@ abbrev StmtIn : Type := Unit
 
 -- the input oracle statement type
 @[simp]
-abbrev OStmtIn : Fin 1 → Type := fun _ => (SetUp.Registers (2 ^ pp.logK) → pp.F)
+abbrev OStmtIn : Fin 2 → Type := fun i =>
+  match i with
+  | 0 => (SetUp.Registers (2 ^ pp.logK) → pp.F) --val
+  | 1 => (SetUp.Cycles (2 ^ pp.logT) → pp.F) --rv
 
 -- the input witness type
 @[simp]
-abbrev WitIn : Type := MlPoly pp.F (SetUp.ra_num_vars pp)
+abbrev WitIn : Type := MlPoly pp.F (SetUp.n_ra pp)
 
 -- the oracle interface for OStmtIn
 instance : ∀ i, OracleInterface (OStmtIn pp i) :=
-  fun _ => {
+  fun i =>
+  match i with
+  | 0 =>{
     Query := Fin (2 ^ pp.logK)
     Response := pp.F
     oracle := fun Val k => Val k
   }
+  | 1 => {
+    Query := Fin (2 ^ pp.logT)
+    Response := pp.F
+    oracle := fun rv t => rv t
+  }
 
 -- the oracle interface for WitIn
 instance : OracleInterface (WitIn pp) where
-  Query := sorry --TODO: change to ra_num_vars
+  Query := sorry --TODO: change to n_ra
   Response := pp.F
   oracle := sorry
 
@@ -76,7 +86,7 @@ abbrev Statement.AfterFirstMessage : Type := Unit
 
 -- the output statement type
 @[simp]
-abbrev OracleStatement.AfterFirstMessage : Fin 1 ⊕ Fin 1 → Type :=
+abbrev OracleStatement.AfterFirstMessage : Fin 2 ⊕ Fin 1 → Type :=
   (OStmtIn pp) ⊕ᵥ (fun _ => WitIn pp)
 
 -- the output witness type
@@ -123,5 +133,5 @@ abbrev WitIn : Type :=
     × (SetUp.Cycles (2 ^ pp.logT) → pp.F)
 
 the single-round protocol specification for sending ~ra
-def pSpec : ProtocolSpec 1 := ![(.P_to_V, MlPoly pp.F (SetUp.ra_num_vars pp))]
+def pSpec : ProtocolSpec 1 := ![(.P_to_V, MlPoly pp.F (SetUp.n_ra pp))]
 -/
