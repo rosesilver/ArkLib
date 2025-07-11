@@ -10,8 +10,24 @@ import ArkLib.Data.MlPoly.Basic
 import Mathlib.RingTheory.MvPolynomial.Basic
 import ArkLib.ProofSystem.Sumcheck.Spec.General
 import ArkLib.ProofSystem.Component.SendWitness
+import Arklib.Data.Matrix.Basic
+
+/-!
+# The Shout PIOP (Polynomial Interactive Oracle Proof) for d=1
+
+This file contains the specification of the Shout PIOP for d=1
+
+## Overview
+
+## Structure
+
+-/
+
+open MvPolynomial Matrix
 
 namespace Shout
+
+noncomputable section
 
 structure PublicParams where
   logK : ℕ
@@ -28,17 +44,17 @@ structure MemCheckPolys (pp : PublicParams) where
   rv : MlPoly pp.F pp.logT --read-values vector
   val : MlPoly pp.F pp.logK --static lookup table
 
-
-def n_ra : ℕ := pp.logK + pp.logT -- number of variables in polynomial ra
-
 def Registers (K : ℕ): Type := Fin K
 def Cycles (T : ℕ): Type := Fin T
 end SetUp
 
 ------------------ NAMESPACE: SPEC ------------------
 namespace Spec
+--intantiating namespace variables
 variable (pp : PublicParams)
 variable {ι : Type} (oSpec : OracleSpec ι)
+variable [CommRing pp.F] [IsDomain pp.F] [Fintype pp.F]
+section Construction
 
 -- the input statement type
 @[simp]
@@ -53,32 +69,46 @@ abbrev OStmtIn : Fin 2 → Type := fun i =>
 
 -- the input witness type
 @[simp]
-abbrev WitIn : Type := MlPoly pp.F (SetUp.n_ra pp)
+--abbrev WitIn : Type := Fin (2 ^ (pp.logK + pp.logT)) → pp.F
+abbrev WitIn : Type := Fin (2 ^ pp.logT) → Fin (2 ^ pp.logK) → pp.F
 
 -- the oracle interface for OStmtIn
-instance : ∀ i, OracleInterface (OStmtIn pp i) :=
-  fun i =>
-  match i with
-  | 0 =>{
-    Query := Fin (2 ^ pp.logK)
+instance : ∀ i, OracleInterface (OStmtIn pp i)
+  | 0 => {
+    Query := Fin pp.logK → pp.F --I think input is cast as a field element?
     Response := pp.F
-    oracle := fun Val k => Val k
+    oracle := fun val evalPoint => (MLE (val ∘ finFunctionFinEquiv)) ⸨evalPoint⸩
   }
   | 1 => {
-    Query := Fin (2 ^ pp.logT)
+    Query := Fin pp.logT → pp.F
     Response := pp.F
-    oracle := fun rv t => rv t
+    oracle := fun rv evalPoint => (MLE (rv ∘ finFunctionFinEquiv)) ⸨evalPoint⸩
   }
 
 -- the oracle interface for WitIn
 instance : OracleInterface (WitIn pp) where
-  Query := sorry --TODO: change to n_ra
+  Query := (Fin pp.logT → pp.F) × (Fin pp.logK → pp.F)
   Response := pp.F
-  oracle := sorry
+  oracle := fun wit ⟨t, k⟩ =>
+  (Matrix.toMLE (wit : Matrix (Fin (2 ^pp.logT)) (Fin (2 ^ pp.logK)) pp.F)) ⸨C ∘ t⸩ ⸨k⸩
 
--- the relation
+def isOneHot (n : ℕ) (F : Type*) [Zero F] [One F] (v : Fin n → F) : Prop :=
+  ∃ i : Fin n, (v i = 1) ∧ (∀ j ≠ i, v j = 0)
+
+def isValid (val : Fin (2 ^ pp.logK) → pp.F) (rv : Fin (2 ^ pp.logT) → pp.F)
+(ra : Fin (2 ^ pp.logT) → Fin (2 ^ pp.logK) → pp.F): Prop :=
+∀ t, rv t = ∑ k, ra t k * val k
+
+-- the relation type
 @[simp]
 abbrev RelIn := Set ((StmtIn × ∀ i, (OStmtIn pp i)) × (WitIn pp))
+
+-- the relation
+def relIn : RelIn pp := { ⟨⟨ _, oStmt ⟩, ra ⟩
+  | let val := oStmt 0
+    let rv := oStmt 1
+    (∀ t, isOneHot (2 ^ pp.logK) pp.F (ra t)) ∧ (isValid pp val rv ra)
+  }
 
 -- the output statement type
 @[simp]
@@ -99,39 +129,14 @@ def oracleReduction.firstMessage :
     (OracleStatement.AfterFirstMessage pp) Unit ![(.P_to_V, (WitIn pp))] :=
     SendSingleWitness.oracleReduction oSpec StmtIn (OStmtIn pp) (WitIn pp)
 
+end Construction
+
+section Security
+
+end Security
+
 end Spec
+
+end
+
 end Shout
-
------------------- SCRATCH WORK ------------------
-/-
-def Regs (logK : ℕ): Type := Fin (2^logK) → Fin (logK) → Bool
-def reg {logK : ℕ} (var : Fin (logK)): Regs (logK) := sorry
-def Regs {logK : ℕ} : Type := Fin (2^logK) → Fin (logK) → Bool
-def Regs : Type := ∀ (logK : ℕ), Fin (2^logK) → Fin logK → Bool
-def reg (logK : ℕ) (myNum : Fin (2 ^ logK)) (myBit : Fin (logK)) : Bool :=
-    ((myNum.val >>> myBit.val) % 2) = 1
-
-    def Regs (logK : ℕ) : Type := Fin (2^logK) → Fin logK → Bool
-def reg (logK : ℕ) (myNum : Fin (2 ^ logK)) (myBit : Fin (logK)) : Bool :=
-  ((myNum.val >>> myBit.val) % 2) = 1
-myNum
-myBit
-
-variable (rv : Cycles (2 ^ logT) → F)
-variable (ra : Registers logK × Cycles logT → F)
-variable (Val : Registers (2 ^ logK) → F)
-variable (ra : Registers (2 ^ logK) × Cycles (2 ^ logT) → F)
-
-variable (ra : MlPoly pp.F (pp.logK + pp.logT))
-variable (rv : MlPoly pp.F pp.logT)
-variable (Val : MlPoly pp.F pp.logK)
-
-the input witness type
-@[simp]
-abbrev WitIn : Type :=
-  (SetUp.Registers (2 ^ pp.logK) × SetUp.Cycles (2 ^ pp.logT) → pp.F)
-    × (SetUp.Cycles (2 ^ pp.logT) → pp.F)
-
-the single-round protocol specification for sending ~ra
-def pSpec : ProtocolSpec 1 := ![(.P_to_V, MlPoly pp.F (SetUp.n_ra pp))]
--/

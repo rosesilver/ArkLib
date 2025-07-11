@@ -106,6 +106,7 @@ import ArkLib.ProofSystem.DSL
 import ArkLib.ProofSystem.Fri.RoundConsistency
 import ArkLib.ProofSystem.Plonk.Basic
 import ArkLib.ProofSystem.Spartan.Basic
+import ArkLib.ProofSystem.Shout.Basic
 import ArkLib.ProofSystem.Stir
 import ArkLib.ProofSystem.Stir.Combine
 import ArkLib.ProofSystem.Stir.Folding
