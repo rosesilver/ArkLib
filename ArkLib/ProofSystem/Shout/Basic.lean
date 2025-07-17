@@ -178,7 +178,7 @@ def rel.AfterFirstMessage : Rel.AfterFirstMessage pp := { ⟨⟨ _, oStmt ⟩, _
   | let val := oStmt (Sum.inl 0)
     let rv := oStmt (Sum.inl 1)
     let ra := oStmt (Sum.inr 0)
-    (isValid pp val rv ra)
+    (∀ t, isOneHot (2 ^ pp.logK) pp.F (ra t)) ∧ (isValid pp val rv ra)
   }
 
 @[simp]
@@ -192,6 +192,14 @@ OracleStatement.AfterFirstMessage pp
 abbrev Witness.AfterFirstChallenge : Type := Unit
 
 def pSpecFirstChallenge : ProtocolSpec 1 := ![(.V_to_P, (Fin pp.logT → pp.F))]
+
+instance : ∀ i, OracleInterface (OracleStatement.AfterFirstMessage pp i) := by
+  intro i
+  cases i with
+  | inl j => exact inferInstanceAs (OracleInterface (OStmtIn pp j))
+  | inr j => exact inferInstanceAs (OracleInterface (WitIn pp))
+
+instance : ∀ i, OracleInterface ((pSpecFirstChallenge pp).Message i) | ⟨0, h⟩ => nomatch h
 
 -- The Oracle Prover
 def oracleProver : OracleProver oSpec
@@ -210,14 +218,6 @@ def oracleProver : OracleProver oSpec
     let ⟨⟨_, oStmt⟩, witness⟩ := state
     ((challenge,oStmt),witness)
   output := id
-
-instance : ∀ i, OracleInterface (OracleStatement.AfterFirstMessage pp i) := by
-  intro i
-  cases i with
-  | inl j => exact inferInstanceAs (OracleInterface (OStmtIn pp j))
-  | inr j => exact inferInstanceAs (OracleInterface (WitIn pp))
-
-instance : ∀ i, OracleInterface ((pSpecFirstChallenge pp).Message i) | ⟨0, h⟩ => nomatch h
 
 --oracleVerifier
 def oracleVerifier : OracleVerifier oSpec
